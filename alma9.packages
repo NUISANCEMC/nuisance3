@@ -1,0 +1,1 @@
+dnf install -y yaml-cpp-devel eigen3-devel cppzmq-devel boost-devel fmt-devel spdlog-devel
