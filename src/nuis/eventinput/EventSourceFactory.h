@@ -8,8 +8,7 @@
 namespace nuis {
 class EventSourceFactory {
 
-  typedef std::unique_ptr<IEventSource>(IEventSource_PluginFactory_t)(
-      YAML::Node const &);
+  typedef IEventSourcePtr(IEventSource_PluginFactory_t)(YAML::Node const &);
   std::unordered_map<std::string, boost::function<IEventSource_PluginFactory_t>>
       pluginfactories;
 
@@ -39,7 +38,7 @@ class EventSourceFactory {
   }
 
 public:
-  std::unique_ptr<IEventSource> Make(YAML::Node const &cfg) {
+  IEventSourcePtr Make(YAML::Node const &cfg) {
     auto type = cfg["type"].as<std::string>();
 
     if (type == "HepMC3") {

@@ -95,7 +95,7 @@ CPMFindPackage(
         "SPDLOG_BUILD_SHARED ON"
 )
 
-find_package(Boost 1.75.0 REQUIRED)
+find_package(Boost 1.75.0 COMPONENTS system filesystem REQUIRED)
 
 CPMFindPackage(
     NAME yaml-cpp
@@ -127,5 +127,6 @@ CPMAddPackage(
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/src)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
 
 

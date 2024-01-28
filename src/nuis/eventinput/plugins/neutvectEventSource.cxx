@@ -1,6 +1,9 @@
 #include "nuis/eventinput/IEventSource.h"
 
-#include "neutvect.h"
+#include "nvconv.h"
+#include "nvfatxtools.h"
+
+#include "HepMC3/GenRunInfo.h"
 
 #include "TChain.h"
 #include "TFile.h"
@@ -16,6 +19,8 @@ class neutvectEventSource : public IEventSource {
   std::vector<string> filepaths;
   std::unique_ptr<TChain> chin;
 
+  std::shared_ptr<HepMC3::GenRunInfo> gri;
+
   Long64_t ch_ents;
   Long64_t ient;
   TUUID ch_fuid;
@@ -27,7 +32,7 @@ public:
     if (cfg["filepath"]) {
       filepaths.push_back(cfg["filepath"].as<std::string>());
     } else if (cfg["filepaths"]) {
-      for (auto fp : cfg["filepath"].as<std::vector<std::string>>()) {
+      for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
         filepaths.push_back(fp);
       }
     }
@@ -49,9 +54,38 @@ public:
     nv = nullptr;
     auto branch_status = chin->SetBranchAddress("vectorbranch", &nv);
     chin->GetEntry(0);
+    int beam_pid = nv->PartInfo(0)->fPID;
+    double flux_energy_to_MeV = 1E3;
 
-    // auto gri = BuildRunInfo(ents_to_run, fatx, flux_histo, isMonoE, beam_pid,
-    //                         flux_energy_to_MeV);
+    double fatx = 0;
+
+    bool isMonoE = nvconv::isMono(*chin, nv);
+
+    std::unique_ptr<TH1> flux_hist(nullptr);
+
+    if (isMonoE) {
+      chin->GetEntry(0);
+      fatx = nv->Totcrs * 1E-2;
+    } else {
+
+      auto frpair = nvconv::GetFluxRateHistPairFromChain(*chin);
+      if (frpair.second) {
+        fatx = 1E-2 * (frpair.first->Integral() / frpair.second->Integral());
+        flux_hist = std::move(frpair.second);
+      } else {
+        std::cout << "Couldn't get fluxratehistparifromchain..." << std::endl;
+        abort();
+      }
+    }
+
+    gri = nvconv::BuildRunInfo(0, fatx, flux_hist, isMonoE, beam_pid,
+                               flux_energy_to_MeV);
+
+    ch_fuid = chin->GetFile()->GetUUID();
+    ient = 0;
+    auto ge = nvconv::ToGenEvent(nv, gri);
+    ge.set_event_number(ient);
+    return ge;
   }
 
   std::optional<HepMC3::GenEvent> next() {
@@ -67,14 +101,13 @@ public:
       ch_fuid = chin->GetFile()->GetUUID();
     }
 
-    //   auto hepev = ToGenEvent(nv, gri);
-
-    //   hepev.set_event_number(i);
+    auto ge = nvconv::ToGenEvent(nv, gri);
+    ge.set_event_number(ient);
+    return ge;
   }
 
-  static std::unique_ptr<neutvectEventSource>
-  Make_neutvectEventSource(YAML::Node const &cfg) {
-    return std::make_unique<neutvectEventSource>(cfg);
+  static IEventSourcePtr Make_neutvectEventSource(YAML::Node const &cfg) {
+    return std::make_shared<neutvectEventSource>(cfg);
   }
 };
 

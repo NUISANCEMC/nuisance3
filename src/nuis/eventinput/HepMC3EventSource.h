@@ -6,7 +6,7 @@
 
 namespace nuis {
 
-class HepMC3EventSource : public nuis::IEventSource {
+class HepMC3EventSource : public IEventSource {
 
   std::string filepath;
   std::shared_ptr<HepMC3::Reader> reader;
