@@ -1,7 +1,6 @@
 #include "nuis/eventinput/IEventSource.h"
 
-#include "nvconv.h"
-#include "nvfatxtools.h"
+#include "nuwroconv.h"
 
 #include "HepMC3/GenRunInfo.h"
 
@@ -25,7 +24,7 @@ using namespace boost::accumulators;
 
 namespace nuis {
 
-class neutvectEventSource : public IEventSource {
+class NuWroevent1EventSource : public IEventSource {
 
   std::vector<std::filesystem::path> filepaths;
   std::unique_ptr<TChain> chin;
@@ -36,13 +35,13 @@ class neutvectEventSource : public IEventSource {
   Long64_t ient;
   TUUID ch_fuid;
 
-  NeutVect *nv;
+  event *ev;
 
   accumulator_set<double, stats<tag::sum_kahan>> sumw;
 
   void CheckAndAddPath(std::filesystem::path filepath) {
     if (!std::filesystem::exists(filepath)) {
-      spdlog::warn("neutvectEventSource ignoring non-existant path {}",
+      spdlog::warn("NuWroevent1EventSource ignoring non-existant path {}",
                    filepath.native());
       return;
     }
@@ -52,7 +51,7 @@ class neutvectEventSource : public IEventSource {
     magicbytes[4] = '\0';
     if (std::string(magicbytes) != "root") {
       spdlog::warn(
-          "neutvectEventSource ignoring non-root file {} (magicbytes: {})",
+          "NuWroevent1EventSource ignoring non-root file {} (magicbytes: {})",
           filepath.native(), magicbytes);
       return;
     }
@@ -60,7 +59,7 @@ class neutvectEventSource : public IEventSource {
   }
 
 public:
-  neutvectEventSource(YAML::Node const &cfg) {
+  NuWroevent1EventSource(YAML::Node const &cfg) {
     if (cfg["filepath"]) {
       CheckAndAddPath(cfg["filepath"].as<std::string>());
     } else if (cfg["filepaths"]) {
@@ -71,57 +70,35 @@ public:
   };
 
   std::optional<HepMC3::GenEvent> first() {
-    // reset the weight counter, can't be bothered to copy out the type
+    //reset the weight counter, can't be bothered to copy out the type
     sumw = decltype(sumw)();
-
+    
     if (!filepaths.size()) {
       return std::optional<HepMC3::GenEvent>();
     }
 
-    chin = std::make_unique<TChain>("neuttree");
+    chin = std::make_unique<TChain>("treeout");
 
     for (auto const &ftr : filepaths) {
       if (!chin->Add(ftr.c_str(), 0)) {
-        spdlog::warn("Could not find neuttree in {}", ftr.native());
+        spdlog::warn("Could not find treeout in {}", ftr.native());
         chin.reset();
         return std::optional<HepMC3::GenEvent>();
       }
     }
 
     ch_ents = chin->GetEntries();
-    nv = nullptr;
-    auto branch_status = chin->SetBranchAddress("vectorbranch", &nv);
+    ev = nullptr;
+    auto branch_status = chin->SetBranchAddress("e", &ev);
     chin->GetEntry(0);
-    int beam_pid = nv->PartInfo(0)->fPID;
-    double flux_energy_to_MeV = 1E3;
 
-    double fatx = 0;
+    double fatx = ev->weight;
 
-    bool isMonoE = nvconv::isMono(*chin, nv);
-
-    std::unique_ptr<TH1> flux_hist(nullptr);
-
-    if (isMonoE) {
-      chin->GetEntry(0);
-      fatx = nv->Totcrs * 1E-2;
-    } else {
-
-      auto frpair = nvconv::GetFluxRateHistPairFromChain(*chin);
-      if (frpair.second) {
-        fatx = 1E-2 * (frpair.first->Integral() / frpair.second->Integral());
-        flux_hist = std::move(frpair.second);
-      } else {
-        spdlog::warn("Couldn't get nvconv::GetFluxRateHistPairFromChain");
-        abort();
-      }
-    }
-
-    gri = nvconv::BuildRunInfo(ch_ents, fatx, flux_hist, isMonoE, beam_pid,
-                               flux_energy_to_MeV);
+    gri = nuwroconv::BuildRunInfo(ch_ents, fatx, ev->par);
 
     ch_fuid = chin->GetFile()->GetUUID();
     ient = 0;
-    auto ge = nvconv::ToGenEvent(nv, gri);
+    auto ge = nuwroconv::ToGenEvent(*ev, gri);
     ge.set_event_number(ient);
     sumw(ge.weights().front());
     return ge;
@@ -140,7 +117,7 @@ public:
       ch_fuid = chin->GetFile()->GetUUID();
     }
 
-    auto ge = nvconv::ToGenEvent(nv, gri);
+    auto ge = nuwroconv::ToGenEvent(*ev, gri);
     ge.set_event_number(ient);
     sumw(ge.weights().front());
     return ge;
@@ -151,12 +128,12 @@ public:
   std::shared_ptr<HepMC3::GenRunInfo> run_info() { return gri; }
 
   static IEventSourcePtr MakeEventSource(YAML::Node const &cfg) {
-    return std::make_shared<neutvectEventSource>(cfg);
+    return std::make_shared<NuWroevent1EventSource>(cfg);
   }
 
-  virtual ~neutvectEventSource() {}
+  virtual ~NuWroevent1EventSource() {}
 };
 
-BOOST_DLL_ALIAS(nuis::neutvectEventSource::MakeEventSource, MakeEventSource);
+BOOST_DLL_ALIAS(nuis::NuWroevent1EventSource::MakeEventSource, MakeEventSource);
 
 } // namespace nuis

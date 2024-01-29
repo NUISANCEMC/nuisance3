@@ -4,6 +4,7 @@
 
 #include "HepMC3/GenEvent.h"
 
+#include <limits>
 #include <optional>
 
 namespace nuis {
@@ -77,6 +78,8 @@ public:
                             : std::optional<FilteredEvent>();
   }
 
+  double sum_weights_so_far() { return fsource.sum_weights_so_far(); }
+
   FilteredEventSource_looper<MultiFilteredEventSource<EvtSrcT, Key>,
                              FilteredEvent>
   begin() {
@@ -92,6 +95,8 @@ class FilteredEventSource : public IEventSource {
   std::shared_ptr<IEventSource> source;
   std::vector<std::function<bool(HepMC3::GenEvent const &)>> filters;
 
+  size_t nread, natmost;
+
   bool filter(HepMC3::GenEvent const &ev) {
     int i = 0;
     for (auto &f : filters) {
@@ -103,10 +108,11 @@ class FilteredEventSource : public IEventSource {
   }
 
 public:
-  FilteredEventSource(std::shared_ptr<IEventSource> evs) : source(evs) {}
+  FilteredEventSource(std::shared_ptr<IEventSource> evs)
+      : source(evs), nread{0}, natmost{std::numeric_limits<size_t>::max()} {}
   FilteredEventSource(std::shared_ptr<IEventSource> evs,
                       std::function<bool(HepMC3::GenEvent const &)> filt)
-      : source(evs) {
+      : source(evs), nread{0}, natmost{std::numeric_limits<size_t>::max()} {
     filters.push_back(std::move(filt));
   }
   FilteredEventSource(
@@ -116,33 +122,72 @@ public:
 
   std::optional<HepMC3::GenEvent> first() {
     std::optional<HepMC3::GenEvent> curr_event = source->first();
+    nread = 0;
+    if (curr_event) {
+      nread++;
+    }
     while (bool(curr_event) && !filter(curr_event.value())) {
+      if (nread >= natmost) {
+        return std::optional<HepMC3::GenEvent>();
+      }
       curr_event = source->next();
+      if (curr_event) {
+        nread++;
+      }
     }
     return curr_event;
   }
 
   std::optional<HepMC3::GenEvent> next() {
-    std::optional<HepMC3::GenEvent> curr_event = source->next();
-    while (bool(curr_event) && !filter(curr_event.value())) {
-      curr_event = source->next();
+
+    if (nread >= natmost) {
+      return std::optional<HepMC3::GenEvent>();
     }
+
+    std::optional<HepMC3::GenEvent> curr_event = source->next();
+    if (curr_event) {
+      nread++;
+    }
+    while (bool(curr_event) && !filter(curr_event.value())) {
+      if (nread >= natmost) {
+        return std::optional<HepMC3::GenEvent>();
+      }
+      curr_event = source->next();
+      if (curr_event) {
+        nread++;
+      }
+    }
+
     return curr_event;
   }
 
+  std::shared_ptr<HepMC3::GenRunInfo> run_info() {
+    return source ? source->run_info() : nullptr;
+  }
+
   FilteredEventSource sel(std::function<bool(HepMC3::GenEvent const &)> filt) {
-    auto fevs = FilteredEventSource(source);
-    fevs.filters = filters;
+    auto fevs = FilteredEventSource(source, filters);
+    fevs.natmost = natmost;
     fevs.filters.push_back(std::move(filt));
 
     return fevs;
   }
 
+  FilteredEventSource atmost(size_t nmost) {
+    auto fevs = FilteredEventSource(source, filters);
+    fevs.natmost = nmost;
+    return fevs;
+  }
+
+  size_t events_read() { return nread; }
+  double sum_weights_so_far() { return source->sum_weights_so_far(); }
+
   template <typename Key>
   MultiFilteredEventSource<FilteredEventSource, Key>
   multisel(std::map<Key, std::function<bool(HepMC3::GenEvent const &)>> filts) {
-    return MultiFilteredEventSource<FilteredEventSource, Key>(
-        FilteredEventSource(source, filters), filts);
+    auto fevs = FilteredEventSource(source, filters);
+    fevs.natmost = natmost;
+    return MultiFilteredEventSource<FilteredEventSource, Key>(fevs, filts);
   }
 
   FilteredEventSource_looper<FilteredEventSource, HepMC3::GenEvent> begin() {

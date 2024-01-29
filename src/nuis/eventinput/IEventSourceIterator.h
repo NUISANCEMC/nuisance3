@@ -19,7 +19,7 @@ class IEventSource_looper {
 public:
   IEventSource_looper(std::shared_ptr<IEventSource> evs);
   void operator++();
-  HepMC3::GenEvent operator*();
+  HepMC3::GenEvent const & operator*();
   bool operator!=(IEventSource_sentinel const &sent) const;
 };
 

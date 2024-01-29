@@ -5,49 +5,69 @@
 
 #include "yaml-cpp/yaml.h"
 
+#include "fmt/core.h"
+
+#include "spdlog/spdlog.h"
+
+#include <filesystem>
+#include <regex>
+
 namespace nuis {
 class EventSourceFactory {
 
   typedef IEventSourcePtr(IEventSource_PluginFactory_t)(YAML::Node const &);
-  std::unordered_map<std::string, boost::function<IEventSource_PluginFactory_t>>
+  std::map<std::filesystem::path, boost::function<IEventSource_PluginFactory_t>>
       pluginfactories;
 
-  boost::function<IEventSource_PluginFactory_t> &
-  GetPluginFactory(std::string const &pname) {
-    if (pluginfactories.count(pname)) {
-      return pluginfactories[pname];
-    }
-
+public:
+  EventSourceFactory() {
     auto NUIS_PLUGINS = std::getenv("NUIS_PLUGINS");
 
     if (!NUIS_PLUGINS) {
-      std::cout << "NUIS_PLUGINS not defined" << std::endl;
+      spdlog::critical("NUIS_PLUGINS environment variable not defined");
       abort();
     }
 
-    boost::dll::fs::path shared_library_path(NUIS_PLUGINS);
-
-    shared_library_path /= pname + "EventSource";
-
-    pluginfactories[pname] =
-        boost::dll::import_alias<IEventSource_PluginFactory_t>(
-            shared_library_path, std::string("Make_") + pname + "EventSource",
-            boost::dll::load_mode::append_decorations);
-
-    return pluginfactories[pname];
+    const std::filesystem::path shared_library_dir{NUIS_PLUGINS};
+    std::regex plugin_re("nuisplugin.eventinput.*.so");
+    for (auto const &dir_entry :
+         std::filesystem::directory_iterator{shared_library_dir}) {
+      if (std::regex_match(dir_entry.path().filename().native(), plugin_re)) {
+        spdlog::info("Found eventinput plugin: {}", dir_entry.path().native());
+        pluginfactories.emplace(
+            dir_entry.path(),
+            boost::dll::import_alias<IEventSource_PluginFactory_t>(
+                dir_entry.path().native(), "MakeEventSource"));
+      }
+    }
   }
 
-public:
   IEventSourcePtr Make(YAML::Node const &cfg) {
-    auto type = cfg["type"].as<std::string>();
-
-    if (type == "HepMC3") {
-      return std::make_unique<HepMC3EventSource>(
-          cfg["filepath"].as<std::string>());
-    } else if (type == "neutvect") {
-      return GetPluginFactory("neutvect")(cfg);
+    for (auto &[pluginso, plugin] : pluginfactories) {
+      auto es = plugin(cfg);
+      if (es->first()) {
+        spdlog::info("Reading file {} with plugin {}",
+                     cfg["filepath"].as<std::string>(), pluginso.native());
+        return es;
+      }
+    }
+    // try plugins first as there is a bug in HepMC3 root reader that segfaults
+    // if it is not passed the expected type.
+    auto es =
+        std::make_shared<HepMC3EventSource>(cfg["filepath"].as<std::string>());
+    if (es->first()) {
+      spdlog::info("Reading file {} with native HepMC3EventSource",
+                   cfg["filepath"].as<std::string>());
+      return es;
     }
     return nullptr;
+  }
+
+  IEventSourcePtr Make(std::string const &filepath) {
+    return Make(YAML::Load(fmt::format(R"(
+    filepath: {}
+    )",
+                                       filepath)));
   }
 };
 } // namespace nuis

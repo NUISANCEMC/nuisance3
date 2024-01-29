@@ -7,7 +7,9 @@ IEventSource_looper::IEventSource_looper(std::shared_ptr<IEventSource> evs)
   curr_event = source->first();
 }
 void IEventSource_looper::operator++() { curr_event = source->next(); }
-HepMC3::GenEvent IEventSource_looper::operator*() { return curr_event.value(); }
+HepMC3::GenEvent const &IEventSource_looper::operator*() {
+  return curr_event.value();
+}
 bool IEventSource_looper::operator!=(IEventSource_sentinel const &sent) const {
   return bool(curr_event);
 }
