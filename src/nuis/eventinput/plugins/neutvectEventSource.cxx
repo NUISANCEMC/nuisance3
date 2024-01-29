@@ -109,6 +109,8 @@ public:
   static IEventSourcePtr Make_neutvectEventSource(YAML::Node const &cfg) {
     return std::make_shared<neutvectEventSource>(cfg);
   }
+
+  virtual ~neutvectEventSource() {}
 };
 
 BOOST_DLL_ALIAS(nuis::neutvectEventSource::Make_neutvectEventSource,

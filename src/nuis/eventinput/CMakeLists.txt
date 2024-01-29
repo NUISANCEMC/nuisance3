@@ -1,6 +1,6 @@
-add_library(eventinput INTERFACE)
+add_library(eventinput SHARED IEventSourceIterator.cxx)
 
-target_link_libraries(eventinput INTERFACE NuHepMC::CPPUtils Boost::boost Boost::filesystem yaml-cpp)
+target_link_libraries(eventinput PUBLIC NuHepMC::CPPUtils Boost::boost Boost::filesystem yaml-cpp)
 
 add_subdirectory(plugins)
 

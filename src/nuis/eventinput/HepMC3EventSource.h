@@ -12,7 +12,7 @@ class HepMC3EventSource : public IEventSource {
   std::shared_ptr<HepMC3::Reader> reader;
 
 public:
-  HepMC3EventSource(std::string const &fp) : filepath(fp) {};
+  HepMC3EventSource(std::string const &fp) : filepath(fp){};
 
   std::optional<HepMC3::GenEvent> first() {
     // reopen the file from the start and get the next event
@@ -36,7 +36,7 @@ public:
     return std::optional<HepMC3::GenEvent>(std::move(evt));
   }
 
-  virtual ~HepMC3EventSource(){}
+  virtual ~HepMC3EventSource() {}
 };
 
 } // namespace nuis

@@ -1,5 +1,6 @@
 
 #include "nuis/eventinput/EventSourceFactory.h"
+#include "nuis/eventinput/FilteredEventSource.h"
 
 #include "HepMC3/Print.h"
 
@@ -22,18 +23,38 @@ int main() {
   auto hevs = fact.Make(hnode);
   auto nevs = fact.Make(nnode);
 
-  auto isdiv7 = [](HepMC3::GenEvent const &ev) -> bool {
-    return !(ev.event_number() % 7);
+  auto isdiv3 = [](HepMC3::GenEvent const &ev) -> bool {
+    return !(ev.event_number() % 3);
   };
 
-  for (auto ev : nuis::Filter(hevs, isdiv7)) {
-    std::cout << "hepmc3 ev passed filter: " << ev.event_number() << std::endl;
-  }
+  auto isdiv5 = [](HepMC3::GenEvent const &ev) -> bool {
+    return !(ev.event_number() % 5);
+  };
 
-  int i = 0;
-  for (auto ev : nuis::Filter(nevs, isdiv7)) {
-    std::cout << "neutvect passed filter: " << ev.event_number() << std::endl;
-    if (i++ > 100) {
+  for (auto ev : from(nevs).sel(isdiv3)) {
+    std::cout << "neutvect event " << ev.event_number()
+              << " passed isdiv3 filter." << std::endl;
+    if (ev.event_number() > 20) {
+      break;
+    }
+  }
+  std::cout << "---" << std::endl;
+  for (auto ev : from(nevs).sel(isdiv3).sel(isdiv5)) {
+    std::cout << "neutvect event " << ev.event_number()
+              << " passed isdiv3&&isdiv5 filter." << std::endl;
+    if (ev.event_number() > 20) {
+      break;
+    }
+  }
+  std::cout << "---" << std::endl;
+  for (auto [ks, ev] : from(nevs).multisel<std::string>(
+           {{"isdiv3", isdiv3}, {"isdiv5", isdiv5}})) {
+    std::cout << "neutvect event " << ev.event_number()
+              << " passed isdiv3||isdiv5: " << std::endl;
+    for (auto &f : ks) {
+      std::cout << "\tpassed: " << f << std::endl;
+    }
+    if (ev.event_number() > 20) {
       break;
     }
   }
