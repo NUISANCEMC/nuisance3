@@ -138,5 +138,12 @@ for(auto const & ev : from(fact.Make("neut.hepmc3")).sel(isdiv5)){
 ```
 
 but there are gotcha's abound therein, so we recommend that you keep a handle to the fully 
-tail-called object and then loop on that handle.
+tail-called object and then loop on that handle, like so:
+
+```c++
+auto evlooper = from(fact.Make("neut.hepmc3")).sel(isdiv5);
+for(auto const & ev :evlooper ){
+  //do something with ev
+}
+```
 
