@@ -1,17 +1,11 @@
-
 #include "nuis/eventinput/EventSourceFactory.h"
 #include "nuis/eventinput/FilteredEventSource.h"
 
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"
+#include "NuHepMC/FATXUtils.hxx"
 
 #include "spdlog/spdlog.h"
-
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics/count.hpp>
-#include <boost/accumulators/statistics/stats.hpp>
-#include <boost/accumulators/statistics/sum_kahan.hpp>
-using namespace boost::accumulators;
 
 using namespace nuis;
 
@@ -26,37 +20,30 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  auto gri = evs->run_info();
+  auto gri = evs->first().value().run_info();
 
   NuHepMC::StatusCodeDescriptors procids;
   double FATX;
 
   // if (gri) {
-  //   procids = NuHepMC::GR4::ReadProcessIdDefinitions(evs->run_info());
+  //   procids = NuHepMC::GR4::ReadProcessIdDefinitions(gri);
 
-  //   spdlog::info("NuHepMC Version: {}",
-  //                NuHepMC::GR2::ReadVersionString(evs->run_info()));
+  //   spdlog::info("NuHepMC Version: {}", NuHepMC::GR2::ReadVersionString(gri));
 
-  //   FATX = NuHepMC::GC5::ReadFluxAveragedTotalXSec(evs->run_info());
+  //   FATX = NuHepMC::GC5::ReadFluxAveragedTotalXSec(gri);
   //   spdlog::info("FATX = {} ", FATX);
-  //   if (NuHepMC::GC1::SignalsConvention(evs->run_info(), "G.C.7")) {
+  //   if (NuHepMC::GC1::SignalsConvention(gri, "G.C.7")) {
   //     for (auto &[beam_id, distrib] :
-  //          NuHepMC::GC7::ReadAllEnergyDistributions(evs->run_info())) {
+  //          NuHepMC::GC7::ReadAllEnergyDistributions(gri)) {
   //       spdlog::info("Have flux distribution for pid: {}.", beam_id);
   //     }
   //   }
   // }
 
-  accumulator_set<double, stats<tag::sum_kahan>> totxs_recip;
-
-  // auto some_evs = from(evs).atmost(1E6);
+  auto FATXAcc = NuHepMC::FATX::MakeAccumulator(gri);
 
   size_t ctr = 0;
   for (auto const &ev : evs) {
-
-    if(!ev.run_info()){
-      // abort();
-    }
 
     // auto beamp = NuHepMC::Event::GetBeamParticle(ev);
     // auto tgtp = NuHepMC::Event::GetTargetParticle(ev);
@@ -87,7 +74,7 @@ int main(int argc, char const *argv[]) {
 
     // auto procid = NuHepMC::ER3::ReadProcessID(ev);
 
-    // totxs_recip(ev.weights().front() / NuHepMC::EC2::ReadTotalCrossSection(ev));
+    FATXAcc->process(ev);
 
     // spdlog::info("Event {}: Procid: {} = {}", ev.event_number(), procid,
     //              procids[procid].first);
@@ -101,14 +88,10 @@ int main(int argc, char const *argv[]) {
     // spdlog::info("-------------------");
 
     if (ctr && !(ctr % 50000)) {
-      spdlog::info("Processed {} events", ctr);
+      spdlog::info("Processed {} events. FATX default estimate = {}", ctr, FATXAcc->fatx());
     }
     ctr++;
   }
 
-  // auto totxs_recip_sum = sum_kahan(totxs_recip);
-  // auto sumw = some_evs.sum_weights_so_far();
-
-  // spdlog::info("sum(w/txs): {}, sum(w): {}, fatx estimate: {}", totxs_recip_sum, sumw,
-  //              sumw / totxs_recip_sum);
+  spdlog::info("Final FATX estimate: {}", FATXAcc->fatx());
 }

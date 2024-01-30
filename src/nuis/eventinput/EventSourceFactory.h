@@ -21,14 +21,15 @@ class EventSourceFactory {
 
 public:
   EventSourceFactory() {
-    auto NUIS_PLUGINS = std::getenv("NUIS_PLUGINS");
+    auto NUISANCE = std::getenv("NUISANCE");
 
-    if (!NUIS_PLUGINS) {
-      spdlog::critical("NUIS_PLUGINS environment variable not defined");
+    if (!NUISANCE) {
+      spdlog::critical("NUISANCE environment variable not defined");
       abort();
     }
 
-    const std::filesystem::path shared_library_dir{NUIS_PLUGINS};
+    std::filesystem::path shared_library_dir{NUISANCE};
+    shared_library_dir /= "lib/plugins";
     std::regex plugin_re("nuisplugin.eventinput.*.so");
     for (auto const &dir_entry :
          std::filesystem::directory_iterator{shared_library_dir}) {

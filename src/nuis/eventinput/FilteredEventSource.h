@@ -78,8 +78,6 @@ public:
                             : std::optional<FilteredEvent>();
   }
 
-  double sum_weights_so_far() { return fsource.sum_weights_so_far(); }
-
   FilteredEventSource_looper<MultiFilteredEventSource<EvtSrcT, Key>,
                              FilteredEvent>
   begin() {
@@ -161,10 +159,6 @@ public:
     return curr_event;
   }
 
-  std::shared_ptr<HepMC3::GenRunInfo> run_info() {
-    return source ? source->run_info() : nullptr;
-  }
-
   FilteredEventSource sel(std::function<bool(HepMC3::GenEvent const &)> filt) {
     auto fevs = FilteredEventSource(source, filters);
     fevs.natmost = natmost;
@@ -180,7 +174,6 @@ public:
   }
 
   size_t events_read() { return nread; }
-  double sum_weights_so_far() { return source->sum_weights_so_far(); }
 
   template <typename Key>
   MultiFilteredEventSource<FilteredEventSource, Key>

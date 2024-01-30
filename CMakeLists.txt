@@ -122,11 +122,19 @@ CPMAddPackage(
   GIT_TAG main
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
   OPTIONS "BUILTIN_HEPMC3 ON"
-          "NuHepMC_BUILD_STATIC_LIBS ON"
+          "NuHepMC_BUILD_STATIC_LIBS OFF"
 )
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/src)
+add_library(nuis_options INTERFACE)
+target_include_directories(nuis_options INTERFACE 
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(nuis_options INTERFACE HepMC3::All Boost::boost Boost::filesystem yaml-cpp spdlog::spdlog)
+
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
 
-
+configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.nuis-eventinput.sh.in
+  "${PROJECT_BINARY_DIR}/setup.nuis-eventinput.sh" @ONLY)
+install(PROGRAMS
+  "${PROJECT_BINARY_DIR}/setup.nuis-eventinput.sh" DESTINATION ${CMAKE_INSTALL_PREFIX})

@@ -1,6 +1,6 @@
 add_library(eventinput SHARED IEventSourceIterator.cxx)
 
-target_link_libraries(eventinput PUBLIC HepMC3::All Boost::boost Boost::filesystem yaml-cpp spdlog::spdlog)
+target_link_libraries(eventinput PUBLIC nuis_options)
 
 add_subdirectory(plugins)
 

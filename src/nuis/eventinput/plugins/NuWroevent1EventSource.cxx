@@ -9,12 +9,6 @@
 
 #include "boost/dll/alias.hpp"
 
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics/stats.hpp>
-#include <boost/accumulators/statistics/sum_kahan.hpp>
-
-using namespace boost::accumulators;
-
 #include "spdlog/spdlog.h"
 
 #include "yaml-cpp/yaml.h"
@@ -36,8 +30,6 @@ class NuWroevent1EventSource : public IEventSource {
   TUUID ch_fuid;
 
   event *ev;
-
-  accumulator_set<double, stats<tag::sum_kahan>> sumw;
 
   void CheckAndAddPath(std::filesystem::path filepath) {
     if (!std::filesystem::exists(filepath)) {
@@ -70,8 +62,6 @@ public:
   };
 
   std::optional<HepMC3::GenEvent> first() {
-    //reset the weight counter, can't be bothered to copy out the type
-    sumw = decltype(sumw)();
     
     if (!filepaths.size()) {
       return std::optional<HepMC3::GenEvent>();
@@ -100,7 +90,6 @@ public:
     ient = 0;
     auto ge = nuwroconv::ToGenEvent(*ev, gri);
     ge.set_event_number(ient);
-    sumw(ge.weights().front());
     return ge;
   }
 
@@ -119,13 +108,8 @@ public:
 
     auto ge = nuwroconv::ToGenEvent(*ev, gri);
     ge.set_event_number(ient);
-    sumw(ge.weights().front());
     return ge;
   }
-
-  double sum_weights_so_far() { return sum_kahan(sumw); }
-
-  std::shared_ptr<HepMC3::GenRunInfo> run_info() { return gri; }
 
   static IEventSourcePtr MakeEventSource(YAML::Node const &cfg) {
     return std::make_shared<NuWroevent1EventSource>(cfg);
