@@ -89,7 +89,7 @@ int main() {
     // do something with ev which is a HepMC3::GenEvent
     FATXAcc->process(ev);
     
-    myh.Fill(<some_property>, ev.weights("CV"));
+    myh.Fill(<some_property>, ev.weight("CV"));
   }
 
   double FATX_best_estimate = FATXAcc->fatx();
