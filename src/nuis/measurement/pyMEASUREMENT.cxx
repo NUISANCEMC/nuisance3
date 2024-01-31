@@ -157,7 +157,6 @@ namespace PYBIND11_NAMESPACE { namespace detail {
 }} // namespace PYBIND11_NAMESPACE::detail
 
 
-
 PYBIND11_MODULE(pyMEASUREMENT, m) {
     m.doc() = "NUISANCE implementation in python";
 
