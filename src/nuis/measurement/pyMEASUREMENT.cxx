@@ -158,7 +158,7 @@ namespace PYBIND11_NAMESPACE { namespace detail {
 
 
 
-PYBIND11_MODULE(pyHEPDATA, m) {
+PYBIND11_MODULE(pyMEASUREMENT, m) {
     m.doc() = "NUISANCE implementation in python";
 
     py::bind_vector<std::vector<bool>>(m, "VectorBOOL");
