@@ -74,10 +74,23 @@ IF("${isSystemDir}" STREQUAL "-1")
    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 ENDIF("${isSystemDir}" STREQUAL "-1")
 
+# Hack for build tree allow running directly from build
+set(CMAKE_INCLUDE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/include)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Force position independent code as issues with some python libraries if not 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC")
+
 
 ######################### Dependencies
 
 include(CPM)
+
+# Use a package lock
+CPMUsePackageLock(package-lock.cmake)
 
 CPMFindPackage(
     NAME fmt
@@ -95,7 +108,7 @@ CPMFindPackage(
         "SPDLOG_BUILD_SHARED ON"
 )
 
-find_package(Boost 1.75.0 COMPONENTS system filesystem REQUIRED)
+find_package(Boost 1.70.0 COMPONENTS system filesystem REQUIRED)
 
 CPMFindPackage(
     NAME yaml-cpp
@@ -104,12 +117,18 @@ CPMFindPackage(
     GIT_TAG "yaml-cpp-0.6.3"
 )
 
-# CPMFindPackage(
-#     NAME Eigen3
-#     VERSION 3.4.0
-#     GITLAB_REPOSITORY "libeigen/eigen"
-#     GIT_TAG "3.4.0"
-# )
+CPMAddPackage(
+  NAME Eigen
+  VERSION 3.2.8
+  URL https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.gz
+  # Eigen's CMakelists are not intended for library use
+  DOWNLOAD_ONLY YES 
+)
+
+if(Eigen_ADDED)
+  add_library(Eigen INTERFACE IMPORTED)
+  target_include_directories(Eigen INTERFACE ${Eigen_SOURCE_DIR})
+endif()
 
 # CPMFindPackage(
 #   NAME cppzmq
@@ -125,17 +144,31 @@ CPMAddPackage(
           "NuHepMC_BUILD_STATIC_LIBS OFF"
 )
 
+CPMFindPackage(
+    NAME pybind11
+    VERSION 2.9.2
+    GITHUB_REPOSITORY pybind/pybind11
+    GIT_TAG v2.9.2
+)
+
+find_package(ROOT 6.10)
+
+find_package(ProSelecta REQUIRED)
+
+
 # This target is for any plugin that really wants to be linked
 # directly to the main executables and not be loaded dynamically
 add_library(nuis_snowflakes INTERFACE)
+
 
 add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
   $<INSTALL_INTERFACE:include>)
-target_link_libraries(nuis_options INTERFACE HepMC3::All Boost::boost Boost::filesystem yaml-cpp spdlog::spdlog)
+target_link_libraries(nuis_options INTERFACE HepMC3::All Boost::boost Boost::filesystem yaml-cpp spdlog::spdlog PROSELECTA::IO Eigen)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
@@ -144,3 +177,13 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.nuis-eventinput.s
   "${PROJECT_BINARY_DIR}/setup.nuis-eventinput.sh" @ONLY)
 install(PROGRAMS
   "${PROJECT_BINARY_DIR}/setup.nuis-eventinput.sh" DESTINATION ${CMAKE_INSTALL_PREFIX})
+
+
+  
+# PYTHON PATHS
+set(NUISANCE_PYSITEARCH "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
+set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+ 
+# BUILD SETUP
+configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.NUISANCEV3.sh.in ${PROJECT_BINARY_DIR}/setup.NUISANCEV3.sh @ONLY)
+install(PROGRAMS ${PROJECT_BINARY_DIR}/setup.NUISANCEV3.sh DESTINATION bin)
