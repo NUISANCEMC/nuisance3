@@ -7,11 +7,8 @@ class GenEvent;
 }
 
 namespace nuis {
-template <typename ET, typename PT>
-class WeightCalcFunc : public IWeightCalc<ET, PT> {
-
-  using EvtType = ET;
-  using ParamType = PT;
+template <typename EvtType, typename ParamType>
+class WeightCalcFunc : public IWeightCalc<EvtType, ParamType> {
 
   using FuncType = double(EvtType const &, ParamType const &);
 

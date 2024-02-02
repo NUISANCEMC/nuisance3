@@ -2,10 +2,10 @@
 
 namespace nuis {
 
-template <typename ET, typename PT> class IWeightCalc {
+template <typename EvtType, typename ParamType> class IWeightCalc {
 public:
-  virtual double operator()(ET const &) = 0;
-  virtual void SetParameters(PT const &) = 0;
+  virtual double operator()(EvtType const &) = 0;
+  virtual void SetParameters(ParamType const &) = 0;
 };
 
 } // namespace nuis
