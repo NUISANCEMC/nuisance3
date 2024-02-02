@@ -1,9 +1,11 @@
 #include "nuis/eventinput/EventSourceFactory.h"
 #include "nuis/eventinput/FilteredEventSource.h"
 
+#include "nuis/weightcalc/WeightCalcFunc.h"
+
 #include "NuHepMC/EventUtils.hxx"
-#include "NuHepMC/ReaderUtils.hxx"
 #include "NuHepMC/FATXUtils.hxx"
+#include "NuHepMC/ReaderUtils.hxx"
 
 #include "spdlog/spdlog.h"
 
@@ -28,7 +30,8 @@ int main(int argc, char const *argv[]) {
   // if (gri) {
   //   procids = NuHepMC::GR4::ReadProcessIdDefinitions(gri);
 
-  //   spdlog::info("NuHepMC Version: {}", NuHepMC::GR2::ReadVersionString(gri));
+  //   spdlog::info("NuHepMC Version: {}",
+  //   NuHepMC::GR2::ReadVersionString(gri));
 
   //   FATX = NuHepMC::GC5::ReadFluxAveragedTotalXSec(gri);
   //   spdlog::info("FATX = {} ", FATX);
@@ -41,6 +44,20 @@ int main(int argc, char const *argv[]) {
   // }
 
   auto FATXAcc = NuHepMC::FATX::MakeAccumulator(gri);
+
+  auto weighter_v = nuis::WeightCalcFuncHM3(
+      [](HepMC3::GenEvent const &ev, std::vector<double> const &p) {
+        return NuHepMC::Event::GetBeamParticle(ev)->momentum().e() * p.at(1);
+      });
+  weighter_v.SetParameters({1, 0.01});
+
+  auto weighter_m = nuis::WeightCalcFuncHM3_NamedParams(
+      [](HepMC3::GenEvent const &ev, std::map<std::string, double> const &p) {
+        return NuHepMC::Event::GetBeamParticle(ev)->momentum().e() *
+               p.at("eweight");
+      });
+
+  weighter_m.SetParameters({{"eweight", 0.1}});
 
   size_t ctr = 0;
   for (auto const &ev : evs) {
@@ -75,6 +92,9 @@ int main(int argc, char const *argv[]) {
     // auto procid = NuHepMC::ER3::ReadProcessID(ev);
 
     FATXAcc->process(ev);
+    spdlog::info("Enu {}, wgtm {}, wgtv {}",
+                 NuHepMC::Event::GetBeamParticle(ev)->momentum().e(),
+                 weighter_m(ev), weighter_v(ev));
 
     // spdlog::info("Event {}: Procid: {} = {}", ev.event_number(), procid,
     //              procids[procid].first);
@@ -88,7 +108,8 @@ int main(int argc, char const *argv[]) {
     // spdlog::info("-------------------");
 
     if (ctr && !(ctr % 50000)) {
-      spdlog::info("Processed {} events. FATX default estimate = {}", ctr, FATXAcc->fatx());
+      spdlog::info("Processed {} events. FATX default estimate = {}", ctr,
+                   FATXAcc->fatx());
     }
     ctr++;
   }
