@@ -1,6 +1,7 @@
 #include "nuis/eventinput/EventSourceFactory.h"
 #include "nuis/eventinput/FilteredEventSource.h"
 
+#include "nuis/weightcalc/WeightCalcFactory.h"
 #include "nuis/weightcalc/WeightCalcFunc.h"
 
 #include "NuHepMC/EventUtils.hxx"
@@ -27,40 +28,49 @@ int main(int argc, char const *argv[]) {
   NuHepMC::StatusCodeDescriptors procids;
   double FATX;
 
-  // if (gri) {
-  //   procids = NuHepMC::GR4::ReadProcessIdDefinitions(gri);
+  if (gri) {
+    procids = NuHepMC::GR4::ReadProcessIdDefinitions(gri);
 
-  //   spdlog::info("NuHepMC Version: {}",
-  //   NuHepMC::GR2::ReadVersionString(gri));
+    //   spdlog::info("NuHepMC Version: {}",
+    //   NuHepMC::GR2::ReadVersionString(gri));
 
-  //   FATX = NuHepMC::GC5::ReadFluxAveragedTotalXSec(gri);
-  //   spdlog::info("FATX = {} ", FATX);
-  //   if (NuHepMC::GC1::SignalsConvention(gri, "G.C.7")) {
-  //     for (auto &[beam_id, distrib] :
-  //          NuHepMC::GC7::ReadAllEnergyDistributions(gri)) {
-  //       spdlog::info("Have flux distribution for pid: {}.", beam_id);
-  //     }
-  //   }
-  // }
+    //   FATX = NuHepMC::GC5::ReadFluxAveragedTotalXSec(gri);
+    //   spdlog::info("FATX = {} ", FATX);
+    //   if (NuHepMC::GC1::SignalsConvention(gri, "G.C.7")) {
+    //     for (auto &[beam_id, distrib] :
+    //          NuHepMC::GC7::ReadAllEnergyDistributions(gri)) {
+    //       spdlog::info("Have flux distribution for pid: {}.", beam_id);
+    //     }
+    //   }
+  }
 
   auto FATXAcc = NuHepMC::FATX::MakeAccumulator(gri);
 
-  auto weighter_v = nuis::WeightCalcFuncHM3(
-      [](HepMC3::GenEvent const &ev, std::vector<double> const &p) {
-        return NuHepMC::Event::GetBeamParticle(ev)->momentum().e() * p.at(1);
-      });
+  auto weighter_v = nuis::WeightCalcFuncHM3([](auto const &ev, auto const &p) {
+    return NuHepMC::Event::GetBeamParticle(ev)->momentum().e() * p.at(1);
+  });
   weighter_v.SetParameters({1, 0.01});
 
-  auto weighter_m = nuis::WeightCalcFuncHM3_NamedParams(
-      [](HepMC3::GenEvent const &ev, std::map<std::string, double> const &p) {
+  auto weighter_m =
+      nuis::WeightCalcFuncHM3Map([](HepMC3::GenEvent const &ev, auto const &p) {
         return NuHepMC::Event::GetBeamParticle(ev)->momentum().e() *
                p.at("eweight");
       });
-
   weighter_m.SetParameters({{"eweight", 0.1}});
 
+  nuis::WeightCalcFactory wfact;
+
+  YAML::Node neut_reweight_node = YAML::Load(R"(
+    neut_cardname: "neut.card"
+    )");
+
+  auto weighters = wfact.Make(evs, neut_reweight_node);
+  weighters->SetParameters({
+      {"MaCCQE", 0.9},
+  });
+
   size_t ctr = 0;
-  for (auto const &ev : evs) {
+  for (auto const &ev : from(evs).atmost(10)) {
 
     // auto beamp = NuHepMC::Event::GetBeamParticle(ev);
     // auto tgtp = NuHepMC::Event::GetTargetParticle(ev);
@@ -89,12 +99,12 @@ int main(int argc, char const *argv[]) {
     //                 })
     //                 .size();
 
-    // auto procid = NuHepMC::ER3::ReadProcessID(ev);
+    auto procid = NuHepMC::ER3::ReadProcessID(ev);
 
     FATXAcc->process(ev);
-    spdlog::info("Enu {}, wgtm {}, wgtv {}",
-                 NuHepMC::Event::GetBeamParticle(ev)->momentum().e(),
-                 weighter_m(ev), weighter_v(ev));
+    // spdlog::info("Enu {}, wgtm {}, wgtv {}",
+    //              NuHepMC::Event::GetBeamParticle(ev)->momentum().e(),
+    //              weighter_m.CalcWeight(ev), weighter_v.CalcWeight(ev));
 
     // spdlog::info("Event {}: Procid: {} = {}", ev.event_number(), procid,
     //              procids[procid].first);
@@ -107,10 +117,14 @@ int main(int argc, char const *argv[]) {
     // spdlog::info("\tnum FS pi0 = {}", npi0);
     // spdlog::info("-------------------");
 
+    spdlog::info("evt: mode {}, wght NReWeight: {}", procids[procid].first,
+                 weighters->CalcWeight(ev));
+
     if (ctr && !(ctr % 50000)) {
       spdlog::info("Processed {} events. FATX default estimate = {}", ctr,
                    FATXAcc->fatx());
     }
+
     ctr++;
   }
 

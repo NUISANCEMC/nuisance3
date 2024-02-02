@@ -1,1 +1,1 @@
-CMakeLists.txt
+add_subdirectory(plugins)

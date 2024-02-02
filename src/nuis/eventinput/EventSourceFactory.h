@@ -1,6 +1,9 @@
+#pragma once
+
 #include "nuis/eventinput/HepMC3EventSource.h"
 
 #include "boost/dll/import.hpp"
+#include "boost/dll/runtime_symbol_info.hpp"
 #include "boost/function.hpp"
 
 #include "yaml-cpp/yaml.h"
@@ -15,7 +18,7 @@
 namespace nuis {
 class EventSourceFactory {
 
-  typedef IEventSourcePtr(IEventSource_PluginFactory_t)(YAML::Node const &);
+  using IEventSource_PluginFactory_t = IEventSourcePtr(YAML::Node const &);
   std::map<std::filesystem::path, boost::function<IEventSource_PluginFactory_t>>
       pluginfactories;
 
@@ -28,9 +31,13 @@ public:
       abort();
     }
 
+    boost::dll::shared_library self(boost::dll::program_location());
+
     std::filesystem::path shared_library_dir{NUISANCE};
     shared_library_dir /= "lib/plugins";
-    std::regex plugin_re("nuisplugin.eventinput.*.so");
+    std::regex plugin_re("nuisplugin-eventinput-*.so");
+    std::regex pluginstatic_re("nuisplugin-static-eventinput-(.*).a");
+    std::smatch pluginstatic_match;
     for (auto const &dir_entry :
          std::filesystem::directory_iterator{shared_library_dir}) {
       if (std::regex_match(dir_entry.path().filename().native(), plugin_re)) {
@@ -39,6 +46,16 @@ public:
             dir_entry.path(),
             boost::dll::import_alias<IEventSource_PluginFactory_t>(
                 dir_entry.path().native(), "MakeEventSource"));
+      }
+      if (std::regex_match(dir_entry.path().filename().native(),
+                           pluginstatic_match, pluginstatic_re)) {
+        spdlog::info("Found eventinput static plugin: {}, classname: {}",
+                     dir_entry.path().native(), pluginstatic_match[1].str());
+
+        pluginfactories.emplace(
+            boost::dll::program_location().native(),
+            self.get_alias<IEventSource_PluginFactory_t>(fmt::format(
+                "MakeEventSource_{}", pluginstatic_match[1].str())));
       }
     }
   }
