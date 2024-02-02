@@ -21,6 +21,7 @@ public:
   void operator++();
   HepMC3::GenEvent const & operator*();
   bool operator!=(IEventSource_sentinel const &sent) const;
+  bool operator==(IEventSource_sentinel const &sent) const;
 };
 
 IEventSource_looper begin(IEventSourcePtr evs);
