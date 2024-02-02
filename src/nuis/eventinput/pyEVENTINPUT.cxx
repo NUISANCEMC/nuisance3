@@ -74,10 +74,11 @@ PYBIND11_MODULE(pyEVENTINPUT, m) {
     m.def("build_source", &build_reader);
     m.def("build_new_event", &new_event);
 
-   
+    py::class_<IEventSource_sentinel>(m, "EventSource_sentinel")
+      .def(py::init<>());
 
-
- 
+    py::class_<IEventSource_looper>(m, "EventSource_looper")
+      .def(py::init<std::shared_ptr<IEventSource>>());
 
     py::class_<EventSourceWrapper>(m, "EventSource")
         .def(py::init<std::string>())

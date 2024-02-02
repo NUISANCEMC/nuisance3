@@ -19,6 +19,7 @@
 #include "nuis/measurement/Record.h"
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"
+#include <algorithm>
 
 void str_replace(std::string& in, 
     std::string id1, 
@@ -115,7 +116,7 @@ Record::Record(std::string iname,
     }
 
     std::vector<double> covariance_ravel;
-    for (int i = 0; i < in_dependent_covariances.size(); i++){
+    for (int i = 0; i < in_dependent_covariances.size(); i++) {
         std::cout << in_dependent_covariances[i].name << std::endl;
         if (in_dependent_covariances[i].name  == "TotalCovariance") {
             covariance_ravel = in_dependent_covariances[i].values;
@@ -123,10 +124,10 @@ Record::Record(std::string iname,
     }
     
     std::vector<std::vector<double>> covariance;
-    for (int i = 0; i < bini.size(); i++){
+    for (int i = 0; i < bini.size(); i++) {
         data_covariance.push_back( std::vector<double>(bini.size(), 0));
     }
-    for (int i = 0; i < bini.size(); i++){
+    for (int i = 0; i < bini.size(); i++) {
         int bi = int(bini[i]);
         int bj = int(binj[i]);
         data_covariance[bi][bj] = covariance_ravel[i];
@@ -164,8 +165,8 @@ Record::Record(std::string iname,
             double high = (independent_variables)[j].high[i];
             bin_extent_low[i].push_back(low);
             bin_extent_high[i].push_back(high);
-            bin_center[i].push_back((high+low)/2.);
-            bin_width[i].push_back((high-low)/2.);
+            bin_center[i].push_back((high+low));
+            bin_width[i].push_back((high-low));
         }
     }
 }
@@ -295,6 +296,97 @@ double Record::GetBinError(int index) {
     return GetMCError(index);
 }
     
+    //  std::vector<std::vector<double>> bin_extent_low;
+    //  std::vector<std::vector<double>> bin_extent_high;
+    //  std::vector<std::vector<double>> bin_center;
+    //  std::vector<std::vector<double>> bin_width;
+
+    //  std::vector<int>  bin_index;
+    //  std::vector<bool> bin_mask;
+
+    //  std::vector<double> data_value;
+    //  std::vector<double> data_error;
+    //  std::vector<uint32_t> mc_counts;
+    //  std::vector<double>   mc_weights;
+    //  std::vector<double>   mc_errors;
+
+std::vector<double> Record::GetSlice(
+    const std::vector<std::vector<double>>& slice,
+    int i) {
+
+    std::vector<double> v1;
+
+    std::transform(bin_center.begin(),
+        bin_center.end(),
+        std::back_inserter(v1),
+        [&i](const std::vector<double>& value) {
+        return value[i];
+    });
+
+    return v1;
+}
+
+std::vector<double> Record::GetXCenter() {
+    return GetSlice(bin_center, 0);
+}
+
+std::vector<double> Record::GetYCenter() {
+    return GetSlice(bin_center, 1);
+}
+
+std::vector<double> Record::GetZCenter() {
+    return GetSlice(bin_center, 2);
+}
+
+std::vector<double> Record::GetXEdge(bool low) {
+    return GetSlice(low ? bin_extent_low : bin_extent_high, 0);
+}
+
+std::vector<double> Record::GetYEdge(bool low) {
+    return GetSlice(low ? bin_extent_low : bin_extent_high, 1);
+}
+
+std::vector<double> Record::GetZEdge(bool low) {
+    return GetSlice(low ? bin_extent_low : bin_extent_high, 2);
+}
+
+std::vector<double> Record::GetXWidth() {
+    return GetSlice(bin_width, 0);
+}
+
+std::vector<double> Record::GetYWidth() {
+    return GetSlice(bin_width, 1);
+}
+
+std::vector<double> Record::GetZWidth() {
+    return GetSlice(bin_width, 2);
+}
+
+std::vector<double> Record::GetMC() {
+    return mc_weights;
+}
+std::vector<double> Record::GetMCErr() {
+    return mc_errors;
+}
+
+std::vector<double> Record::GetXErr() {
+    std::vector<double> v = GetSlice(bin_width, 0);
+    for_each(v.begin(), v.end(), [](double &c){ c /= 2.0; });
+    return v;
+}
+
+std::vector<double> Record::GetYErr() {
+    std::vector<double> v = GetSlice(bin_width, 1);
+    for_each(v.begin(), v.end(), [](double &c){ c /= 2.0; });
+    return v;
+}
+
+std::vector<double> Record::GetZErr() {
+    std::vector<double> v = GetSlice(bin_width, 2);
+    for_each(v.begin(), v.end(), [](double &c){ c /= 2.0; });
+    return v;
+}
+
 
 
 }  // namespace measurement

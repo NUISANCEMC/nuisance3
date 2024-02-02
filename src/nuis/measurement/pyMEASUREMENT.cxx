@@ -214,7 +214,21 @@ PYBIND11_MODULE(pyMEASUREMENT, m) {
         .def_readwrite("mc_errors", &nuis::measurement::Record::mc_errors)
         .def_readwrite("total_mc_counts", &nuis::measurement::Record::total_mc_counts)
         .def_readwrite("total_mc_weights", &nuis::measurement::Record::total_mc_weights)
-        .def_readwrite("total_mc_tally", &nuis::measurement::Record::total_mc_tally);
+        .def_readwrite("total_mc_tally", &nuis::measurement::Record::total_mc_tally)
+        .def("x", &nuis::measurement::Record::GetXCenter)
+        .def("y", &nuis::measurement::Record::GetYCenter)
+        .def("z", &nuis::measurement::Record::GetZCenter)
+        .def("mc", &nuis::measurement::Record::GetMC)
+        .def("xerr", &nuis::measurement::Record::GetXErr)
+        .def("yerr", &nuis::measurement::Record::GetYErr)
+        .def("zerr", &nuis::measurement::Record::GetZErr)
+        .def("mcerr", &nuis::measurement::Record::GetMCErr);
+
+
+
+
+
+
 
     py::class_<nuis::measurement::Variables>(sel, "variables")
         .def(py::init<>())

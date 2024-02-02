@@ -3,6 +3,7 @@ import pyMEASUREMENT as me
 import numpy as np
 import matplotlib.pyplot as plt
 from pyHepMC3 import HepMC3 as hm
+plt.xkcd()
 
 me.env.configure()
 
@@ -23,8 +24,11 @@ for e in neut_source:
 for e in nuwro_source:
   anl_handler.FillRecordFromEvent( anl_nuwro, e, 1.0 )
 
-plt.errorbar( x=np.array(anl_nuwro.bin_center)[:,0], y=anl_nuwro.mc_weights, xerr=np.array(anl_nuwro.bin_width)[:,0], yerr=0.0, label="NUWRO")
-plt.errorbar( x=np.array(anl_neut.bin_center)[:,0], y=anl_neut.mc_weights, xerr=np.array(anl_neut.bin_width)[:,0], yerr=0.0, label="NEUT")
+plt.errorbar( x=anl_nuwro.x(), y=anl_nuwro.mc(), xerr=0.0, yerr=0.0, label="NUWRO")
+plt.errorbar( x=anl_nuwro.x(), y=anl_neut.mc(), xerr=0.0, yerr=0.0, label="NEUT")
+
+#plt.errorbar( x=np.array(anl_nuwro.bin_center)[:,0], y=anl_nuwro.mc_weights, xerr=np.array(anl_nuwro.bin_width)[:,0], yerr=0.0, label="NUWRO")
+#plt.errorbar( x=np.array(anl_neut.bin_center)[:,0], y=anl_neut.mc_weights, xerr=np.array(anl_neut.bin_width)[:,0], yerr=0.0, label="NEUT")
 plt.xlabel("Q2")
 plt.ylabel("Events")
 plt.legend()

@@ -94,6 +94,31 @@ class Record {
 
      void SetTally(double v);
 
+     std::vector<double> GetSlice(
+          const std::vector<std::vector<double>>& slice,
+          const int i);
+
+     std::vector<double> GetXCenter();
+     std::vector<double> GetYCenter();
+     std::vector<double> GetZCenter();
+
+     std::vector<double> GetXEdge(bool low = true);
+     std::vector<double> GetYEdge(bool low = true);
+     std::vector<double> GetZEdge(bool low = true);
+
+     std::vector<double> GetXWidth();
+     std::vector<double> GetYWidth();
+     std::vector<double> GetZWidth();
+
+     std::vector<double> GetXErr();
+     std::vector<double> GetYErr();
+     std::vector<double> GetZErr();
+
+     std::vector<double> GetMC();
+     std::vector<double> GetMCErr();
+
+
+
      double Metadata;
 
      // New bin structure scheme

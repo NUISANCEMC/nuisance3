@@ -14,6 +14,10 @@ bool IEventSource_looper::operator!=(IEventSource_sentinel const &sent) const {
   return bool(curr_event);
 }
 
+bool IEventSource_looper::operator==(IEventSource_sentinel const &sent) const {
+  return !bool(curr_event);
+}
+
 IEventSource_looper begin(IEventSourcePtr evs) {
   return IEventSource_looper(evs);
 }
