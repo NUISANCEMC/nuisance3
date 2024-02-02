@@ -156,6 +156,11 @@ find_package(ROOT 6.10)
 find_package(ProSelecta REQUIRED)
 
 
+# This target is for any plugin that really wants to be linked
+# directly to the main executables and not be loaded dynamically
+add_library(nuis_snowflakes INTERFACE)
+
+
 add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
@@ -164,6 +169,8 @@ target_link_libraries(nuis_options INTERFACE HepMC3::All Boost::boost Boost::fil
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
+
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
 
 configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.nuis-eventinput.sh.in

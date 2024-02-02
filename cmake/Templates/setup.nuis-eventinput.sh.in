@@ -68,9 +68,9 @@ fi
 #if it was sourced as . setup.sh then you can't scrub off the end... assume that
 #we are in the correct directory.
 if ! echo "${BASH_SOURCE}" | grep "/" --silent; then
-  SETUPDIR=$(readlink -f ${PWD}/..)
+  SETUPDIR=$(readlink -f ${PWD})
 else
-  SETUPDIR=$(readlink -f ${BASH_SOURCE%/*}/..)
+  SETUPDIR=$(readlink -f ${BASH_SOURCE%/*})
 fi
 
 export NUISANCE=${SETUPDIR}
