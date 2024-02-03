@@ -36,7 +36,7 @@ public:
 
     std::filesystem::path shared_library_dir{NUISANCE};
     shared_library_dir /= "lib/plugins";
-    std::regex plugin_re("nuisplugin-weightcalc-*.so");
+    std::regex plugin_re("nuisplugin-weightcalc-.*.so");
     std::regex pluginstatic_re("nuisplugin-static-weightcalc-(.*).a");
     std::smatch pluginstatic_match;
     for (auto const &dir_entry :

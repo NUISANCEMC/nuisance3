@@ -35,7 +35,7 @@ public:
 
     std::filesystem::path shared_library_dir{NUISANCE};
     shared_library_dir /= "lib/plugins";
-    std::regex plugin_re("nuisplugin-eventinput-*.so");
+    std::regex plugin_re("nuisplugin-eventinput-.*.so");
     std::regex pluginstatic_re("nuisplugin-static-eventinput-(.*).a");
     std::smatch pluginstatic_match;
     for (auto const &dir_entry :

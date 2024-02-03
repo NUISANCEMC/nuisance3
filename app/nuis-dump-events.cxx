@@ -70,38 +70,38 @@ int main(int argc, char const *argv[]) {
   });
 
   size_t ctr = 0;
-  for (auto const &ev : from(evs).atmost(10)) {
+  for (auto const &ev : from(evs).atmost(10000)) {
 
-    // auto beamp = NuHepMC::Event::GetBeamParticle(ev);
-    // auto tgtp = NuHepMC::Event::GetTargetParticle(ev);
-    // auto nprot = NuHepMC::Event::GetParticles_All(
-    //                  ev, NuHepMC::ParticleStatus::UndecayedPhysical,
-    //                  {
-    //                      2212,
-    //                  })
-    //                  .size();
-    // auto npip = NuHepMC::Event::GetParticles_All(
-    //                 ev, NuHepMC::ParticleStatus::UndecayedPhysical,
-    //                 {
-    //                     211,
-    //                 })
-    //                 .size();
-    // auto npim = NuHepMC::Event::GetParticles_All(
-    //                 ev, NuHepMC::ParticleStatus::UndecayedPhysical,
-    //                 {
-    //                     -211,
-    //                 })
-    //                 .size();
-    // auto npi0 = NuHepMC::Event::GetParticles_All(
-    //                 ev, NuHepMC::ParticleStatus::UndecayedPhysical,
-    //                 {
-    //                     111,
-    //                 })
-    //                 .size();
+    auto beamp = NuHepMC::Event::GetBeamParticle(ev);
+    auto tgtp = NuHepMC::Event::GetTargetParticle(ev);
+    auto nprot = NuHepMC::Event::GetParticles_All(
+                     ev, NuHepMC::ParticleStatus::UndecayedPhysical,
+                     {
+                         2212,
+                     })
+                     .size();
+    auto npip = NuHepMC::Event::GetParticles_All(
+                    ev, NuHepMC::ParticleStatus::UndecayedPhysical,
+                    {
+                        211,
+                    })
+                    .size();
+    auto npim = NuHepMC::Event::GetParticles_All(
+                    ev, NuHepMC::ParticleStatus::UndecayedPhysical,
+                    {
+                        -211,
+                    })
+                    .size();
+    auto npi0 = NuHepMC::Event::GetParticles_All(
+                    ev, NuHepMC::ParticleStatus::UndecayedPhysical,
+                    {
+                        111,
+                    })
+                    .size();
 
     auto procid = NuHepMC::ER3::ReadProcessID(ev);
 
-    FATXAcc->process(ev);
+    // FATXAcc->process(ev);
     // spdlog::info("Enu {}, wgtm {}, wgtv {}",
     //              NuHepMC::Event::GetBeamParticle(ev)->momentum().e(),
     //              weighter_m.CalcWeight(ev), weighter_v.CalcWeight(ev));
@@ -117,16 +117,16 @@ int main(int argc, char const *argv[]) {
     // spdlog::info("\tnum FS pi0 = {}", npi0);
     // spdlog::info("-------------------");
 
-    spdlog::info("evt: mode {}, wght NReWeight: {}", procids[procid].first,
-                 weighters->CalcWeight(ev));
+    // spdlog::info("evt: mode {}, wght NReWeight: {}", procids[procid].first,
+    //              weighters->CalcWeight(ev));
 
     if (ctr && !(ctr % 50000)) {
-      spdlog::info("Processed {} events. FATX default estimate = {}", ctr,
-                   FATXAcc->fatx());
+      // spdlog::info("Processed {} events. FATX default estimate = {}", ctr,
+      //              FATXAcc->fatx());
     }
 
     ctr++;
   }
 
-  spdlog::info("Final FATX estimate: {}", FATXAcc->fatx());
+  // spdlog::info("Final FATX estimate: {}", FATXAcc->fatx());
 }
