@@ -28,7 +28,7 @@ public:
     auto NUISANCE = std::getenv("NUISANCE_ROOT");
 
     if (!NUISANCE) {
-      spdlog::critical("NUISANCE environment variable not defined");
+      spdlog::critical("NUISANCE_ROOT environment variable not defined");
       abort();
     }
 

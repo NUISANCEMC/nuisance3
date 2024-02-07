@@ -2,12 +2,16 @@
 
 #include "Framework/Conventions/Units.h"
 #include "Framework/EventGen/EventRecord.h"
+#include "Framework/EventGen/GEVGDriver.h"
 #include "Framework/GHEP/GHepParticle.h"
 #include "Framework/GHEP/GHepRecord.h"
 #include "Framework/GHEP/GHepUtils.h"
 #include "Framework/Messenger/Messenger.h"
 #include "Framework/Ntuple/NtpMCEventRecord.h"
 #include "Framework/ParticleData/PDGUtils.h"
+#include "Framework/Utils/RunOpt.h"
+#include "Framework/Utils/XSecSplineList.h"
+#include "Framework/Numerical/Spline.h"
 
 #include "NuHepMC/Constants.hxx"
 #include "NuHepMC/EventUtils.hxx"
@@ -20,6 +24,7 @@
 
 #include "TChain.h"
 #include "TFile.h"
+#include "TGraph.h"
 
 #include "boost/dll/alias.hpp"
 
@@ -29,6 +34,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <memory>
 
 namespace nuis {
 
@@ -546,8 +552,7 @@ class GHEP3EventSource : public IEventSource {
 
   genie::NtpMCEventRecord *ntpl;
 
-  // std::unqiue_ptr<genie::InitialState> init_state;
-  // std::unqiue_ptr<genie::GEVGDriver> evg_driver;
+  std::unique_ptr<TGraph> TotXSSpline;
 
   void CheckAndAddPath(std::filesystem::path filepath) {
     if (!std::filesystem::exists(filepath)) {
@@ -578,38 +583,42 @@ public:
       }
     }
 
-    // auto evt = first();
-    // if (!evt) { // if we can't read an event, there's no point going further
-    //   return;
-    // }
+    auto evt = first();
+    if (!evt) { // if we can't read an event, there's no point going further
+      return;
+    }
 
-    // genie::Messenger::Instance()->SetPriorityLevel("GHepUtils", pFATAL);
+    genie::Messenger::Instance()->SetPriorityLevel("GHepUtils", pFATAL);
 
-    // genie::XSecSplineList *splist = genie::XSecSplineList::Instance();
+    genie::XSecSplineList *splist = genie::XSecSplineList::Instance();
 
-    // std::string SplineXML;
-    // if (cfg["spline_file"]) {
-    //   SplineXML = cfg["spline_file"].as<std::string>();
-    // } else if (getenv("GENIE_XSEC_FILE")) {
-    //   SplineXML = getenv("GENIE_XSEC_FILE");
-    // }
+    std::string SplineXML;
+    if (cfg["spline_file"]) {
+      SplineXML = cfg["spline_file"].as<std::string>();
+    } else if (getenv("GENIE_XSEC_FILE")) {
+      SplineXML = getenv("GENIE_XSEC_FILE");
+    }
 
-    // XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
-    // assert(ist == kXmlOK);
+    genie::XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
+    assert(ist == genie::kXmlOK);
 
-    // init_state =
-    //     std::make_unique<genie::InitialState>(gOptTgtPdgCode, gOptProbePdgCode);
+    auto bpart = NuHepMC::Event::GetBeamParticle(evt.value());
+    auto tpart = NuHepMC::Event::GetTargetParticle(evt.value());
 
-    // std::string EventGeneratorList = "Default";
-    // if (cfg["event_generator_list"]) {
-    //   EventGeneratorList = cfg["event_generator_list"].as<std::string>();
-    // }
+    std::string EventGeneratorList = "Default";
+    if (cfg["event_generator_list"]) {
+      EventGeneratorList = cfg["event_generator_list"].as<std::string>();
+    }
 
-    // evg_driver = std::make_unique<genie::GEVGDriver>();
-    // evg_driver->SetEventGeneratorList(EventGeneratorList);
-    // evg_driver->Configure(*init_state);
-    // evg_driver->CreateSplines();
-    // evg_driver->CreateXSecSumSpline(100, 0, 100);
+    genie::GEVGDriver evg_driver;
+    evg_driver.SetEventGeneratorList(EventGeneratorList);
+    evg_driver.Configure(genie::InitialState(tpart->pid(), bpart->pid()));
+    evg_driver.CreateSplines();
+    evg_driver.CreateXSecSumSpline(100, 0, 100);
+
+    TotXSSpline =
+        std::unique_ptr<TGraph>(evg_driver.XSecSumSpline()->GetAsTGraph(
+            300, false, false, 1., 1. / genie::units::pb));
   }
 
   std::optional<HepMC3::GenEvent> first() {
