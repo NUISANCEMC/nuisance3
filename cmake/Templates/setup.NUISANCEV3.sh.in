@@ -75,18 +75,10 @@ function add_to_LD_LIBRARY_PATH () {
 
 fi
 
-#if it was sourced as . setup.sh then you can't scrub off the end... assume that
-#we are in the correct directory.
-#if ! echo "${BASH_SOURCE}" | grep "/" --silent; then
-#  SETUPDIR=$(readlink -f ${PWD}/..)
-#else
-#  SETUPDIR=$(readlink -f ${BASH_SOURCE%/*}/..)
-#fi
-
 # Get directory of script being sourced.
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-export NUISANCEV3_ROOT=${SCRIPT_DIR}/
+export NUISANCEV3_ROOT=$(dirname -- ${SCRIPT_DIR})
 export NUISANCEV3_VERSION=@NUISANCEV3_VERSION@
 
 add_to_PATH ${NUISANCEV3_ROOT}/bin

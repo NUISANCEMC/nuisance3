@@ -546,6 +546,9 @@ class GHEP3EventSource : public IEventSource {
 
   genie::NtpMCEventRecord *ntpl;
 
+  // std::unqiue_ptr<genie::InitialState> init_state;
+  // std::unqiue_ptr<genie::GEVGDriver> evg_driver;
+
   void CheckAndAddPath(std::filesystem::path filepath) {
     if (!std::filesystem::exists(filepath)) {
       spdlog::warn("GHEP3EventSource ignoring non-existant path {}",
@@ -574,8 +577,40 @@ public:
         CheckAndAddPath(fp);
       }
     }
-    genie::Messenger::Instance()->SetPriorityLevel("GHepUtils", pFATAL);
-  };
+
+    // auto evt = first();
+    // if (!evt) { // if we can't read an event, there's no point going further
+    //   return;
+    // }
+
+    // genie::Messenger::Instance()->SetPriorityLevel("GHepUtils", pFATAL);
+
+    // genie::XSecSplineList *splist = genie::XSecSplineList::Instance();
+
+    // std::string SplineXML;
+    // if (cfg["spline_file"]) {
+    //   SplineXML = cfg["spline_file"].as<std::string>();
+    // } else if (getenv("GENIE_XSEC_FILE")) {
+    //   SplineXML = getenv("GENIE_XSEC_FILE");
+    // }
+
+    // XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
+    // assert(ist == kXmlOK);
+
+    // init_state =
+    //     std::make_unique<genie::InitialState>(gOptTgtPdgCode, gOptProbePdgCode);
+
+    // std::string EventGeneratorList = "Default";
+    // if (cfg["event_generator_list"]) {
+    //   EventGeneratorList = cfg["event_generator_list"].as<std::string>();
+    // }
+
+    // evg_driver = std::make_unique<genie::GEVGDriver>();
+    // evg_driver->SetEventGeneratorList(EventGeneratorList);
+    // evg_driver->Configure(*init_state);
+    // evg_driver->CreateSplines();
+    // evg_driver->CreateXSecSumSpline(100, 0, 100);
+  }
 
   std::optional<HepMC3::GenEvent> first() {
 

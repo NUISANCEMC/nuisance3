@@ -9,7 +9,6 @@ install(TARGETS eventinput DESTINATION lib)
 pybind11_add_module(pyEVENTINPUT SHARED pyEVENTINPUT.cxx)
 
 target_link_libraries(pyEVENTINPUT PRIVATE pybind11::embed eventinput nuis_options NuHepMC::CPPUtils HepMC3::All)
-set_target_properties(pyEVENTINPUT PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 target_include_directories(pyEVENTINPUT PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>

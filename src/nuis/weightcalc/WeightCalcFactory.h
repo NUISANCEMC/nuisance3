@@ -25,7 +25,7 @@ class WeightCalcFactory {
 
 public:
   WeightCalcFactory() {
-    auto NUISANCE = std::getenv("NUISANCE");
+    auto NUISANCE = std::getenv("NUISANCE_ROOT");
 
     if (!NUISANCE) {
       spdlog::critical("NUISANCE environment variable not defined");
@@ -37,8 +37,6 @@ public:
     std::filesystem::path shared_library_dir{NUISANCE};
     shared_library_dir /= "lib/plugins";
     std::regex plugin_re("nuisplugin-weightcalc-.*.so");
-    std::regex pluginstatic_re("nuisplugin-static-weightcalc-(.*).a");
-    std::smatch pluginstatic_match;
     for (auto const &dir_entry :
          std::filesystem::directory_iterator{shared_library_dir}) {
       if (std::regex_match(dir_entry.path().filename().native(), plugin_re)) {
@@ -47,17 +45,6 @@ public:
             dir_entry.path(),
             boost::dll::import_alias<IWeightCalc_PluginFactory_t>(
                 dir_entry.path().native(), "MakeWeightCalc"));
-      }
-
-      if (std::regex_match(dir_entry.path().filename().native(),
-                           pluginstatic_match, pluginstatic_re)) {
-        spdlog::info("Found weightcalc static plugin: {}, classname: {}",
-                     dir_entry.path().native(), pluginstatic_match[1].str());
-
-        pluginfactories.emplace(
-            boost::dll::program_location().native(),
-            self.get_alias<IWeightCalc_PluginFactory_t>(
-                fmt::format("MakeWeightCalc_{}", pluginstatic_match[1].str())));
       }
     }
   }
