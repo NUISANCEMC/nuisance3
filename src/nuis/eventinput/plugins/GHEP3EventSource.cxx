@@ -67,7 +67,7 @@ std::map<int, int> NEUTToMode{
     {1, 200},  {2, 300},  {11, 400}, {12, 400}, {13, 400}, {16, 100},
     {21, 500}, {22, 500}, {23, 500}, {26, 600}, {31, 450}, {32, 450},
     {33, 450}, {34, 450}, {36, 150}, {41, 550}, {42, 550}, {43, 550},
-    {44, 550}, {46, 650}, {51, 250}, {52, 250}};
+    {44, 550}, {45, 550}, {46, 650}, {51, 250}, {52, 250}};
 
 std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
                                                  bool HaveTotXSSpline) {
@@ -126,14 +126,13 @@ std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
 
   if (HaveTotXSSpline) {
     conventions.push_back("E.C.2");
+    // G.C.4 Cross Section Units and Target Scaling
+    NuHepMC::GC4::SetCrossSectionUnits(run_info, "pb", "PerTargetAtom");
   }
 
   // G.C.2 File Exposure (Standalone)
   NuHepMC::GC2::SetExposureNEvents(run_info, nevents);
 
-  // G.C.4 Cross Section Units and Target Scaling
-  NuHepMC::GC4::SetCrossSectionUnits(run_info, "pb",
-                                     "PerTargetMolecularNucleon");
   // G.C.1 Signalling Followed Conventions
   NuHepMC::GC1::SetConventions(run_info, conventions);
 
@@ -542,6 +541,8 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
                  tgtp->pid(), TargetPDG, IsFree);
   }
 
+  evt.weights().push_back(1);
+
   return evt;
 }
 } // namespace ghepconv
@@ -559,7 +560,10 @@ class GHEP3EventSource : public IEventSource {
 
   genie::NtpMCEventRecord *ntpl;
 
-  std::unique_ptr<TGraph> TotXSSpline;
+  std::string EventGeneratorList;
+  std::unordered_map<
+      int, std::unordered_map<int, std::unique_ptr<genie::GEVGDriver>>>
+      EvGens;
 
   void CheckAndAddPath(std::filesystem::path filepath) {
     if (!std::filesystem::exists(filepath)) {
@@ -580,8 +584,24 @@ class GHEP3EventSource : public IEventSource {
     filepaths.push_back(std::move(filepath));
   }
 
+  genie::Spline const *GetSpline(int tgtpdg, int nupdg) {
+    if (!EventGeneratorList.size()) {
+      return nullptr;
+    }
+
+    if (!EvGens.count(tgtpdg) || !EvGens[tgtpdg].count(nupdg)) {
+      EvGens[tgtpdg][nupdg] = std::make_unique<genie::GEVGDriver>();
+      EvGens[tgtpdg][nupdg]->SetEventGeneratorList(EventGeneratorList);
+      EvGens[tgtpdg][nupdg]->Configure(genie::InitialState(tgtpdg, nupdg));
+      EvGens[tgtpdg][nupdg]->CreateSplines();
+      EvGens[tgtpdg][nupdg]->CreateXSecSumSpline(100, 0.05, 100);
+    }
+
+    return EvGens[tgtpdg][nupdg]->XSecSumSpline();
+  }
+
 public:
-  GHEP3EventSource(YAML::Node const &cfg) : TotXSSpline{} {
+  GHEP3EventSource(YAML::Node const &cfg) {
     if (cfg["filepath"]) {
       CheckAndAddPath(cfg["filepath"].as<std::string>());
     } else if (cfg["filepaths"]) {
@@ -635,26 +655,10 @@ public:
       return;
     }
 
-    auto bpart = NuHepMC::Event::GetBeamParticle(evt.value());
-    auto tpart = NuHepMC::Event::GetTargetParticle(evt.value());
-
-    std::string EventGeneratorList = "Default";
+    EventGeneratorList = "Default";
     if (cfg["event_generator_list"]) {
       EventGeneratorList = cfg["event_generator_list"].as<std::string>();
     }
-
-    genie::GEVGDriver evg_driver;
-    evg_driver.SetEventGeneratorList(EventGeneratorList);
-    evg_driver.Configure(genie::InitialState(tpart->pid(), bpart->pid()));
-    evg_driver.CreateSplines();
-    evg_driver.CreateXSecSumSpline(100, 0.05, 100);
-
-    TotXSSpline =
-        std::unique_ptr<TGraph>(evg_driver.XSecSumSpline()->GetAsTGraph(
-            300, false, false, 1., 1. / genie::units::pb));
-    evg_driver.XSecSumSpline()->SaveAsROOT(
-        "GHEP3Spline.root",
-        fmt::format("spl_tgt_{}_nupdg_{}", tpart->pid(), bpart->pid()), true);
   }
 
   std::optional<HepMC3::GenEvent> first() {
@@ -681,19 +685,26 @@ public:
     (void)branch_status;
     chin->GetEntry(0);
 
-    gri = ghepconv::BuildRunInfo(chin->GetEntries(), bool(TotXSSpline));
-
     ch_fuid = chin->GetFile()->GetUUID();
     ient = 0;
     auto ge = ghepconv::ToGenEvent(
         static_cast<genie::GHepRecord const &>(*ntpl->event));
     ge.set_event_number(ient);
+
+    auto tpart = NuHepMC::Event::GetTargetParticle(ge);
+    auto bpart = NuHepMC::Event::GetBeamParticle(ge);
+
+    auto xspline = GetSpline(tpart->pid(), bpart->pid());
+
+    gri = ghepconv::BuildRunInfo(chin->GetEntries(), xspline);
+
     ge.set_run_info(gri);
-    if (TotXSSpline) {
-      auto bpart = NuHepMC::Event::GetBeamParticle(ge);
+
+    if (xspline) {
       NuHepMC::EC2::SetTotalCrossSection(
           ge,
-          TotXSSpline->Eval(bpart->momentum().e())); // in GeV
+          xspline->Evaluate(bpart->momentum().e()) /
+              genie::units::pb); // in GeV
     }
     return ge;
   }
@@ -715,11 +726,15 @@ public:
         static_cast<genie::GHepRecord const &>(*ntpl->event));
     ge.set_event_number(ient);
     ge.set_run_info(gri);
-    if (TotXSSpline) {
-      auto bpart = NuHepMC::Event::GetBeamParticle(ge);
+    auto tpart = NuHepMC::Event::GetTargetParticle(ge);
+    auto bpart = NuHepMC::Event::GetBeamParticle(ge);
+
+    auto xspline = GetSpline(tpart->pid(), bpart->pid());
+    if (xspline) {
       NuHepMC::EC2::SetTotalCrossSection(
           ge,
-          TotXSSpline->Eval(bpart->momentum().e())); // in GeV
+          xspline->Evaluate(bpart->momentum().e()) /
+              genie::units::pb); // in GeV
     }
     return ge;
   }

@@ -49,6 +49,12 @@ int main(int argc, char const *argv[]) {
 
   auto FATXAcc = NuHepMC::FATX::MakeAccumulator(gri);
 
+
+  std::stringstream ss("");
+  ss << NuHepMC::GC4::ParseCrossSectionUnits(gri);
+
+  spdlog::info("gri Units: {}", ss.str());
+
   auto weighter_v = nuis::WeightCalcFuncHM3([](auto const &ev, auto const &p) {
     return NuHepMC::Event::GetBeamParticle(ev)->momentum().e() * p.at(1);
   });
