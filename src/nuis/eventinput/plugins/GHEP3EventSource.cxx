@@ -613,6 +613,22 @@ public:
       return;
     }
 
+    std::string GENIETune;
+    if (cfg["tune"]) {
+      GENIETune = cfg["tune"].as<std::string>();
+    } else if (getenv("GENIE_XSEC_TUNE")) {
+      GENIETune = getenv("GENIE_XSEC_TUNE");
+    }
+
+    if (!GENIETune.size()) {
+      spdlog::warn("No GENIE Tune set. Add \"tune\" key to configuration "
+                   "YAML node or set GENIE_XSEC_TUNE in the environment.");
+      return;
+    }
+
+    genie::RunOpt::Instance()->SetTuneName(GENIETune);
+    genie::RunOpt::Instance()->BuildTune();
+
     genie::XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
     if (ist != genie::kXmlOK) {
       spdlog::warn("genie::XsecSplineList failed to load from {}", SplineXML);
@@ -631,7 +647,7 @@ public:
     evg_driver.SetEventGeneratorList(EventGeneratorList);
     evg_driver.Configure(genie::InitialState(tpart->pid(), bpart->pid()));
     evg_driver.CreateSplines();
-    evg_driver.CreateXSecSumSpline(100, 0, 100);
+    evg_driver.CreateXSecSumSpline(100, 0.05, 100);
 
     TotXSSpline =
         std::unique_ptr<TGraph>(evg_driver.XSecSumSpline()->GetAsTGraph(

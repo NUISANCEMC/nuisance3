@@ -44,7 +44,7 @@ public:
     fNEUTRW = neut::rew::MakeNReWeightInstance();
   };
 
-  static IWeightCalcPluginPtr MakeWeightCalc_NReWeight(IEventSourcePtr evs,
+  static IWeightCalcPluginPtr MakeWeightCalc(IEventSourcePtr evs,
                                                        YAML::Node const &cfg) {
     return std::make_shared<NReWeightCalc>(evs, cfg);
   }
@@ -52,7 +52,7 @@ public:
   virtual ~NReWeightCalc() {}
 };
 
-BOOST_DLL_ALIAS(nuis::NReWeightCalc::MakeWeightCalc_NReWeight,
-                MakeWeightCalc_NReWeight);
+BOOST_DLL_ALIAS(nuis::NReWeightCalc::MakeWeightCalc,
+                MakeWeightCalc);
 
 } // namespace nuis
