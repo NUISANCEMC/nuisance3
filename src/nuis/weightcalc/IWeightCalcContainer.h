@@ -35,7 +35,7 @@ public:
     double w = 1;
     for (auto &wc : wcs) {
       double wc_w = wc->CalcWeight(ev);
-      bool isnorm = std::isnormal(wc_w);
+      // bool isnorm = std::isnormal(wc_w);
       // if constexpr (NotNormalPolicy == Policy::Skip) {
       //   w *= isnorm ? wc_w : 1;
       // } else if (NotNormalPolicy == Policy::Zero) {

@@ -158,6 +158,7 @@ target_include_directories(nuis_options INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter Boost::boost Boost::filesystem yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen)
+target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 
 # PYTHON PATHS
 set(NUISANCE_PYSITEARCH "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")

@@ -64,6 +64,8 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
   ch_ents = chin->GetEntries();
   nv = nullptr;
   auto branch_status = chin->SetBranchAddress("vectorbranch", &nv);
+  // should check this
+  (void)branch_status;
   chin->GetEntry(0);
   int beam_pid = nv->PartInfo(0)->fPID;
   double flux_energy_to_MeV = 1E3;
@@ -122,12 +124,10 @@ NeutVect *neutvectEventSource::neutvect(HepMC3::GenEvent const &ev) {
   return nv;
 }
 
-IEventSourcePtr
-neutvectEventSource::MakeEventSource_neutvect(YAML::Node const &cfg) {
+IEventSourcePtr neutvectEventSource::MakeEventSource(YAML::Node const &cfg) {
   return std::make_shared<neutvectEventSource>(cfg);
 }
 
-BOOST_DLL_ALIAS(nuis::neutvectEventSource::MakeEventSource_neutvect,
-                MakeEventSource_neutvect);
+BOOST_DLL_ALIAS(nuis::neutvectEventSource::MakeEventSource, MakeEventSource);
 
 } // namespace nuis

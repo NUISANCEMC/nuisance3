@@ -16,21 +16,26 @@
  *    You should have received a copy of the GNU General Public License
  *    along with NUISANCE.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
-#include <map>
 #include <filesystem>
-
-#include "nuis/measurement/MeasurementLoader.h"
+#include <map>
 
 #include "yaml-cpp/yaml.h"
 using namespace YAML;
 
-#include "ProSelecta/ProSelecta.h"
 #include "HepMC3/GenEvent.h"
+#include "ProSelecta/ProSelecta.h"
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wreturn-type"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
+#include "nuis/measurement/HEPDataLoader.h"
+
+#include "nuis/measurement/Document.h"
+#include "nuis/measurement/MeasurementLoader.h"
 #include "nuis/measurement/Record.h"
 #include "nuis/measurement/Variables.h"
-#include "nuis/measurement/Document.h"
-#include "nuis/measurement/HEPDataLoader.h"
 
 namespace nuis {
 namespace measurement {
@@ -49,15 +54,16 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
   std::cout << "-> Releease filename " << filename << std::endl;
   std::string table = config["table"].as<std::string>();
   std::string analysis = "analysis.cxx";
-  if (config["analysis"]) analysis = config["analysis"].as<std::string>();
+  if (config["analysis"])
+    analysis = config["analysis"].as<std::string>();
 
   ProSelecta::Get().AddIncludePath(release);
   ProSelecta::Get().AddIncludePath(std::string(getenv("PROSELECTA_DIR")));
 
   std::cout << "ADDED PATH " << release << std::endl;
   if (!ProSelecta::Get().LoadFile(analysis.c_str())) {
-    std::cout << "[ERROR]: Cling failed interpreting: "\
-      << analysis << std::endl;
+    std::cout << "[ERROR]: Cling failed interpreting: " << analysis
+              << std::endl;
     throw(505);
   }
 
@@ -100,10 +106,10 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
     dependent_variables.emplace_back(dep_var_node[i].as<Variables>());
   }
 
-  
-  // YAML::Node covariance_doc = YAML::LoadFile(release + "/covar-costhetamupmu_analysisi.yaml");
-  // YAML::Node dep_cov_node = covariance_doc["dependent_variables"];
-  // for (int i = 0; i < dep_cov_node.size(); i++) {
+  // YAML::Node covariance_doc = YAML::LoadFile(release +
+  // "/covar-costhetamupmu_analysisi.yaml"); YAML::Node dep_cov_node =
+  // covariance_doc["dependent_variables"]; for (int i = 0; i <
+  // dep_cov_node.size(); i++) {
   //   dependent_covariances.emplace_back(dep_cov_node[i].as<Variables>());
   // }
 
@@ -119,14 +125,14 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
   std::vector<std::string> projection_symnames;
   for (int i = 0; i < independent_variables.size(); i++) {
     projection_symnames.push_back(
-      dependent_variables[0].qualifiers[independent_variables[i].name]);
+        dependent_variables[0].qualifiers[independent_variables[i].name]);
 
-    std::cout << "[INFO] : Selected Projection : " <<
-      independent_variables[i].name << std::endl;
+    std::cout << "[INFO] : Selected Projection : "
+              << independent_variables[i].name << std::endl;
   }
 
-  filter_func = ProSelecta::Get().GetFilterFunction(filter_symname,
-    ProSelecta::Interpreter::kCling);
+  filter_func = ProSelecta::Get().GetFilterFunction(
+      filter_symname, ProSelecta::Interpreter::kCling);
 
   if (!filter_func) {
     std::cout << "[ERROR]: Cling didn't find a filter function named: "
@@ -136,8 +142,8 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
   }
 
   for (auto &proj_sym_name : projection_symnames) {
-    auto proj_func = ProSelecta::Get().GetProjectionFunction(proj_sym_name, 
-      ProSelecta::Interpreter::kCling);
+    auto proj_func = ProSelecta::Get().GetProjectionFunction(
+        proj_sym_name, ProSelecta::Interpreter::kCling);
 
     if (proj_func) {
       proj_funcs.push_back(proj_func);
@@ -151,7 +157,7 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
   }
 }
 
-std::vector<double> HEPDataLoader::ProjectEvent(const HepMC3::GenEvent& event) {
+std::vector<double> HEPDataLoader::ProjectEvent(const HepMC3::GenEvent &event) {
   std::vector<double> data;
   for (size_t i = 0; i < proj_funcs.size(); ++i) {
     data.push_back(proj_funcs[i](event));
@@ -159,52 +165,41 @@ std::vector<double> HEPDataLoader::ProjectEvent(const HepMC3::GenEvent& event) {
   return data;
 };
 
-bool HEPDataLoader::FilterEvent(const HepMC3::GenEvent& event) {
+bool HEPDataLoader::FilterEvent(const HepMC3::GenEvent &event) {
   return filter_func(event);
 };
 
-double HEPDataLoader::WeightEvent(const HepMC3::GenEvent& event) {
-  return 1.0;
-}
+double HEPDataLoader::WeightEvent(const HepMC3::GenEvent &event) { return 1.0; }
 
-Record HEPDataLoader::CreateRecord(const std::string label) { 
-  return Record(measurement_name,
-    measurement_document,
-    independent_variables,
-    dependent_variables,
-    independent_covariances,
-    dependent_covariances);
+Record HEPDataLoader::CreateRecord(const std::string label) {
+  return Record(measurement_name, measurement_document, independent_variables,
+                dependent_variables, independent_covariances,
+                dependent_covariances);
 };
 
-bool HEPDataLoader::FillRecordFromEvent(Record& h,
-  const HepMC3::GenEvent& e, const double weight) {
+bool HEPDataLoader::FillRecordFromEvent(Record &h, const HepMC3::GenEvent &e,
+                                        const double weight) {
   h.FillTally();
-  if (!FilterEvent(e)) return false;
+  if (!FilterEvent(e))
+    return false;
   h.FillBin(ProjectEvent(e), weight * WeightEvent(e));
   return true;
 }
 
-bool HEPDataLoader::FillRecordFromProj(Record& h, 
-  const std::vector<double>& v, const double weight) {
-  h.FillTally();  // Hack so that Records record total passed through.
+bool HEPDataLoader::FillRecordFromProj(Record &h, const std::vector<double> &v,
+                                       const double weight) {
+  h.FillTally(); // Hack so that Records record total passed through.
   h.FillBin(v, weight);
   return true;
 }
 
-void HEPDataLoader::FinalizeRecord(Record& h, double scaling) {
+void HEPDataLoader::FinalizeRecord(Record &h, double scaling) {
   h.Scale(scaling / h.GetTally());
 }
 
-std::string HEPDataLoader::summary() {
-  return "";
-}
+std::string HEPDataLoader::summary() { return ""; }
 
-void HEPDataLoader::print() {
-  return;
-}
+void HEPDataLoader::print() { return; }
 
-}
-}
-
-
-
+} // namespace measurement
+} // namespace nuis

@@ -78,12 +78,12 @@ fi
 # Get directory of script being sourced.
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-export NUISANCEV3_ROOT=$(dirname -- ${SCRIPT_DIR})
-export NUISANCEV3_VERSION=@NUISANCEV3_VERSION@
+export NUISANCE_ROOT=$(dirname -- ${SCRIPT_DIR})
+export NUISANCE_VERSION=@NUISANCE_VERSION@
 
-add_to_PATH ${NUISANCEV3_ROOT}/bin
-add_to_LD_LIBRARY_PATH ${NUISANCEV3_ROOT}/lib
-add_to_PYTHONPATH ${NUISANCEV3_ROOT}/lib
+add_to_PATH ${NUISANCE_ROOT}/bin
+add_to_LD_LIBRARY_PATH ${NUISANCE_ROOT}/lib
+add_to_PYTHONPATH ${NUISANCE_ROOT}/lib
 
 export NUISANCEDB=@CMAKE_SOURCE_DIR@/data/
 

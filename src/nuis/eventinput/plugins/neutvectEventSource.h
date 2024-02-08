@@ -39,7 +39,7 @@ public:
   std::optional<HepMC3::GenEvent> first();
   std::optional<HepMC3::GenEvent> next();
 
-  static IEventSourcePtr MakeEventSource_neutvect(YAML::Node const &cfg);
+  static IEventSourcePtr MakeEventSource(YAML::Node const &cfg);
 
   NeutVect *neutvect(HepMC3::GenEvent const &);
 

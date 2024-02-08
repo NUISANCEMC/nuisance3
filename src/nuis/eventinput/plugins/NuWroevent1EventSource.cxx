@@ -1,6 +1,10 @@
 #include "nuis/eventinput/IEventSource.h"
 
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "nuwroconv.h"
+#pragma GCC diagnostic pop
 
 #include "HepMC3/GenRunInfo.h"
 
@@ -80,6 +84,8 @@ public:
     ch_ents = chin->GetEntries();
     ev = nullptr;
     auto branch_status = chin->SetBranchAddress("e", &ev);
+    //should check this
+    (void)branch_status;
     chin->GetEntry(0);
 
     double fatx = ev->weight;

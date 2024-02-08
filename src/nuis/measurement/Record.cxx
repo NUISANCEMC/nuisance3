@@ -16,6 +16,12 @@
  *    You should have received a copy of the GNU General Public License
  *    along with NUISANCE.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
+
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wreturn-type"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 #include "nuis/measurement/Record.h"
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"

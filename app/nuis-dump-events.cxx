@@ -10,6 +10,9 @@
 
 #include "spdlog/spdlog.h"
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 using namespace nuis;
 
 int main(int argc, char const *argv[]) {

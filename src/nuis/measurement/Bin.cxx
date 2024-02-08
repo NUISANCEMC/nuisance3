@@ -18,6 +18,8 @@
  *******************************************************************************/
 #include "nuis/measurement/Bin.h"
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 namespace nuis {
 namespace measurement {
 

@@ -19,6 +19,11 @@ PYBIND11_MAKE_OPAQUE(std::map<std::string, double>);
 
 //#include "ProSelecta/ProSelecta.h"
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wreturn-type"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 #include "nuis/measurement/Record.h"
 #include "nuis/measurement/MeasurementLoader.h"
 #include "nuis/measurement/HEPDataLoader.h"

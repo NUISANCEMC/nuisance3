@@ -1,7 +1,11 @@
-#include "SimpleStatistics.h"
 #include <Eigen/Dense>
 #include <vector>
+
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 #include "nuis/measurement/Record.h"
+#include "nuis/measurement/SimpleStatistics.h"
 
 namespace nuis {
 namespace measurement {
@@ -37,7 +41,7 @@ double CalculateRecordLikelihood(const nuis::measurement::Record& record) {
 //     // Returns record likelihood based on data mc conversion
 //     Eigen::MatrixXd residuals(manager.dial_values.size());
 //     for (size_t i = 0; i < manager.dial_values.size(); i++) {
-//         residuals(i) =\
+//         residuals(i) =
 //             (manager.dial_values[i] - manager.dial_nominals[i])/
 //             (manager.dial_errors[i]);
 //     }
@@ -55,7 +59,7 @@ double CalculateRecordLikelihood(const nuis::measurement::Record& record) {
 //     Eigen::MatrixXd inverse_correlation = correlation.inverse();
 
 //     // Now run our chi2 calculation
-//     double chi2 = \
+//     double chi2 = 
 //     (residualVector.transpose() * correlationMatrix.inverse() * residualVector);
 
 //     return chi2;

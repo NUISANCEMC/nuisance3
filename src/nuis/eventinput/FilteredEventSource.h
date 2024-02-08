@@ -19,7 +19,7 @@ public:
   }
   void operator++() { curr_event = source.get().next(); }
   EvType operator*() { return curr_event.value(); }
-  bool operator!=(IEventSource_sentinel const &sent) const {
+  bool operator!=(IEventSource_sentinel const &) const {
     return bool(curr_event);
   }
 };
@@ -96,7 +96,6 @@ class FilteredEventSource : public IEventSource {
   size_t nread, natmost;
 
   bool filter(HepMC3::GenEvent const &ev) {
-    int i = 0;
     for (auto &f : filters) {
       if (!f(ev)) {
         return false;

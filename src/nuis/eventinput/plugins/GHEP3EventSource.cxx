@@ -8,10 +8,10 @@
 #include "Framework/GHEP/GHepUtils.h"
 #include "Framework/Messenger/Messenger.h"
 #include "Framework/Ntuple/NtpMCEventRecord.h"
+#include "Framework/Numerical/Spline.h"
 #include "Framework/ParticleData/PDGUtils.h"
 #include "Framework/Utils/RunOpt.h"
 #include "Framework/Utils/XSecSplineList.h"
-#include "Framework/Numerical/Spline.h"
 
 #include "NuHepMC/Constants.hxx"
 #include "NuHepMC/EventUtils.hxx"
@@ -69,7 +69,8 @@ std::map<int, int> NEUTToMode{
     {33, 450}, {34, 450}, {36, 150}, {41, 550}, {42, 550}, {43, 550},
     {44, 550}, {46, 650}, {51, 250}, {52, 250}};
 
-std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents) {
+std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
+                                                 bool HaveTotXSSpline) {
 
   // G.R.1 Valid GenRunInfo
   auto run_info = std::make_shared<HepMC3::GenRunInfo>();
@@ -122,6 +123,11 @@ std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents) {
   std::vector<std::string> conventions = {
       "G.C.1", "G.C.2", "G.C.4", "E.C.1", "V.C.1", "P.C.1", "P.C.2",
   };
+
+  if (HaveTotXSSpline) {
+    conventions.push_back("E.C.2");
+  }
+
   // G.C.2 File Exposure (Standalone)
   NuHepMC::GC2::SetExposureNEvents(run_info, nevents);
 
@@ -177,9 +183,6 @@ bool IsPrimaryParticle(::genie::GHepParticle const &p,
     }
   }
 
-  // Then do a simple check of mother is associated with the primary
-  int MotherID = mother->FirstMother();
-
   // Finally, this should mean that our partcile is marked for transport through
   // the nucleus Could also be interactions of free proton
   if (p.Status() ==
@@ -195,8 +198,7 @@ bool IsPrimaryParticle(::genie::GHepParticle const &p,
   return false;
 }
 
-int GetGENIEParticleStatus(::genie::GHepParticle const &p,
-                           ::genie::GHepRecord const &GHep, int proc_id) {
+int GetGENIEParticleStatus(::genie::GHepParticle const &p, int proc_id) {
   /*
      kIStUndefined                  = -1,
      kIStInitialState               =  0,   / generator-level initial state /
@@ -392,7 +394,6 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
 
   ::NuHepMC::add_attribute(evt, "GENIE.Resonance",
                            int(GHep.Summary()->ExclTagPtr()->Resonance()));
-  ::NuHepMC::EC2::SetTotalCrossSection(evt, GHep.XSec());
 
   int TargetPDG;
   bool IsFree;
@@ -449,7 +450,7 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
         dynamic_cast<::genie::GHepParticle const &>(*po);
 
     // Get Status
-    int state = GetGENIEParticleStatus(p, GHep, proc_id);
+    int state = GetGENIEParticleStatus(p, proc_id);
 
     // Remove Undefined
     if (state == 0) {
@@ -522,7 +523,7 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
       ::genie::GHepParticle const &p =
           dynamic_cast<::genie::GHepParticle const &>(*po);
 
-      int state = GetGENIEParticleStatus(p, GHep, proc_id);
+      int state = GetGENIEParticleStatus(p, proc_id);
       auto pid = p.Pdg();
 
       auto part = std::make_shared<HepMC3::GenParticle>(
@@ -533,6 +534,12 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
 
     std::cout << GHep << std::endl;
     abort();
+  }
+
+  if (tgtp->pid() != TargetPDG) {
+    spdlog::warn("GHEP3EventSource target particle with pid={}, but NUISANCE "
+                 "target resolver found TargetPDG={}, IsFree={}.",
+                 tgtp->pid(), TargetPDG, IsFree);
   }
 
   return evt;
@@ -574,7 +581,7 @@ class GHEP3EventSource : public IEventSource {
   }
 
 public:
-  GHEP3EventSource(YAML::Node const &cfg) {
+  GHEP3EventSource(YAML::Node const &cfg) : TotXSSpline{} {
     if (cfg["filepath"]) {
       CheckAndAddPath(cfg["filepath"].as<std::string>());
     } else if (cfg["filepaths"]) {
@@ -599,8 +606,18 @@ public:
       SplineXML = getenv("GENIE_XSEC_FILE");
     }
 
+    if (!SplineXML.size()) {
+      spdlog::warn(
+          "No GENIE Spline file set. Add \"spline_file\" key to configuration "
+          "YAML node or set GENIE_XSEC_FILE in the environment.");
+      return;
+    }
+
     genie::XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
-    assert(ist == genie::kXmlOK);
+    if (ist != genie::kXmlOK) {
+      spdlog::warn("genie::XsecSplineList failed to load from {}", SplineXML);
+      return;
+    }
 
     auto bpart = NuHepMC::Event::GetBeamParticle(evt.value());
     auto tpart = NuHepMC::Event::GetTargetParticle(evt.value());
@@ -619,6 +636,9 @@ public:
     TotXSSpline =
         std::unique_ptr<TGraph>(evg_driver.XSecSumSpline()->GetAsTGraph(
             300, false, false, 1., 1. / genie::units::pb));
+    evg_driver.XSecSumSpline()->SaveAsROOT(
+        "GHEP3Spline.root",
+        fmt::format("spl_tgt_{}_nupdg_{}", tpart->pid(), bpart->pid()), true);
   }
 
   std::optional<HepMC3::GenEvent> first() {
@@ -641,9 +661,11 @@ public:
 
     ntpl = NULL;
     auto branch_status = chin->SetBranchAddress("gmcrec", &ntpl);
+    // should check this
+    (void)branch_status;
     chin->GetEntry(0);
 
-    gri = ghepconv::BuildRunInfo(chin->GetEntries());
+    gri = ghepconv::BuildRunInfo(chin->GetEntries(), bool(TotXSSpline));
 
     ch_fuid = chin->GetFile()->GetUUID();
     ient = 0;
@@ -651,6 +673,12 @@ public:
         static_cast<genie::GHepRecord const &>(*ntpl->event));
     ge.set_event_number(ient);
     ge.set_run_info(gri);
+    if (TotXSSpline) {
+      auto bpart = NuHepMC::Event::GetBeamParticle(ge);
+      NuHepMC::EC2::SetTotalCrossSection(
+          ge,
+          TotXSSpline->Eval(bpart->momentum().e())); // in GeV
+    }
     return ge;
   }
 
@@ -671,6 +699,12 @@ public:
         static_cast<genie::GHepRecord const &>(*ntpl->event));
     ge.set_event_number(ient);
     ge.set_run_info(gri);
+    if (TotXSSpline) {
+      auto bpart = NuHepMC::Event::GetBeamParticle(ge);
+      NuHepMC::EC2::SetTotalCrossSection(
+          ge,
+          TotXSSpline->Eval(bpart->momentum().e())); // in GeV
+    }
     return ge;
   }
 
