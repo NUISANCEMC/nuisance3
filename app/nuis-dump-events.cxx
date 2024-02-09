@@ -49,7 +49,6 @@ int main(int argc, char const *argv[]) {
 
   auto FATXAcc = NuHepMC::FATX::MakeAccumulator(gri);
 
-
   std::stringstream ss("");
   ss << NuHepMC::GC4::ParseCrossSectionUnits(gri);
 
@@ -75,11 +74,12 @@ int main(int argc, char const *argv[]) {
 
   auto weighters = wfact.Make(evs, neut_reweight_node);
   weighters->SetParameters({
-      {"MaCCQE", 0.9},
+      {"MaCCQE", -2},
   });
 
   size_t ctr = 0;
-  for (auto const &ev : from(evs).atmost(100000)) {
+  for (auto const &ev : from(evs).sel(
+           [](auto &ev) { return NuHepMC::ER3::ReadProcessID(ev) == 200; })) {
 
     auto beamp = NuHepMC::Event::GetBeamParticle(ev);
     auto tgtp = NuHepMC::Event::GetTargetParticle(ev);
@@ -126,8 +126,8 @@ int main(int argc, char const *argv[]) {
     // spdlog::info("\tnum FS pi0 = {}", npi0);
     // spdlog::info("-------------------");
 
-    // spdlog::info("evt: mode {}, wght NReWeight: {}", procids[procid].first,
-    //              weighters->CalcWeight(ev));
+    spdlog::info("evt: mode {}, wght GENIEReWeight: {}", procids[procid].first,
+                 weighters->CalcWeight(ev));
 
     if (ctr && !(ctr % 50000)) {
       spdlog::info("Processed {} events. FATX default estimate = {}", ctr,

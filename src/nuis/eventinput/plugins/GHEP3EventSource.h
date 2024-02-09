@@ -14,11 +14,16 @@ namespace HepMC3 {
 class GenRunInfo;
 }
 
-class NeutVect;
+namespace genie {
+class NtpMCEventRecord;
+class GEVGDriver;
+class EventRecord;
+class Spline;
+} // namespace genie
 
 namespace nuis {
 
-class neutvectEventSource : public IEventSource {
+class GHEP3EventSource : public IEventSource {
 
   std::vector<std::filesystem::path> filepaths;
   std::unique_ptr<TChain> chin;
@@ -29,21 +34,29 @@ class neutvectEventSource : public IEventSource {
   Long64_t ient;
   TUUID ch_fuid;
 
-  NeutVect *nv;
+  genie::NtpMCEventRecord *ntpl;
+
+  std::string EventGeneratorListName;
+  std::unordered_map<
+      int, std::unordered_map<int, std::unique_ptr<genie::GEVGDriver>>>
+      EvGens;
 
   void CheckAndAddPath(std::filesystem::path filepath);
 
+  genie::Spline const *GetSpline(int tgtpdg, int nupdg);
+
 public:
-  neutvectEventSource(YAML::Node const &cfg);
+  GHEP3EventSource(YAML::Node const &cfg);
 
   std::optional<HepMC3::GenEvent> first();
+
   std::optional<HepMC3::GenEvent> next();
 
   static IEventSourcePtr MakeEventSource(YAML::Node const &cfg);
 
-  NeutVect *neutvect(HepMC3::GenEvent const &);
+  genie::EventRecord const *EventRecord(HepMC3::GenEvent const &ev);
 
-  virtual ~neutvectEventSource() {}
+  virtual ~GHEP3EventSource() {}
 };
 
 } // namespace nuis

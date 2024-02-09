@@ -1,4 +1,4 @@
-#include "nuis/eventinput/IEventSource.h"
+#include "nuis/eventinput/plugins/GHEP3EventSource.h"
 
 #include "Framework/Conventions/Units.h"
 #include "Framework/EventGen/EventRecord.h"
@@ -22,7 +22,6 @@
 #include "HepMC3/GenRunInfo.h"
 #include "HepMC3/GenVertex.h"
 
-#include "TChain.h"
 #include "TFile.h"
 #include "TGraph.h"
 
@@ -30,11 +29,7 @@
 
 #include "spdlog/spdlog.h"
 
-#include "yaml-cpp/yaml.h"
-
-#include <filesystem>
 #include <fstream>
-#include <memory>
 
 namespace nuis {
 
@@ -547,204 +542,185 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
 }
 } // namespace ghepconv
 
-class GHEP3EventSource : public IEventSource {
+void GHEP3EventSource::CheckAndAddPath(std::filesystem::path filepath) {
+  if (!std::filesystem::exists(filepath)) {
+    spdlog::warn("GHEP3EventSource ignoring non-existant path {}",
+                 filepath.native());
+    return;
+  }
+  std::ifstream fin(filepath);
+  char magicbytes[5];
+  fin.read(magicbytes, 4);
+  magicbytes[4] = '\0';
+  if (std::string(magicbytes) != "root") {
+    spdlog::warn("GHEP3EventSource ignoring non-root file {} (magicbytes: {})",
+                 filepath.native(), magicbytes);
+    return;
+  }
+  filepaths.push_back(std::move(filepath));
+}
 
-  std::vector<std::filesystem::path> filepaths;
-  std::unique_ptr<TChain> chin;
-
-  std::shared_ptr<HepMC3::GenRunInfo> gri;
-
-  Long64_t ch_ents;
-  Long64_t ient;
-  TUUID ch_fuid;
-
-  genie::NtpMCEventRecord *ntpl;
-
-  std::string EventGeneratorList;
-  std::unordered_map<
-      int, std::unordered_map<int, std::unique_ptr<genie::GEVGDriver>>>
-      EvGens;
-
-  void CheckAndAddPath(std::filesystem::path filepath) {
-    if (!std::filesystem::exists(filepath)) {
-      spdlog::warn("GHEP3EventSource ignoring non-existant path {}",
-                   filepath.native());
-      return;
-    }
-    std::ifstream fin(filepath);
-    char magicbytes[5];
-    fin.read(magicbytes, 4);
-    magicbytes[4] = '\0';
-    if (std::string(magicbytes) != "root") {
-      spdlog::warn(
-          "GHEP3EventSource ignoring non-root file {} (magicbytes: {})",
-          filepath.native(), magicbytes);
-      return;
-    }
-    filepaths.push_back(std::move(filepath));
+genie::Spline const *GHEP3EventSource::GetSpline(int tgtpdg, int nupdg) {
+  if (!EventGeneratorListName.size()) {
+    return nullptr;
   }
 
-  genie::Spline const *GetSpline(int tgtpdg, int nupdg) {
-    if (!EventGeneratorList.size()) {
-      return nullptr;
-    }
-
-    if (!EvGens.count(tgtpdg) || !EvGens[tgtpdg].count(nupdg)) {
-      EvGens[tgtpdg][nupdg] = std::make_unique<genie::GEVGDriver>();
-      EvGens[tgtpdg][nupdg]->SetEventGeneratorList(EventGeneratorList);
-      EvGens[tgtpdg][nupdg]->Configure(genie::InitialState(tgtpdg, nupdg));
-      EvGens[tgtpdg][nupdg]->CreateSplines();
-      EvGens[tgtpdg][nupdg]->CreateXSecSumSpline(100, 0.05, 100);
-    }
-
-    return EvGens[tgtpdg][nupdg]->XSecSumSpline();
+  if (!EvGens.count(tgtpdg) || !EvGens[tgtpdg].count(nupdg)) {
+    EvGens[tgtpdg][nupdg] = std::make_unique<genie::GEVGDriver>();
+    EvGens[tgtpdg][nupdg]->SetEventGeneratorList(EventGeneratorListName);
+    EvGens[tgtpdg][nupdg]->Configure(genie::InitialState(tgtpdg, nupdg));
+    EvGens[tgtpdg][nupdg]->CreateSplines();
+    EvGens[tgtpdg][nupdg]->CreateXSecSumSpline(100, 0.05, 100);
   }
 
-public:
-  GHEP3EventSource(YAML::Node const &cfg) {
-    if (cfg["filepath"]) {
-      CheckAndAddPath(cfg["filepath"].as<std::string>());
-    } else if (cfg["filepaths"]) {
-      for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
-        CheckAndAddPath(fp);
-      }
-    }
+  return EvGens[tgtpdg][nupdg]->XSecSumSpline();
+}
 
-    auto evt = first();
-    if (!evt) { // if we can't read an event, there's no point going further
-      return;
-    }
-
-    genie::Messenger::Instance()->SetPriorityLevel("GHepUtils", pFATAL);
-
-    genie::XSecSplineList *splist = genie::XSecSplineList::Instance();
-
-    std::string SplineXML;
-    if (cfg["spline_file"]) {
-      SplineXML = cfg["spline_file"].as<std::string>();
-    } else if (getenv("GENIE_XSEC_FILE")) {
-      SplineXML = getenv("GENIE_XSEC_FILE");
-    }
-
-    if (!SplineXML.size()) {
-      spdlog::warn(
-          "No GENIE Spline file set. Add \"spline_file\" key to configuration "
-          "YAML node or set GENIE_XSEC_FILE in the environment.");
-      return;
-    }
-
-    std::string GENIETune;
-    if (cfg["tune"]) {
-      GENIETune = cfg["tune"].as<std::string>();
-    } else if (getenv("GENIE_XSEC_TUNE")) {
-      GENIETune = getenv("GENIE_XSEC_TUNE");
-    }
-
-    if (!GENIETune.size()) {
-      spdlog::warn("No GENIE Tune set. Add \"tune\" key to configuration "
-                   "YAML node or set GENIE_XSEC_TUNE in the environment.");
-      return;
-    }
-
-    genie::RunOpt::Instance()->SetTuneName(GENIETune);
-    genie::RunOpt::Instance()->BuildTune();
-
-    genie::XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
-    if (ist != genie::kXmlOK) {
-      spdlog::warn("genie::XsecSplineList failed to load from {}", SplineXML);
-      return;
-    }
-
-    EventGeneratorList = "Default";
-    if (cfg["event_generator_list"]) {
-      EventGeneratorList = cfg["event_generator_list"].as<std::string>();
+GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
+  if (cfg["filepath"]) {
+    CheckAndAddPath(cfg["filepath"].as<std::string>());
+  } else if (cfg["filepaths"]) {
+    for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
+      CheckAndAddPath(fp);
     }
   }
 
-  std::optional<HepMC3::GenEvent> first() {
+  auto evt = first();
+  if (!evt) { // if we can't read an event, there's no point going further
+    return;
+  }
 
-    if (!filepaths.size()) {
+  genie::Messenger::Instance()->SetPriorityLevel("GHepUtils", pFATAL);
+
+  genie::XSecSplineList *splist = genie::XSecSplineList::Instance();
+
+  std::string SplineXML;
+  if (cfg["spline_file"]) {
+    SplineXML = cfg["spline_file"].as<std::string>();
+  } else if (getenv("GENIE_XSEC_FILE")) {
+    SplineXML = getenv("GENIE_XSEC_FILE");
+  }
+
+  if (!SplineXML.size()) {
+    spdlog::warn(
+        "No GENIE Spline file set. Add \"spline_file\" key to configuration "
+        "YAML node or set GENIE_XSEC_FILE in the environment.");
+    return;
+  }
+
+  std::string GENIETune;
+  if (cfg["tune"]) {
+    GENIETune = cfg["tune"].as<std::string>();
+  } else if (getenv("GENIE_XSEC_TUNE")) {
+    GENIETune = getenv("GENIE_XSEC_TUNE");
+  }
+
+  if (!GENIETune.size()) {
+    spdlog::warn("No GENIE Tune set. Add \"tune\" key to configuration "
+                 "YAML node or set GENIE_XSEC_TUNE in the environment.");
+    return;
+  }
+
+  genie::RunOpt::Instance()->SetTuneName(GENIETune);
+  genie::RunOpt::Instance()->BuildTune();
+
+  genie::XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
+  if (ist != genie::kXmlOK) {
+    spdlog::warn("genie::XsecSplineList failed to load from {}", SplineXML);
+    return;
+  }
+
+  EventGeneratorListName = "Default";
+  if (cfg["event_generator_list"]) {
+    EventGeneratorListName = cfg["event_generator_list"].as<std::string>();
+  }
+}
+
+std::optional<HepMC3::GenEvent> GHEP3EventSource::first() {
+
+  if (!filepaths.size()) {
+    return std::optional<HepMC3::GenEvent>();
+  }
+
+  chin = std::make_unique<TChain>("gtree");
+
+  for (auto const &ftr : filepaths) {
+    if (!chin->Add(ftr.c_str(), 0)) {
+      spdlog::warn("Could not find gtree in {}", ftr.native());
+      chin.reset();
       return std::optional<HepMC3::GenEvent>();
     }
+  }
 
-    chin = std::make_unique<TChain>("gtree");
+  ch_ents = chin->GetEntries();
 
-    for (auto const &ftr : filepaths) {
-      if (!chin->Add(ftr.c_str(), 0)) {
-        spdlog::warn("Could not find gtree in {}", ftr.native());
-        chin.reset();
-        return std::optional<HepMC3::GenEvent>();
-      }
-    }
+  ntpl = NULL;
+  auto branch_status = chin->SetBranchAddress("gmcrec", &ntpl);
+  // should check this
+  (void)branch_status;
+  chin->GetEntry(0);
 
-    ch_ents = chin->GetEntries();
+  ch_fuid = chin->GetFile()->GetUUID();
+  ient = 0;
+  auto ge = ghepconv::ToGenEvent(
+      static_cast<genie::GHepRecord const &>(*ntpl->event));
+  ge.set_event_number(ient);
 
-    ntpl = NULL;
-    auto branch_status = chin->SetBranchAddress("gmcrec", &ntpl);
-    // should check this
-    (void)branch_status;
-    chin->GetEntry(0);
+  auto tpart = NuHepMC::Event::GetTargetParticle(ge);
+  auto bpart = NuHepMC::Event::GetBeamParticle(ge);
 
+  auto xspline = GetSpline(tpart->pid(), bpart->pid());
+
+  gri = ghepconv::BuildRunInfo(chin->GetEntries(), xspline);
+
+  ge.set_run_info(gri);
+
+  if (xspline) {
+    NuHepMC::EC2::SetTotalCrossSection(
+        ge,
+        xspline->Evaluate(bpart->momentum().e()) / genie::units::pb); // in GeV
+  }
+  return ge;
+}
+
+std::optional<HepMC3::GenEvent> GHEP3EventSource::next() {
+  ient++;
+
+  if (ient >= ch_ents) {
+    return std::optional<HepMC3::GenEvent>();
+  }
+
+  chin->GetEntry(ient);
+
+  if (chin->GetFile()->GetUUID() != ch_fuid) {
     ch_fuid = chin->GetFile()->GetUUID();
-    ient = 0;
-    auto ge = ghepconv::ToGenEvent(
-        static_cast<genie::GHepRecord const &>(*ntpl->event));
-    ge.set_event_number(ient);
-
-    auto tpart = NuHepMC::Event::GetTargetParticle(ge);
-    auto bpart = NuHepMC::Event::GetBeamParticle(ge);
-
-    auto xspline = GetSpline(tpart->pid(), bpart->pid());
-
-    gri = ghepconv::BuildRunInfo(chin->GetEntries(), xspline);
-
-    ge.set_run_info(gri);
-
-    if (xspline) {
-      NuHepMC::EC2::SetTotalCrossSection(
-          ge,
-          xspline->Evaluate(bpart->momentum().e()) /
-              genie::units::pb); // in GeV
-    }
-    return ge;
   }
 
-  std::optional<HepMC3::GenEvent> next() {
-    ient++;
+  auto ge = ghepconv::ToGenEvent(
+      static_cast<genie::GHepRecord const &>(*ntpl->event));
+  ge.set_event_number(ient);
+  ge.set_run_info(gri);
+  auto tpart = NuHepMC::Event::GetTargetParticle(ge);
+  auto bpart = NuHepMC::Event::GetBeamParticle(ge);
 
-    if (ient >= ch_ents) {
-      return std::optional<HepMC3::GenEvent>();
-    }
-
-    chin->GetEntry(ient);
-
-    if (chin->GetFile()->GetUUID() != ch_fuid) {
-      ch_fuid = chin->GetFile()->GetUUID();
-    }
-
-    auto ge = ghepconv::ToGenEvent(
-        static_cast<genie::GHepRecord const &>(*ntpl->event));
-    ge.set_event_number(ient);
-    ge.set_run_info(gri);
-    auto tpart = NuHepMC::Event::GetTargetParticle(ge);
-    auto bpart = NuHepMC::Event::GetBeamParticle(ge);
-
-    auto xspline = GetSpline(tpart->pid(), bpart->pid());
-    if (xspline) {
-      NuHepMC::EC2::SetTotalCrossSection(
-          ge,
-          xspline->Evaluate(bpart->momentum().e()) /
-              genie::units::pb); // in GeV
-    }
-    return ge;
+  auto xspline = GetSpline(tpart->pid(), bpart->pid());
+  if (xspline) {
+    NuHepMC::EC2::SetTotalCrossSection(
+        ge,
+        xspline->Evaluate(bpart->momentum().e()) / genie::units::pb); // in GeV
   }
+  return ge;
+}
 
-  static IEventSourcePtr MakeEventSource(YAML::Node const &cfg) {
-    return std::make_shared<GHEP3EventSource>(cfg);
-  }
+genie::EventRecord const *
+GHEP3EventSource::EventRecord(HepMC3::GenEvent const &ev) {
+  chin->GetEntry(ev.event_number());
+  return static_cast<genie::EventRecord const *>(ntpl->event);
+}
 
-  virtual ~GHEP3EventSource() {}
-};
+IEventSourcePtr GHEP3EventSource::MakeEventSource(YAML::Node const &cfg) {
+  return std::make_shared<GHEP3EventSource>(cfg);
+}
 
 BOOST_DLL_ALIAS(nuis::GHEP3EventSource::MakeEventSource, MakeEventSource);
 
