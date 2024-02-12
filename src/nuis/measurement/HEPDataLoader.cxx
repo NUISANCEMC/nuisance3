@@ -16,64 +16,100 @@
  *    You should have received a copy of the GNU General Public License
  *    along with NUISANCE.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
-#include <filesystem>
 #include <map>
+#include <filesystem>
+
+#include "nuis/measurement/MeasurementLoader.h"
 
 #include "yaml-cpp/yaml.h"
 using namespace YAML;
 
-#include "HepMC3/GenEvent.h"
 #include "ProSelecta/ProSelecta.h"
+#include "HepMC3/GenEvent.h"
 
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wreturn-type"
-#pragma GCC diagnostic ignored "-Wsign-compare"
-
-#include "nuis/measurement/HEPDataLoader.h"
-
-#include "nuis/measurement/Document.h"
-#include "nuis/measurement/MeasurementLoader.h"
 #include "nuis/measurement/Record.h"
 #include "nuis/measurement/Variables.h"
+#include "nuis/measurement/Document.h"
+#include "nuis/measurement/HEPDataLoader.h"
+#include "spdlog/spdlog.h"
+
 
 namespace nuis {
 namespace measurement {
 
+std::string validate_env() {
+  // Require ProSelectra input
+  auto PROSELECTA = std::getenv("PROSELECTA_DIR");
+  if (!PROSELECTA) {
+    spdlog::critical("PROSELECTA_DIR environment variable not defined");
+    abort();
+  }
+
+  // Require Database Valid
+  auto DATABASE = std::getenv("NUISANCE_DB");
+  if (!DATABASE) {
+    spdlog::critical("NUISANCE_DB environment variable not defined");
+    abort();
+  }
+
+  return std::string(DATABASE);
+}
+
 HEPDataLoader::HEPDataLoader(YAML::Node config) {
-  std::cout << "[INFO]: Loading Sample Settings" << std::endl;
 
+  std::string DATABASE = validate_env();
+
+  spdlog::info("[INFO]: Loading HEPData Object");
+  spdlog::info("[INFO]: --> database: {}", std::string(DATABASE));
+
+  if (!config["release"]){
+    spdlog::critical("HEPData node missing release");
+    abort();
+  }
+
+  // Check if release folder is local
   std::string release = config["release"].as<std::string>();
-
   std::filesystem::path path_release = release;
+  spdlog::info("[INFO]: --> release: {}", release);
+
   if (!std::filesystem::is_directory(path_release.parent_path())) {
-    release = std::string(getenv("NUISANCEDB")) + "/neutrino_data/" + release;
+    release = std::string(DATABASE) + "/neutrino_data/" + release;
   }
 
+  // Abort if directory not found
+  path_release = release;
+  if (!std::filesystem::is_directory(path_release.parent_path())) {
+    spdlog::critical("HEPData folder is missing");
+    abort();
+  }
+  spdlog::info("[INFO]: --> path: {}", std::string(path_release.parent_path()));
+
+
+  // Load the YAML Submission file
   std::string filename = release + "/submission.yaml";
-  std::cout << "-> Releease filename " << filename << std::endl;
-  std::string table = config["table"].as<std::string>();
-  std::string analysis = "analysis.cxx";
-  if (config["analysis"])
-    analysis = config["analysis"].as<std::string>();
+  spdlog::info("[INFO]: --> file: {}", filename);
 
+
+  // Load ProSelectra Snippet
   ProSelecta::Get().AddIncludePath(release);
-  ProSelecta::Get().AddIncludePath(std::string(getenv("PROSELECTA_DIR")));
 
-  std::cout << "ADDED PATH " << release << std::endl;
+  std::string analysis = "analysis.cxx";
+  if (config["analysis"]) analysis = config["analysis"].as<std::string>();
+
   if (!ProSelecta::Get().LoadFile(analysis.c_str())) {
-    std::cout << "[ERROR]: Cling failed interpreting: " << analysis
-              << std::endl;
-    throw(505);
+    spdlog::critical("[ERROR]: Cling failed interpreting: {}", analysis);
+    abort();
   }
 
+
+  // Tables in hepdata alwayss release _ tablename
+  std::string table = config["table"].as<std::string>();
   measurement_name = release + "_" + table;
 
   // Convert HEPDATA YAML submission to map of documents
-  std::cout << "[INFO]: Loading YAML Docs for " << filename << std::endl;
   std::vector<YAML::Node> yaml_docs = YAML::LoadAllFromFile(filename);
   std::map<std::string, Document> hepdata_docs;
-  std::cout << "YAML DOCS " << yaml_docs.size() << std::endl;
+
   for (std::size_t i = 0; i < yaml_docs.size(); i++) {
     Document cur_hepdatadoc = yaml_docs[i].as<Document>();
     hepdata_docs[cur_hepdatadoc.name] = cur_hepdatadoc;
@@ -81,11 +117,14 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
 
   // Check requested name is inside.
   if (hepdata_docs.find(table) == hepdata_docs.end()) {
-    std::cerr << "HepData Table not found : " << table << std::endl;
-    std::cerr << " - [ Available Tables ]" << std::endl;
+
+    spdlog::critical("[ERROR]: HepData Table not found : {}", table);
+    spdlog::critical("[ERROR]: - [ Available Tables ]");
     for (auto const &it : hepdata_docs) {
-      std::cerr << " - " << (it.first) << std::endl;
+      spdlog::critical("[ERROR]:  - {}", (it.first));
     }
+    abort();
+
   }
 
   // Now get individual table info
@@ -97,19 +136,19 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
   std::cout << "Loading YAML Data : " << release + "/" + datafile << std::endl;
   YAML::Node doc = YAML::LoadFile(release + "/" + datafile);
   YAML::Node indep_var_node = doc["independent_variables"];
-  for (int i = 0; i < indep_var_node.size(); i++) {
+  for (size_t i = 0; i < indep_var_node.size(); i++) {
     independent_variables.emplace_back(indep_var_node[i].as<Variables>());
   }
 
   YAML::Node dep_var_node = doc["dependent_variables"];
-  for (int i = 0; i < dep_var_node.size(); i++) {
+  for (size_t i = 0; i < dep_var_node.size(); i++) {
     dependent_variables.emplace_back(dep_var_node[i].as<Variables>());
   }
 
-  // YAML::Node covariance_doc = YAML::LoadFile(release +
-  // "/covar-costhetamupmu_analysisi.yaml"); YAML::Node dep_cov_node =
-  // covariance_doc["dependent_variables"]; for (int i = 0; i <
-  // dep_cov_node.size(); i++) {
+  
+  // YAML::Node covariance_doc = YAML::LoadFile(release + "/covar-costhetamupmu_analysisi.yaml");
+  // YAML::Node dep_cov_node = covariance_doc["dependent_variables"];
+  // for (int i = 0; i < dep_cov_node.size(); i++) {
   //   dependent_covariances.emplace_back(dep_cov_node[i].as<Variables>());
   // }
 
@@ -123,79 +162,70 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
   std::cout << "[INFO] : -> Filter : " << filter_symname << std::endl;
 
   std::vector<std::string> projection_symnames;
-  for (int i = 0; i < independent_variables.size(); i++) {
+  for (size_t i = 0; i < independent_variables.size(); i++) {
     projection_symnames.push_back(
-        dependent_variables[0].qualifiers[independent_variables[i].name]);
+      dependent_variables[0].qualifiers[independent_variables[i].name]);
 
-    std::cout << "[INFO] : Selected Projection : "
-              << independent_variables[i].name << std::endl;
+    std::cout << "[INFO] : Selected Projection : " <<
+      independent_variables[i].name << std::endl;
   }
 
-  filter_func = ProSelecta::Get().GetFilterFunction(
-      filter_symname, ProSelecta::Interpreter::kCling);
+  filter_func = ProSelecta::Get().GetFilterFunction(filter_symname,
+    ProSelecta::Interpreter::kCling);
 
   if (!filter_func) {
     std::cout << "[ERROR]: Cling didn't find a filter function named: "
               << filter_symname << " in the input file. Did you extern \"C\"?"
               << std::endl;
-    throw(505);
+    abort();
   }
 
   for (auto &proj_sym_name : projection_symnames) {
-    auto proj_func = ProSelecta::Get().GetProjectionFunction(
-        proj_sym_name, ProSelecta::Interpreter::kCling);
+    auto proj_func = ProSelecta::Get().GetProjectionFunction(proj_sym_name,
+      ProSelecta::Interpreter::kCling);
 
     if (proj_func) {
       proj_funcs.push_back(proj_func);
       proj_funcnames.push_back(proj_sym_name);
     } else {
-      std::cout << "[ERROR]: Cling didn't find a projection function named: "
+      std::cerr << "[ERROR]: Cling didn't find a projection function named: "
                 << proj_sym_name << " in the input file. Skipping."
                 << std::endl;
-      throw(505);
+      abort();
     }
   }
 }
 
-std::vector<double> HEPDataLoader::ProjectEvent(const HepMC3::GenEvent &event) {
+std::vector<double> HEPDataLoader::ProjectEvent(const HepMC3::GenEvent& event) {
   std::vector<double> data;
   for (size_t i = 0; i < proj_funcs.size(); ++i) {
     data.push_back(proj_funcs[i](event));
   }
   return data;
-};
+}
 
-bool HEPDataLoader::FilterEvent(const HepMC3::GenEvent &event) {
+bool HEPDataLoader::FilterEvent(const HepMC3::GenEvent& event) {
   return filter_func(event);
-};
-
-double HEPDataLoader::WeightEvent(const HepMC3::GenEvent &event) { return 1.0; }
-
-Record HEPDataLoader::CreateRecord(const std::string label) {
-  return Record(measurement_name, measurement_document, independent_variables,
-                dependent_variables, independent_covariances,
-                dependent_covariances);
-};
-
-bool HEPDataLoader::FillRecordFromEvent(RecordPtr h, const HepMC3::GenEvent &e,
-                                        const double weight) {
-  h->FillTally();
-  if (!FilterEvent(e))
-    return false;
-  h->FillBin(ProjectEvent(e), weight * WeightEvent(e));
-  return true;
 }
 
-bool HEPDataLoader::FillRecordFromProj(RecordPtr h, const std::vector<double> &v,
-                                       const double weight) {
-  h->FillTally(); // Hack so that Records record total passed through->
-  h->FillBin(v, weight);
-  return true;
+double HEPDataLoader::WeightEvent(const HepMC3::GenEvent& /*event*/) {
+  return 1.0;
 }
 
-void HEPDataLoader::FinalizeRecord(RecordPtr h, double scaling) {
-  h->Scale(scaling / h->GetTally());
+Record HEPDataLoader::CreateRecord(const std::string label) { 
+  return Record(measurement_name + "_" + label,
+    measurement_document,
+    independent_variables,
+    dependent_variables,
+    independent_covariances,
+    dependent_covariances);
 }
 
-}  // namespace measurement
-}  // namespace nuis
+void HEPDataLoader::FinalizeRecord(RecordPtr /*h*/, double /*scaling*/) {
+}
+
+} 
+}
+
+
+

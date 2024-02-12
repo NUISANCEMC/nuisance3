@@ -148,14 +148,13 @@ template <> struct type_caster<YAML::Node> {
 
 
 namespace nuis{ 
-    namespace measurement {
+namespace measurement {
 // To avoid having to make trampoline classes for
-// every possible inherited we make a single
+// every possible inherited one we make a single
 // measurement wrapper which contains in memory
-// the base measurement object, calling factory
+// the base measurement object, calling a factory (eventually)
 // to build. Python bindings all then assume that
-// the they are dealing with a PyWrapper class
-// but classes are auto cast int 
+// the they are dealing with a PyWrapper class.
 class MeasurementPyWrapper {
 public:
   MeasurementPyWrapper() {}
@@ -184,11 +183,11 @@ public:
     meas->FinalizeRecord(h, scaling);
   }
 
-  std::shared_ptr<nuis::measurement::MeasurementLoader> meas;
+  std::shared_ptr<MeasurementLoader> meas;
 };
 
-    }
-}
+}  // namespace measurement
+}  // namespace nuis
 
 
 

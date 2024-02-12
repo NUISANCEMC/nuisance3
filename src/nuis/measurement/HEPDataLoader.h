@@ -50,13 +50,7 @@ public:
   double WeightEvent(const HepMC3::GenEvent& event);
 
   Record CreateRecord(const std::string label = "MC");
-
-  bool FillRecordFromEvent(RecordPtr h,
-    const HepMC3::GenEvent& event, const double weight);
-
-  bool FillRecordFromProj(RecordPtr h,
-    const std::vector<double>& val, const double weight);
-
+  
   void FinalizeRecord(RecordPtr h, double scaling);
 };
 

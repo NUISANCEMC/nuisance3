@@ -57,12 +57,9 @@ void configure_environment() {
             << "[ERROR]: NUISANCEDB NOT SET!" << std::endl;
         abort();
     }
-
-
-  }
-
-
 }
+
+
 
 PYBIND11_MODULE(pyNuisAnalysis, m) {
     m.doc() = "NUISANCE implementation in python";
