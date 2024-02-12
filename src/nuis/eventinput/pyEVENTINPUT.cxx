@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "nuis/eventinput/EventSourceFactory.h"
-#include "nuis/eventinput/FilteredEventSource.h"
 #include "nuis/eventinput/IEventSourceIterator.h"
 
 #include "NuHepMC/EventUtils.hxx"

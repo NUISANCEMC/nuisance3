@@ -66,5 +66,10 @@ public:
 
     return matching_plugins;
   }
+
+  IWeightCalcHM3MapPtr Make(IWrappedEventSourcePtr evs,
+                            YAML::Node const &cfg = {}) {
+    return Make(nuis::get_IO_IEventSource(evs), cfg);
+  }
 };
 } // namespace nuis
