@@ -43,7 +43,7 @@ struct Variables {
   std::string name;
   std::string units;
   std::string title;
-  int n = 0;
+  size_t n = 0;
 
   inline std::string summary() {
     std::stringstream ss;
@@ -59,7 +59,7 @@ struct Variables {
     ss << " - Bins : " << std::endl;
     ss << " - - i : value low high " << std::endl;
 
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
       ss << " - - " << i << " : ";
 
       if (i < values.size() && values[i] != -999)
@@ -140,7 +140,7 @@ struct Variables {
     // Qualifiers optional
     if (node["qualifiers"]) {
       YAML::Node node_qualifiers = node["qualifiers"];
-      for (int i = 0; i < node_qualifiers.size(); i++) {
+      for (size_t i = 0; i < node_qualifiers.size(); i++) {
         if (node_qualifiers[i]["name"] && node_qualifiers[i]["value"]) {
         std::string name = node_qualifiers[i]["name"].as<std::string>();
         std::string value = node_qualifiers[i]["value"].as<std::string>();
@@ -170,7 +170,7 @@ struct Variables {
     rhs.low.resize(xvalues.size());
     rhs.high.resize(xvalues.size());
 
-    for (int i = 0; i < xvalues.size(); i++) {
+    for (size_t i = 0; i < xvalues.size(); i++) {
       rhs.values[i] =
           xvalues[i]["value"] ? xvalues[i]["value"].as<double>() : -999;
       rhs.errors[i] =
@@ -180,7 +180,6 @@ struct Variables {
       rhs.high[i] =
           xvalues[i]["high"] ? xvalues[i]["high"].as<double>() : -999;
     }
-    int il = xvalues.size() - 1;
 
     rhs.valid = 1;
   }

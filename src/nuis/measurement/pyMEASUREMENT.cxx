@@ -8,158 +8,189 @@
 #include <pybind11/stl.h>
 #include "pybind11/stl_bind.h"
 
-PYBIND11_MAKE_OPAQUE(std::vector<int>);
-PYBIND11_MAKE_OPAQUE(std::map<std::string, double>);
+// PYBIND11_MAKE_OPAQUE(std::vector<int>);
+// PYBIND11_MAKE_OPAQUE(std::map<std::string, double>);
 
 #include "yaml-cpp/yaml.h"
-
-//#include "HepMC3/Reader.h"
-//#include "HepMC3/ReaderFactory.h"
-//#include "HepMC3/GenEvent.h"
-
-//#include "ProSelecta/ProSelecta.h"
-
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wreturn-type"
-#pragma GCC diagnostic ignored "-Wsign-compare"
 
 #include "nuis/measurement/Record.h"
 #include "nuis/measurement/MeasurementLoader.h"
 #include "nuis/measurement/HEPDataLoader.h"
 #include "nuis/measurement/SimpleStatistics.h"
 
-std::vector<std::string> files_to_read;
-std::string filename;
-
-std::string analysis_symname;
-std::string sel_symname;
-std::vector<std::string> projection_symnames;
-std::vector<std::string> wgt_symnames;
-
-std::vector<std::string> include_paths;
-
-std::string ProSelecta_env_dir;
-
 namespace py = pybind11;
-
-void configure_environment(){
-    // for (auto const &p : include_paths) {
-        // ProSelecta::Get().AddIncludePath(p);
-    // }
-
-    char *ProSelecta_env = getenv("PROSELECTA_DIR");
-    if (!ProSelecta_env && !ProSelecta_env_dir.length()) {
-        std::cout << "[ERROR]: Cannot find ProSelecta environment headers. Either "
-                    "define PROSELECTA_DIR in the calling environment or add "
-                    "--env command line argument."
-                << std::endl;
-        return;
-    }
-    if (!ProSelecta_env_dir.length()) {
-        ProSelecta_env_dir = ProSelecta_env;
-        if (ProSelecta_env_dir.back() != '/') {
-        ProSelecta_env_dir += '/';
-        }
-        ProSelecta_env_dir += "ProSelecta/env/";
-    }
-
-    ProSelecta::Get().AddIncludePath(ProSelecta_env_dir);
-
-
-    std::string hepmc3dir = std::string(getenv("NUHEPMC3_INC"));
-    ProSelecta::Get().AddIncludePath(hepmc3dir);
-
-
-    bool read_env = ProSelecta::Get().LoadText("#include \"env.h\"",
-                                                ProSelecta::Interpreter::kCling);
-
-    if (!read_env) {
-        std::cout
-            << "[ERROR]: Cling failed to interpret the processor environment, if "
-            "you passed the right path to find these header files and this "
-            "still occures then it is a bug in ProSelectaCPP itself."
-            << std::endl;
-        abort();
-    }
-}
 
 // Python dictionary to YAML conversion
 namespace PYBIND11_NAMESPACE { namespace detail {
-    template <> struct type_caster<YAML::Node> {
-    public:
-        PYBIND11_TYPE_CASTER(YAML::Node, const_name("node"));
-        
-        YAML::Node PyListToYAML(PyObject* pList){
-            YAML::Node n;
+template <> struct type_caster<YAML::Node> {
+ public:
 
-            for (Py_ssize_t i = 0; i < PyList_Size(pList); ++i) {
-                
-                PyObject* pVal = PyList_GetItem(pList,   i);
-                if (PyUnicode_Check(pVal)) n[i] = std::string( PyUnicode_AsUTF8(pVal) );
-                else if (PyLong_Check(pVal)) n[i] = int( PyLong_AsLong(pVal) );
-                else if (PyFloat_Check(pVal)) n[i] = double( PyFloat_AsDouble(pVal) );
-                else if (PyDict_Check(pVal)) n[i] = PyDictToYAML(pVal);
-                else if (PyList_Check(pVal)) n[i] = PyListToYAML(pVal);
-                else {
-                    std::cout << "Only Concrete Python instances allowed as dict inputs to YAML conversion!" << std::endl;
-                    std::cout << "Index [" << i << "] is problematic!" << std::endl;
-                }
+    PYBIND11_TYPE_CASTER(YAML::Node, const_name("node"));
+
+    YAML::Node PyListToYAML(PyObject* pList) {
+        YAML::Node n;
+
+        for (Py_ssize_t i = 0; i < PyList_Size(pList); ++i) {
+
+            PyObject* pVal = PyList_GetItem(pList,   i);
+
+            if (PyUnicode_Check(pVal)) {
+                n[i] = std::string(PyUnicode_AsUTF8(pVal));
+
+            } else if (PyLong_Check(pVal)) {
+                n[i] = static_cast<int>(PyLong_AsLong(pVal));
+
+            } else if (PyFloat_Check(pVal)) {
+                n[i] = static_cast<double>(PyFloat_AsDouble(pVal));
+
+            } else if (PyDict_Check(pVal)) {
+                n[i] = PyDictToYAML(pVal);
+
+            } else if (PyList_Check(pVal)) {
+                n[i] = PyListToYAML(pVal);
+
+            } else {
+                std::cout << "Only Concrete Python instances allowed as " <<
+                    "dict inputs to YAML conversion!" << std::endl;
+
+                std::cout << "Index [" << i << "] is problematic!" << std::endl;
+            }
+        }
+
+        return n;
+    }
+
+    YAML::Node PyDictToYAML(PyObject* pDict) {
+        YAML::Node n;
+
+        PyObject *pKeys = PyDict_Keys(pDict);
+        PyObject *pValues = PyDict_Values(pDict);
+
+        for (Py_ssize_t i = 0; i < PyDict_Size(pDict); ++i) {
+            PyObject* pKey = PyList_GetItem(pKeys,   i);
+
+            if (!PyUnicode_Check(pKey)) {
+                std::cout <<
+                    "YAML Conversion can only handle string keys!"
+                    << std::endl;
             }
 
-            return n;
-        }
-        YAML::Node PyDictToYAML(PyObject* pDict){
+            std::string key = PyUnicode_AsUTF8(PyList_GetItem(pKeys, i));
 
-            YAML::Node n;
+            PyObject* pVal = PyList_GetItem(pValues,   i);
 
-            PyObject *pKeys = PyDict_Keys(pDict);
-            PyObject *pValues = PyDict_Values(pDict);
-            for (Py_ssize_t i = 0; i < PyDict_Size(pDict); ++i) {
-                
-                PyObject* pKey = PyList_GetItem(pKeys,   i);
-                if (!PyUnicode_Check(pKey)){
-                    std::cout << "YAML Conversion can only handle string keys!" << std::endl;
-                }
-                std::string key = PyUnicode_AsUTF8( PyList_GetItem(pKeys,   i));
+            if (PyUnicode_Check(pVal)) {
+                n[key] = std::string(PyUnicode_AsUTF8(pVal));
 
-                PyObject* pVal = PyList_GetItem(pValues,   i);
-                if (PyUnicode_Check(pVal)) n[key] = std::string( PyUnicode_AsUTF8(pVal) );
-                else if (PyLong_Check(pVal)) n[key] = int( PyLong_AsLong(pVal) );
-                else if (PyFloat_Check(pVal)) n[key] = double( PyFloat_AsDouble(pVal) );
-                else if (PyDict_Check(pVal)) n[key] = PyDictToYAML(pVal);
-                else if (PyList_Check(pVal)) n[key] = PyListToYAML(pVal);
-                else {
-                    std::cout << "Only Concrete Python instances allowed as dict inputs to YAML conversion!" << std::endl;
-                    std::cout << "KEY [" << key << "] is problematic!" << std::endl;
-                }
+            } else if (PyLong_Check(pVal)) {
+                n[key] = static_cast<int>(PyLong_AsLong(pVal));
+
+            } else if (PyFloat_Check(pVal)) {
+                n[key] = static_cast<double>(PyFloat_AsDouble(pVal));
+
+            } else if (PyDict_Check(pVal)) {
+                n[key] = PyDictToYAML(pVal);
+
+            } else if (PyList_Check(pVal)) {
+                n[key] = PyListToYAML(pVal);
+
+            } else {
+                std::cout << "Only Concrete Python instances allowed " <<
+                    " as dict inputs to YAML conversion!" << std::endl;
+
+                std::cout << "KEY [" << key << "] is problematic!" << std::endl;
             }
-
-            return n;
         }
 
-        bool load(handle src, bool) {
-            /* Extract PyObject from handle */
-            PyObject *source = src.ptr();
+        return n;
+    }
 
-            if (PyUnicode_Check(source)) value = std::string( PyUnicode_AsUTF8(source) );
-            else if (PyLong_Check(source)) value = int( PyLong_AsLong(source) );
-            else if (PyFloat_Check(source)) value = double( PyFloat_AsDouble(source) );
-            else if (PyDict_Check(source)) value = PyDictToYAML(source);
-            else if (PyList_Check(source)) value = PyListToYAML(source);
-            else {
-                std::cout << "Only Concrete Python instances allowed as dict inputs to YAML conversion!" << std::endl;
-            }
+    bool load(handle src, bool) {
+        /* Extract PyObject from handle */
+        PyObject *source = src.ptr();
 
-            return 1;
+        if (PyUnicode_Check(source)) {
+            value = std::string(PyUnicode_AsUTF8(source));
+
+        } else if (PyLong_Check(source)) {
+            value = static_cast<int>(PyLong_AsLong(source));
+
+        } else if (PyFloat_Check(source)) {
+            value = static_cast<double>(PyFloat_AsDouble(source));
+
+        } else if (PyDict_Check(source)) {
+            value = PyDictToYAML(source);
+
+        } else if (PyList_Check(source)) {
+            value = PyListToYAML(source);
+
+        } else {
+            std::cout << "Only Concrete Python instances allowed as "
+                << "dict inputs to YAML conversion!" << std::endl;
         }
 
-        static handle cast(YAML::Node src, return_value_policy /* policy */, handle /* parent */) {
-            std::cout << "Cannot convert YAML to python yet! See pyNUISANCE!" << std::endl;
-            return PyLong_FromLong(0.0);
-        }
-    };
-}} // namespace PYBIND11_NAMESPACE::detail
+        return 1;
+    }
+
+    static handle cast(YAML::Node /*src*/,
+        return_value_policy /* policy */,
+        handle /* parent */) {
+
+        std::cout << "Cannot convert YAML to python yet! " <<
+            " See pyNUISANCE!" << std::endl;
+
+        return PyLong_FromLong(0.0);
+    }
+
+};
+}  // namespace detail
+}  // namespace PYBIND11_NAMESPACE
+
+
+namespace nuis{ 
+    namespace measurement {
+// To avoid having to make trampoline classes for
+// every possible inherited we make a single
+// measurement wrapper which contains in memory
+// the base measurement object, calling factory
+// to build. Python bindings all then assume that
+// the they are dealing with a PyWrapper class
+// but classes are auto cast int 
+class MeasurementPyWrapper {
+public:
+  MeasurementPyWrapper() {}
+
+  explicit MeasurementPyWrapper(YAML::Node config) {
+    meas = std::make_shared<HEPDataLoader>(HEPDataLoader(config));
+  }
+
+  std::vector<double> ProjectEvent(const HepMC3::GenEvent& event) {
+    return meas->ProjectEvent(event);
+  }
+
+  bool FilterEvent(const HepMC3::GenEvent& event) {
+    return meas->FilterEvent(event);
+  }
+
+  double WeightEvent(const HepMC3::GenEvent& event) {
+    return meas->WeightEvent(event);
+  }
+
+  Record CreateRecord(const std::string label = "MC") {
+    return meas->CreateRecord(label);
+  }
+
+  void FinalizeRecord(RecordPtr h, double scaling) {
+    meas->FinalizeRecord(h, scaling);
+  }
+
+  std::shared_ptr<nuis::measurement::MeasurementLoader> meas;
+};
+
+    }
+}
+
+
 
 
 PYBIND11_MODULE(pyMEASUREMENT, m) {
@@ -169,7 +200,6 @@ PYBIND11_MODULE(pyMEASUREMENT, m) {
     py::bind_vector<std::vector<int>>(m, "VectorINT");
     py::bind_vector<std::vector<double>>(m, "VectorDOUBLE");
     py::bind_vector<std::vector<uint32_t>>(m, "VectorUINT32");
-
     py::bind_vector<std::vector<std::vector<bool>>>(m, "VectorVectorBOOL");
     py::bind_vector<std::vector<std::vector<int>>>(m, "VectorVectorINT");
     py::bind_vector<std::vector<std::vector<double>>>(m, "VectorVectorDOUBLE");
@@ -179,17 +209,12 @@ PYBIND11_MODULE(pyMEASUREMENT, m) {
 
     py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
 
-    // Selectors.h
-    py::module env = m.def_submodule("env", "NUISANCE Environment");
-    env.def("configure", &configure_environment);
-
     py::module sel = m.def_submodule("measurement", "Measurement Interface");
+
 
     py::class_<nuis::measurement::Record>(sel, "Record")
         .def(py::init<>())
         .def(py::init<YAML::Node>())
-        .def("Summary", &nuis::measurement::Record::Summary)
-        .def("Print", &nuis::measurement::Record::Print)
         .def("Reset", &nuis::measurement::Record::Reset)
         .def("GetBin", &nuis::measurement::Record::GetBin)
         .def("ResetBins", &nuis::measurement::Record::ResetBins)
@@ -230,14 +255,8 @@ PYBIND11_MODULE(pyMEASUREMENT, m) {
         .def("mcerr", &nuis::measurement::Record::GetMCErr);
 
 
-
-
-
-
-
     py::class_<nuis::measurement::Variables>(sel, "variables")
         .def(py::init<>())
-        .def("summary", &nuis::measurement::Variables::summary)
         .def_readwrite("index", &nuis::measurement::Variables::values)
         .def_readwrite("low", &nuis::measurement::Variables::low)
         .def_readwrite("high", &nuis::measurement::Variables::high)
@@ -247,32 +266,26 @@ PYBIND11_MODULE(pyMEASUREMENT, m) {
         .def_readwrite("name", &nuis::measurement::Variables::name)
         .def_readwrite("title", &nuis::measurement::Variables::title);
 
-    py::class_<nuis::measurement::MeasurementLoader>(sel, "MeasurementLoader")
+
+    py::class_<nuis::measurement::MeasurementPyWrapper>(sel, "Measurement")
         .def(py::init<>())
         .def(py::init<YAML::Node>())
         .def("CreateRecord",
-            &nuis::measurement::MeasurementLoader::CreateRecord)
-        .def("Summary",
-            &nuis::measurement::MeasurementLoader::summary)
+            &nuis::measurement::MeasurementPyWrapper::CreateRecord)
         .def("FinalizeRecord",
-            &nuis::measurement::MeasurementLoader::FinalizeRecord)
+            &nuis::measurement::MeasurementPyWrapper::FinalizeRecord)
         .def("ProjectEvent",
-            &nuis::measurement::MeasurementLoader::ProjectEvent)
-        .def("FillRecordFromProj",
-            &nuis::measurement::MeasurementLoader::FillRecordFromProj)
-        .def("FillRecordFromEvent",
-            &nuis::measurement::MeasurementLoader::FillRecordFromEvent)
-        .def_readwrite("independent_variables",
-            &nuis::measurement::MeasurementLoader::independent_variables )
-        .def_readwrite("dependent_variables",
-            &nuis::measurement::MeasurementLoader::dependent_variables );
+            &nuis::measurement::MeasurementPyWrapper::ProjectEvent)
+        .def("WeightEvent",
+            &nuis::measurement::MeasurementPyWrapper::WeightEvent)
+        .def("FilterEvent",
+            &nuis::measurement::MeasurementPyWrapper::FilterEvent);
+
 
     sel.def("CalculateRecordLikelihood",
             &nuis::measurement::CalculateRecordLikelihood);
 
-    py::class_<nuis::measurement::HEPDataLoader,nuis::measurement::MeasurementLoader >(sel, "HEPDataLoader")
-        .def(py::init<>())
-        .def(py::init<YAML::Node>());
+    
   
 
 

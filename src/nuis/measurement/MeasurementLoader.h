@@ -31,54 +31,33 @@
 namespace nuis {
 namespace measurement {
 
+using RecordPtr = std::shared_ptr<nuis::measurement::Record>;
+
 class MeasurementLoader {
 public:
 
   MeasurementLoader() {
   }
 
-  explicit MeasurementLoader(YAML::Node config) {
-  }
-
   inline virtual ~MeasurementLoader() {
   }
 
   inline virtual std::vector<double>
-    ProjectEvent(const HepMC3::GenEvent& event) {
-    return std::vector<double>();
-  }
+    ProjectEvent(const HepMC3::GenEvent& event) = 0;
 
-  inline virtual bool
-    FilterEvent(const HepMC3::GenEvent& event) {
-    return false;
-  }
+  inline virtual bool FilterEvent(const HepMC3::GenEvent& event) = 0;
 
-  inline virtual double
-    WeightEvent(const HepMC3::GenEvent& event) {
-      return 1.0;
-  }
+  inline virtual double WeightEvent(const HepMC3::GenEvent& event) = 0;
 
-  virtual Record CreateRecord(const std::string label = "MC") {
-      return Record();
-  }
+  virtual Record CreateRecord(const std::string label = "MC") = 0;
 
   virtual bool FillRecordFromEvent(
-    Record& h, const HepMC3::GenEvent& event, const double weight) {
-  }
+    RecordPtr h, const HepMC3::GenEvent& event, const double weight) = 0;
 
   virtual bool FillRecordFromProj(
-    Record& h, const std::vector<double>& val, const double weight) {
-  }
+    RecordPtr h, const std::vector<double>& val, const double weight) = 0;
 
-  virtual void FinalizeRecord(Record& h, double scaling) {
-  }
-
-  virtual std::string summary() {
-  }
-
-  inline virtual void print() {
-    std::cout << summary() << std::endl;
-  }
+  virtual void FinalizeRecord(RecordPtr h, double scaling) = 0;
 
   std::string measurement_name;
   std::string filter_symname;

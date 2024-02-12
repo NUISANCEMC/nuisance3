@@ -20,6 +20,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <memory>
 
 #include "yaml-cpp/yaml.h"
 
@@ -152,6 +153,8 @@ class Record {
      int total_mc_tally;
 
 };
+
+
 
 }  // namespace measurement
 }  // namespace nuis

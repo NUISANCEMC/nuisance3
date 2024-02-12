@@ -177,29 +177,25 @@ Record HEPDataLoader::CreateRecord(const std::string label) {
                 dependent_covariances);
 };
 
-bool HEPDataLoader::FillRecordFromEvent(Record &h, const HepMC3::GenEvent &e,
+bool HEPDataLoader::FillRecordFromEvent(RecordPtr h, const HepMC3::GenEvent &e,
                                         const double weight) {
-  h.FillTally();
+  h->FillTally();
   if (!FilterEvent(e))
     return false;
-  h.FillBin(ProjectEvent(e), weight * WeightEvent(e));
+  h->FillBin(ProjectEvent(e), weight * WeightEvent(e));
   return true;
 }
 
-bool HEPDataLoader::FillRecordFromProj(Record &h, const std::vector<double> &v,
+bool HEPDataLoader::FillRecordFromProj(RecordPtr h, const std::vector<double> &v,
                                        const double weight) {
-  h.FillTally(); // Hack so that Records record total passed through.
-  h.FillBin(v, weight);
+  h->FillTally(); // Hack so that Records record total passed through->
+  h->FillBin(v, weight);
   return true;
 }
 
-void HEPDataLoader::FinalizeRecord(Record &h, double scaling) {
-  h.Scale(scaling / h.GetTally());
+void HEPDataLoader::FinalizeRecord(RecordPtr h, double scaling) {
+  h->Scale(scaling / h->GetTally());
 }
 
-std::string HEPDataLoader::summary() { return ""; }
-
-void HEPDataLoader::print() { return; }
-
-} // namespace measurement
-} // namespace nuis
+}  // namespace measurement
+}  // namespace nuis

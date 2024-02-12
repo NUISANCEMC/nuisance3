@@ -19,6 +19,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <memory>
 
 #include "yaml-cpp/yaml.h"
 #include "HepMC3/GenEvent.h"
@@ -31,6 +32,8 @@
 
 namespace nuis {
 namespace measurement {
+
+using RecordPtr = std::shared_ptr<nuis::measurement::Record>;
 
 class HEPDataLoader : public MeasurementLoader {
 public:
@@ -46,17 +49,15 @@ public:
 
   double WeightEvent(const HepMC3::GenEvent& event);
 
-  Record CreateRecord(const std::string label="MC");
+  Record CreateRecord(const std::string label = "MC");
 
-  bool FillRecordFromEvent(Record& h, const HepMC3::GenEvent& event, const double weight);
+  bool FillRecordFromEvent(RecordPtr h,
+    const HepMC3::GenEvent& event, const double weight);
 
-  bool FillRecordFromProj(Record& h, const std::vector<double>& val, const double weight);
+  bool FillRecordFromProj(RecordPtr h,
+    const std::vector<double>& val, const double weight);
 
-  void FinalizeRecord(Record& h, double scaling);
-
-  std::string summary();
-
-  void print();
+  void FinalizeRecord(RecordPtr h, double scaling);
 };
 
 }  // namespace measurement
