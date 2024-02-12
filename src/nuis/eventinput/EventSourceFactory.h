@@ -31,8 +31,6 @@ public:
       abort();
     }
 
-    boost::dll::shared_library self(boost::dll::program_location());
-
     std::filesystem::path shared_library_dir{NUISANCE};
     shared_library_dir /= "lib/plugins";
     std::regex plugin_re("nuisplugin-eventinput-.*.so");
@@ -66,6 +64,8 @@ public:
                    cfg["filepath"].as<std::string>());
       return es;
     }
+    spdlog::warn("Failed to find plugin capable of reading input file: {}.",
+                 cfg["filepath"].as<std::string>());
     return nullptr;
   }
 

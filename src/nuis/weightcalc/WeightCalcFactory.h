@@ -32,8 +32,6 @@ public:
       abort();
     }
 
-    boost::dll::shared_library self(boost::dll::program_location());
-
     std::filesystem::path shared_library_dir{NUISANCE};
     shared_library_dir /= "lib/plugins";
     std::regex plugin_re("nuisplugin-weightcalc-.*.so");
