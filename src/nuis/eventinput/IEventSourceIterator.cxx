@@ -1,4 +1,5 @@
 #include "nuis/eventinput/IEventSource.h"
+#include "nuis/eventinput/INormalizedEventSource.h"
 
 namespace nuis {
 
@@ -22,7 +23,34 @@ IEventSource_looper begin(IEventSourcePtr evs) {
   return IEventSource_looper(evs);
 }
 
-IEventSource_sentinel end(IEventSourcePtr) {
+IEventSource_sentinel end(IEventSourcePtr) { return IEventSource_sentinel(); }
+
+INormalizedEventSource_looper::INormalizedEventSource_looper(
+    std::shared_ptr<INormalizedEventSource> evs)
+    : source(evs) {
+  curr_event = source->first();
+}
+void INormalizedEventSource_looper::operator++() {
+  curr_event = source->next();
+}
+EventCVWeightPair const &INormalizedEventSource_looper::operator*() {
+  return curr_event.value();
+}
+bool INormalizedEventSource_looper::operator!=(
+    IEventSource_sentinel const &) const {
+  return bool(curr_event);
+}
+
+bool INormalizedEventSource_looper::operator==(
+    IEventSource_sentinel const &) const {
+  return !bool(curr_event);
+}
+
+INormalizedEventSource_looper begin(INormalizedEventSourcePtr evs) {
+  return INormalizedEventSource_looper(evs);
+}
+
+IEventSource_sentinel end(INormalizedEventSourcePtr) {
   return IEventSource_sentinel();
 }
 
