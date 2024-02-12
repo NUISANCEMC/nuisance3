@@ -38,6 +38,11 @@ void configure_environment() {
 
     ProSelecta::Get().AddIncludePath(ProSelecta_env_dir);
 
+    auto PROSELECTA_EXTRA = getenv("NUISANCE_PROSELECTA_INCLUDES");
+    if (PROSELECTA_EXTRA) {
+        ProSelecta::Get().AddIncludePath(PROSELECTA_EXTRA);
+    }
+
     bool read_env = ProSelecta::Get().LoadText("#include \"env.h\"",
                         ProSelecta::Interpreter::kCling);
 
