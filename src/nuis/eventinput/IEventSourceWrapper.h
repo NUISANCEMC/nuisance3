@@ -24,25 +24,6 @@ public:
   std::shared_ptr<IEventSource> unwrap() { return wrapped_ev_source; }
 };
 
-// Recursively unwrap until you get one that isn't an IEventSourceWrapper
-template <typename T>
-std::shared_ptr<IEventSource> get_IO_IEventSource(std::shared_ptr<T> evs) {
-  auto wrap = std::dynamic_pointer_cast<IEventSourceWrapper>(evs);
-  if (!wrap) {
-    return nullptr;
-  }
-
-  std::shared_ptr<IEventSource> IO_evs = wrap->unwrap();
-
-  wrap = std::dynamic_pointer_cast<IEventSourceWrapper>(evs);
-  while (wrap) {
-    IO_evs = wrap->unwrap();
-    wrap = std::dynamic_pointer_cast<IEventSourceWrapper>(IO_evs);
-  }
-
-  return IO_evs;
-}
-
 using IWrappedEventSourcePtr = std::shared_ptr<IEventSourceWrapper>;
 
 } // namespace nuis
