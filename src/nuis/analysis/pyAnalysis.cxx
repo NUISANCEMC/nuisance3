@@ -38,7 +38,6 @@ void configure_environment() {
 
     ProSelecta::Get().AddIncludePath(ProSelecta_env_dir);
 
-
     bool read_env = ProSelecta::Get().LoadText("#include \"env.h\"",
                         ProSelecta::Interpreter::kCling);
 
@@ -50,6 +49,19 @@ void configure_environment() {
             << std::endl;
         abort();
     }
+
+    // Should also check it exists
+    auto DATABASE = getenv("NUISANCEDB");
+    if (!DATABASE){
+        std::cout
+            << "[ERROR]: NUISANCEDB NOT SET!" << std::endl;
+        abort();
+    }
+
+
+  }
+
+
 }
 
 PYBIND11_MODULE(pyNuisAnalysis, m) {
