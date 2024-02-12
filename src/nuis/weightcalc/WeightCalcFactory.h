@@ -69,7 +69,7 @@ public:
 
   IWeightCalcHM3MapPtr Make(IWrappedEventSourcePtr evs,
                             YAML::Node const &cfg = {}) {
-    return Make(nuis::get_IO_IEventSource(evs), cfg);
+    return Make(evs->unwrap(), cfg);
   }
 };
 } // namespace nuis
