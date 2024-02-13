@@ -1,5 +1,4 @@
 import pyEventInput as ev
-from pyHepMC3 import HepMC3 as hm
 
 import sys
 
