@@ -8,7 +8,7 @@
 namespace nuis {
 
 /// An event source wrapper that keeps track of the FATX, if we cannot determine
-/// how to normalize this is considered a resource acquisition failure
+/// how to normalize it, this is considered a resource acquisition failure
 class INormalizedEventSource : public IEventSourceWrapper {
 
   std::unique_ptr<NuHepMC::FATX::Accumulator> xs_acc;

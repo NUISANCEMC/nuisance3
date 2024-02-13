@@ -4,7 +4,7 @@
 
 #include <optional>
 
-//this could be written as a template with some concrete instantiations
+// this could be written as a template with some concrete instantiations
 namespace nuis {
 
 class IEventSource;
@@ -13,11 +13,11 @@ using IEventSourcePtr = std::shared_ptr<IEventSource>;
 struct IEventSource_sentinel {};
 
 class IEventSource_looper {
-  std::shared_ptr<IEventSource> source;
+  IEventSourcePtr source;
   std::optional<HepMC3::GenEvent> curr_event;
 
 public:
-  IEventSource_looper(std::shared_ptr<IEventSource> evs);
+  IEventSource_looper(IEventSourcePtr evs);
   void operator++();
   HepMC3::GenEvent const &operator*();
   bool operator!=(IEventSource_sentinel const &sent) const;
@@ -36,11 +36,11 @@ struct EventCVWeightPair {
 };
 
 class INormalizedEventSource_looper {
-  std::shared_ptr<INormalizedEventSource> source;
+  INormalizedEventSourcePtr source;
   std::optional<EventCVWeightPair> curr_event;
 
 public:
-  INormalizedEventSource_looper(std::shared_ptr<INormalizedEventSource> evs);
+  INormalizedEventSource_looper(INormalizedEventSourcePtr evs);
   void operator++();
   EventCVWeightPair const &operator*();
   bool operator!=(IEventSource_sentinel const &sent) const;
