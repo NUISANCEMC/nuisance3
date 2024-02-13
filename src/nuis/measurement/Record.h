@@ -23,16 +23,19 @@
 #include <memory>
 
 #include "yaml-cpp/yaml.h"
+using namespace YAML;
 
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"
 
-#define errIndexStat 1
-#define errIndexSyst 2
-#define errIndexNorm 3
-
-using namespace YAML;
-
+// NUISANCE needs some definition of errors
+// as norm need to be handled differently
+enum ErrorSource {
+     kErrorStatistical = 1,
+     kErrorSystematic,
+     kErrorNormalisation,
+} error_source_t;
+s
 namespace nuis {
 namespace measurement {
 
@@ -86,6 +89,8 @@ class Record {
 
      double GetBinContent(int index);
      double GetBinEntries(int index);
+
+     // The bin error needs a way to select a source
      double GetBinError(int index);
 
      void SetTally(double v);
