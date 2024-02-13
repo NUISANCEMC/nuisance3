@@ -25,7 +25,7 @@ printenv | grep -i nuisance
 
 ### python
 
-For python bindings documentation see [here](src/python/README.md).
+For python bindings documentation see [here](src/nuis/python/README.md).
 
 ### C++
 
