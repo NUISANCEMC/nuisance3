@@ -181,12 +181,7 @@ Record::~Record() {
 }
 
 void Record::Reset() {
-    ResetTally();
     ResetBins();
-}
-
-void Record::ResetTally() {
-    total_mc_tally = 0;
 }
 
 void Record::ResetBins() {
@@ -238,10 +233,6 @@ int Record::FillBin(const std::vector<double>& indep_vals, double w) {
     return FillBin(i, w);
 }
 
-void Record::FillTally(const double w) {
-    total_mc_tally += w;
-}
-
 uint32_t Record::GetMCCounts(const uint32_t i) {
     return mc_counts[i];
 }
@@ -253,7 +244,6 @@ double Record::GetMCWeight(const uint32_t i) {
 double Record::GetMCError(const uint32_t i) {
     return mc_errors[i];
 }
-
 
 double Record::GetTotalMCCounts() {
     int tot = 0;
@@ -279,7 +269,6 @@ std::string Record::Summary() {
     return "";
 }
 
-
 void Record::Scale(double s) {
     for (int i = 0; i < mc_counts.size(); i++) {
         mc_counts[i] *= s;
@@ -301,20 +290,6 @@ double Record::GetBinEntries(int index) {
 double Record::GetBinError(int index) {
     return GetMCError(index);
 }
-    
-    //  std::vector<std::vector<double>> bin_extent_low;
-    //  std::vector<std::vector<double>> bin_extent_high;
-    //  std::vector<std::vector<double>> bin_center;
-    //  std::vector<std::vector<double>> bin_width;
-
-    //  std::vector<int>  bin_index;
-    //  std::vector<bool> bin_mask;
-
-    //  std::vector<double> data_value;
-    //  std::vector<double> data_error;
-    //  std::vector<uint32_t> mc_counts;
-    //  std::vector<double>   mc_weights;
-    //  std::vector<double>   mc_errors;
 
 std::vector<double> Record::GetSlice(
     const std::vector<std::vector<double>>& slice,

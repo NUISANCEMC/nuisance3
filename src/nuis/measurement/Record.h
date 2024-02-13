@@ -47,8 +47,7 @@ class Record {
           const std::vector<Variables>& in_independent_variables,
           const std::vector<Variables>& in_dependent_variables,
           const std::vector<Variables>& in_dependent_covariances,
-          const std::vector<Variables>& in_independent_covariances
-          );
+          const std::vector<Variables>& in_independent_covariances);
 
      ~Record();
 
@@ -76,10 +75,6 @@ class Record {
 
      void ResetBin(int index);
      void ResetBins();
-
-     void FillTally(const double w = 1.0);
-     void ResetTally();
-     inline double GetTally(){ return total_mc_counts; }
      
      uint32_t GetMCCounts(const uint32_t i);
      double GetMCWeight(const uint32_t i);
@@ -99,6 +94,10 @@ class Record {
           const std::vector<std::vector<double>>& slice,
           const int i);
 
+
+     // Repeated functions below define a 
+     // a more accessible interface for interfacing
+     // plots with different drawing tools.
      std::vector<double> GetXCenter();
      std::vector<double> GetYCenter();
      std::vector<double> GetZCenter();
