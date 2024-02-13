@@ -38,6 +38,8 @@ struct pyNormalizedEventSource {
   }
   auto run_info() { return gri; }
   auto fatx() { return evs ? evs->norm_info().fatx() : 0; }
+  auto sumw() { return evs ? evs->norm_info().sumweights() : 0; }
+  auto good() { return bool(evs); }
 };
 
 class pyNormalizedEventSource_looper {
@@ -75,6 +77,8 @@ PYBIND11_MODULE(pyEventInput, m) {
       .def("next", &pyNormalizedEventSource::next)
       .def("run_info", &pyNormalizedEventSource::run_info)
       .def("fatx", &pyNormalizedEventSource::fatx)
+      .def("sumw", &pyNormalizedEventSource::sumw)
+      .def("good", &pyNormalizedEventSource::good)
       .def(
           "__iter__",
           [](const pyNormalizedEventSource &s) {
