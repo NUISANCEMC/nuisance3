@@ -41,8 +41,6 @@ class GHEP3EventSource : public IEventSource {
       int, std::unordered_map<int, std::unique_ptr<genie::GEVGDriver>>>
       EvGens;
 
-  void CheckAndAddPath(std::filesystem::path filepath);
-
   genie::Spline const *GetSpline(int tgtpdg, int nupdg);
 
 public:

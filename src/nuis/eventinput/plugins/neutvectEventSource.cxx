@@ -1,5 +1,7 @@
 #include "nuis/eventinput/plugins/neutvectEventSource.h"
 
+#include "nuis/eventinput/plugins/ROOTUtils.h"
+
 #include "nvconv.h"
 #include "nvfatxtools.h"
 
@@ -16,31 +18,15 @@
 
 namespace nuis {
 
-void neutvectEventSource::CheckAndAddPath(std::filesystem::path filepath) {
-  if (!std::filesystem::exists(filepath)) {
-    spdlog::warn("neutvectEventSource ignoring non-existant path {}",
-                 filepath.native());
-    return;
-  }
-  std::ifstream fin(filepath);
-  char magicbytes[5];
-  fin.read(magicbytes, 4);
-  magicbytes[4] = '\0';
-  if (std::string(magicbytes) != "root") {
-    spdlog::warn(
-        "neutvectEventSource ignoring non-root file {} (magicbytes: {})",
-        filepath.native(), magicbytes);
-    return;
-  }
-  filepaths.push_back(std::move(filepath));
-}
-
 neutvectEventSource::neutvectEventSource(YAML::Node const &cfg) {
-  if (cfg["filepath"]) {
-    CheckAndAddPath(cfg["filepath"].as<std::string>());
+  if (cfg["filepath"] &&
+      HasTTree(cfg["filepath"].as<std::string>(), "neuttree")) {
+    filepaths.push_back(cfg["filepath"].as<std::string>());
   } else if (cfg["filepaths"]) {
     for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
-      CheckAndAddPath(fp);
+      if (HasTTree(fp, "neuttree")) {
+        filepaths.push_back(fp);
+      }
     }
   }
 };
@@ -62,6 +48,12 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
   }
 
   ch_ents = chin->GetEntries();
+  ient = 0;
+
+  if (ch_ents == 0) {
+    return std::optional<HepMC3::GenEvent>();
+  }
+
   nv = nullptr;
   auto branch_status = chin->SetBranchAddress("vectorbranch", &nv);
   // should check this

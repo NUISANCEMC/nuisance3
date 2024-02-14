@@ -15,7 +15,63 @@
 
 namespace nuis {
 
-EventSourceFactory::EventSourceFactory() {
+PathResolver::PathResolver() {
+  if (std::getenv("NUISANCE_EVENT_PATH")) {
+    std::string paths = std::getenv("NUISANCE_EVENT_PATH");
+    const std::regex ws_re(":");
+    for (auto it =
+             std::sregex_token_iterator(paths.begin(), paths.end(), ws_re, -1);
+         it != std::sregex_token_iterator(); ++it) {
+      std::filesystem::path path = std::string(*it);
+      if (path.empty() || !std::filesystem::exists(path)) {
+        continue;
+      }
+
+      spdlog::info("EventSourceFactory: PathResolver -- adding search path: {}",
+                   path.native());
+      nuisance_event_paths.emplace_back(std::move(path));
+    }
+  }
+}
+
+std::filesystem::path PathResolver::resolve(std::string const &filepath) {
+  spdlog::info(
+      "EventSourceFactory: PathResolver::resolve filepath: {}, exists: {}",
+      filepath, std::filesystem::exists(filepath));
+
+  if (!filepath.size()) {
+    return {};
+  }
+
+  if (std::filesystem::exists(filepath)) {
+    return filepath;
+  }
+
+  if (filepath.front() == '/') {
+    std::filesystem::path abspath = filepath;
+    spdlog::info("EventSourceFactory: PathResolver abspath: {}, exists: {}",
+                 abspath.native(), std::filesystem::exists(abspath));
+    if (!std::filesystem::exists(abspath)) {
+      return {};
+    }
+    return abspath;
+  }
+
+  for (auto const &search_path : nuisance_event_paths) {
+    auto path = search_path / filepath;
+    spdlog::info("EventSourceFactory: PathResolver search_path: {}, path: "
+                 "{}, exists: {}",
+                 search_path.native(), path.native(),
+                 std::filesystem::exists(path));
+    if (std::filesystem::exists(path)) {
+      return path;
+    }
+  }
+
+  return {};
+}
+
+EventSourceFactory::EventSourceFactory() : resolv() {
   auto NUISANCE = std::getenv("NUISANCE_ROOT");
 
   if (!NUISANCE) {
@@ -39,7 +95,19 @@ EventSourceFactory::EventSourceFactory() {
 }
 
 std::pair<std::shared_ptr<HepMC3::GenRunInfo>, IEventSourcePtr>
-EventSourceFactory::MakeUnNormalized(YAML::Node const &cfg) {
+EventSourceFactory::MakeUnNormalized(YAML::Node cfg) {
+
+  if (cfg["filepath"]) {
+    auto path = resolv.resolve(cfg["filepath"].as<std::string>());
+    if (!path.empty()) {
+      cfg["filepath"] = path.native();
+    } else {
+      spdlog::warn("EventSourceFactory::PathResolver did not resolve {} to an "
+                   "existing filesystem path.",
+                   cfg["filepath"].as<std::string>());
+    }
+  }
+
   for (auto &[pluginso, plugin] : pluginfactories) {
     auto es = plugin(cfg);
     if (es->first()) {

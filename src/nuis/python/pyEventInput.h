@@ -5,6 +5,8 @@
 #include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
 
+#include "spdlog/spdlog.h"
+
 namespace py = pybind11;
 using namespace nuis;
 
@@ -43,28 +45,30 @@ struct pyNormalizedEventSource {
 };
 
 class pyNormalizedEventSource_looper {
-  pyNormalizedEventSource pysource;
-  py::tuple curr_event;
+  std::reference_wrapper<pyNormalizedEventSource> pysource;
+  py::object curr_event;
 
 public:
-  pyNormalizedEventSource_looper(pyNormalizedEventSource pyevs)
+  pyNormalizedEventSource_looper(pyNormalizedEventSource &pyevs)
       : pysource(pyevs) {
-    curr_event = pysource.first();
+    curr_event = pysource.get().first();
   }
-  void operator++() { curr_event = pysource.next(); }
-  py::tuple const &operator*() { return curr_event; }
+  void operator++() { curr_event = pysource.get().next(); }
+  py::object const &operator*() {
+    return curr_event;
+  }
   bool operator!=(IEventSource_sentinel const &) const {
-    return bool(curr_event);
+    return !curr_event.is(py::none());
   }
   bool operator==(IEventSource_sentinel const &) const {
-    return !bool(curr_event);
+    return curr_event.is(py::none());
   }
 };
 
-pyNormalizedEventSource_looper begin(pyNormalizedEventSource evs) {
+pyNormalizedEventSource_looper begin(pyNormalizedEventSource &evs) {
   return pyNormalizedEventSource_looper(evs);
 }
-IEventSource_sentinel end(pyNormalizedEventSource) {
+IEventSource_sentinel end(pyNormalizedEventSource &) {
   return IEventSource_sentinel();
 }
 
@@ -82,7 +86,7 @@ void init_eventinput(py::module &m) {
       .def("good", &pyNormalizedEventSource::good)
       .def(
           "__iter__",
-          [](const pyNormalizedEventSource &s) {
+          [](pyNormalizedEventSource &s) {
             return py::make_iterator(begin(s), end(s));
           },
           py::keep_alive<0, 1>());

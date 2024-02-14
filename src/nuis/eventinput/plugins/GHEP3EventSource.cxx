@@ -1,5 +1,7 @@
 #include "nuis/eventinput/plugins/GHEP3EventSource.h"
 
+#include "nuis/eventinput/plugins/ROOTUtils.h"
+
 #include "Framework/Conventions/Units.h"
 #include "Framework/EventGen/EventRecord.h"
 #include "Framework/EventGen/GEVGDriver.h"
@@ -542,24 +544,6 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
 }
 } // namespace ghepconv
 
-void GHEP3EventSource::CheckAndAddPath(std::filesystem::path filepath) {
-  if (!std::filesystem::exists(filepath)) {
-    spdlog::warn("GHEP3EventSource ignoring non-existant path {}",
-                 filepath.native());
-    return;
-  }
-  std::ifstream fin(filepath);
-  char magicbytes[5];
-  fin.read(magicbytes, 4);
-  magicbytes[4] = '\0';
-  if (std::string(magicbytes) != "root") {
-    spdlog::warn("GHEP3EventSource ignoring non-root file {} (magicbytes: {})",
-                 filepath.native(), magicbytes);
-    return;
-  }
-  filepaths.push_back(std::move(filepath));
-}
-
 genie::Spline const *GHEP3EventSource::GetSpline(int tgtpdg, int nupdg) {
   if (!EventGeneratorListName.size()) {
     return nullptr;
@@ -577,11 +561,14 @@ genie::Spline const *GHEP3EventSource::GetSpline(int tgtpdg, int nupdg) {
 }
 
 GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
-  if (cfg["filepath"]) {
-    CheckAndAddPath(cfg["filepath"].as<std::string>());
+  if (cfg["filepath"] &&
+      HasTTree(cfg["filepath"].as<std::string>(), "gtree")) {
+    filepaths.push_back(cfg["filepath"].as<std::string>());
   } else if (cfg["filepaths"]) {
     for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
-      CheckAndAddPath(fp);
+      if (HasTTree(fp, "gtree")) {
+        filepaths.push_back(fp);
+      }
     }
   }
 
@@ -653,6 +640,11 @@ std::optional<HepMC3::GenEvent> GHEP3EventSource::first() {
   }
 
   ch_ents = chin->GetEntries();
+  ient = 0;
+
+  if (ch_ents == 0) {
+    return std::optional<HepMC3::GenEvent>();
+  }
 
   ntpl = NULL;
   auto branch_status = chin->SetBranchAddress("gmcrec", &ntpl);
