@@ -46,7 +46,7 @@ std::string validate_env() {
   }
 
   // Require Database Valid
-  auto DATABASE = std::getenv("NUISANCE_DB");
+  auto DATABASE = std::getenv("NUISANCEDB");
   if (!DATABASE) {
     spdlog::critical("NUISANCE_DB environment variable not defined");
     abort();
@@ -70,10 +70,12 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
   // Check if release folder is local
   std::string release = config["release"].as<std::string>();
   std::filesystem::path path_release = release;
-  spdlog::info("[INFO]: --> release: {}", release);
+  spdlog::info("[INFO]: --> requested release: {}", release);
 
   if (!std::filesystem::is_directory(path_release.parent_path())) {
+    spdlog::info("[INFO]: --> Looking for release in local data folder.");
     release = std::string(DATABASE) + "/neutrino_data/" + release;
+    spdlog::info("[INFO]: --> data release: {}", release);
   }
 
   // Abort if directory not found
