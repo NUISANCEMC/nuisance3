@@ -2,6 +2,7 @@ import pytest
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 import pyNUISANCE as nuis
 
 # Some of these tests right now just check a 
