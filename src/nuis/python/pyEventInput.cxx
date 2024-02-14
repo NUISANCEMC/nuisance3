@@ -43,15 +43,15 @@ struct pyNormalizedEventSource {
 };
 
 class pyNormalizedEventSource_looper {
-  pyNormalizedEventSource pysource;
+  std::reference_wrapper<pyNormalizedEventSource> pysource;
   py::tuple curr_event;
 
 public:
-  pyNormalizedEventSource_looper(pyNormalizedEventSource pyevs)
+  pyNormalizedEventSource_looper(pyNormalizedEventSource &pyevs)
       : pysource(pyevs) {
-    curr_event = pysource.first();
+    curr_event = pysource.get().first();
   }
-  void operator++() { curr_event = pysource.next(); }
+  void operator++() { curr_event = pysource.get().next(); }
   py::tuple const &operator*() { return curr_event; }
   bool operator!=(IEventSource_sentinel const &) const {
     return bool(curr_event);
@@ -61,10 +61,10 @@ public:
   }
 };
 
-pyNormalizedEventSource_looper begin(pyNormalizedEventSource evs) {
+pyNormalizedEventSource_looper begin(pyNormalizedEventSource &evs) {
   return pyNormalizedEventSource_looper(evs);
 }
-IEventSource_sentinel end(pyNormalizedEventSource) {
+IEventSource_sentinel end(pyNormalizedEventSource &) {
   return IEventSource_sentinel();
 }
 
@@ -81,7 +81,7 @@ PYBIND11_MODULE(pyEventInput, m) {
       .def("good", &pyNormalizedEventSource::good)
       .def(
           "__iter__",
-          [](const pyNormalizedEventSource &s) {
+          [](pyNormalizedEventSource &s) {
             return py::make_iterator(begin(s), end(s));
           },
           py::keep_alive<0, 1>());
