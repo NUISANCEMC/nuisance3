@@ -104,6 +104,7 @@ CPMFindPackage(
 
 CPMFindPackage(
     NAME fmt
+    VERSION 8.1.1
     GIT_TAG 8.1.1
     GITHUB_REPOSITORY fmtlib/fmt
     OPTIONS "FMT_INSTALL ON"
@@ -111,6 +112,7 @@ CPMFindPackage(
 
 CPMFindPackage(
     NAME spdlog
+    VERSION 1.10.0
     GIT_TAG v1.10.0
     GITHUB_REPOSITORY gabime/spdlog
     OPTIONS
@@ -167,7 +169,7 @@ set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/analysis)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/python)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
 
