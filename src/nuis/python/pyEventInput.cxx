@@ -5,6 +5,8 @@
 #include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
 
+#include "spdlog/spdlog.h"
+
 namespace py = pybind11;
 using namespace nuis;
 
@@ -44,7 +46,7 @@ struct pyNormalizedEventSource {
 
 class pyNormalizedEventSource_looper {
   std::reference_wrapper<pyNormalizedEventSource> pysource;
-  py::tuple curr_event;
+  py::object curr_event;
 
 public:
   pyNormalizedEventSource_looper(pyNormalizedEventSource &pyevs)
@@ -52,12 +54,14 @@ public:
     curr_event = pysource.get().first();
   }
   void operator++() { curr_event = pysource.get().next(); }
-  py::tuple const &operator*() { return curr_event; }
+  py::object const &operator*() {
+    return curr_event;
+  }
   bool operator!=(IEventSource_sentinel const &) const {
-    return bool(curr_event);
+    return !curr_event.is(py::none());
   }
   bool operator==(IEventSource_sentinel const &) const {
-    return !bool(curr_event);
+    return curr_event.is(py::none());
   }
 };
 
