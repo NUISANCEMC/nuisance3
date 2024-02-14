@@ -34,8 +34,8 @@ enum ErrorSource {
      kErrorStatistical = 1,
      kErrorSystematic,
      kErrorNormalisation,
-} error_source_t;
-s
+};
+
 namespace nuis {
 namespace measurement {
 
@@ -59,8 +59,6 @@ class Record {
 
      void Scale(double v);
 
-     // int GetTotalEntries();
-     // double GetTotalWeight();
      void Reset();
 
      int GetBin(const std::vector<double>& indep_vals);

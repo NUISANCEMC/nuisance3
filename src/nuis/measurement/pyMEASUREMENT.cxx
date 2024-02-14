@@ -192,69 +192,103 @@ public:
 
 
 
-PYBIND11_MODULE(pyMEASUREMENT, m) {
-    m.doc() = "NUISANCE implementation in python";
+PYBIND11_MODULE(pyMEASUREMENT, meas) {
+    meas.doc() = "NUISANCE Measurement implementation in python";
 
-    py::bind_vector<std::vector<bool>>(m, "VectorBOOL");
-    py::bind_vector<std::vector<int>>(m, "VectorINT");
-    py::bind_vector<std::vector<double>>(m, "VectorDOUBLE");
-    py::bind_vector<std::vector<uint32_t>>(m, "VectorUINT32");
-    py::bind_vector<std::vector<std::vector<bool>>>(m, "VectorVectorBOOL");
-    py::bind_vector<std::vector<std::vector<int>>>(m, "VectorVectorINT");
-    py::bind_vector<std::vector<std::vector<double>>>(m, "VectorVectorDOUBLE");
+    py::bind_vector<std::vector<bool>>(meas, "Vector_bool");
+    py::bind_vector<std::vector<int>>(meas, "Vector_int");
+    py::bind_vector<std::vector<double>>(meas, "Vector_double");
+    py::bind_vector<std::vector<uint32_t>>(meas, "Vector_uint32_t");
+
+    py::bind_vector<std::vector<std::vector<bool>>>\
+        (meas, "vector_vector_bool");
+
+    py::bind_vector<std::vector<std::vector<int>>>\
+        (meas, "vector_vector_int");
+
+    py::bind_vector<std::vector<std::vector<double>>>\
+        (meas, "vector_vector_double");
+
     py::bind_vector<std::vector<std::vector<uint32_t>>>\
-        (m, "VectorVectorUINT32");
+        (meas, "vector_vector_uint32_t");
 
+    py::bind_map<std::map<std::string, double>>(meas, "map_string_double");
 
-    py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
-
-    py::module sel = m.def_submodule("measurement", "Measurement Interface");
-
-
-    py::class_<nuis::measurement::Record>(sel, "Record")
+    py::class_<nuis::measurement::Record>(meas, "Record")
         .def(py::init<>())
         .def(py::init<YAML::Node>())
-        .def("Reset", &nuis::measurement::Record::Reset)
-        .def("GetBin", &nuis::measurement::Record::GetBin)
-        .def("ResetBins", &nuis::measurement::Record::ResetBins)
-        .def("FillTally", &nuis::measurement::Record::FillTally)
-        .def("ResetTally", &nuis::measurement::Record::ResetTally)
-        .def("GetTally", &nuis::measurement::Record::GetTally)
-        .def("GetMCCount", &nuis::measurement::Record::GetMCCounts)
-        .def("GetMCWeight", &nuis::measurement::Record::GetMCWeight)
-        .def("GetMCError", &nuis::measurement::Record::GetMCError)
-        .def("GetMCError", &nuis::measurement::Record::GetMCError)
-        .def("FillBinFromIndex", &nuis::measurement::Record::FillBinFromIndex)
-        .def("FillBinFromProjection", &nuis::measurement::Record::FillBinFromProjection)
-        .def_readwrite("label", &nuis::measurement::Record::label)
-        .def_readwrite("name", &nuis::measurement::Record::name)
-        .def_readwrite("title", &nuis::measurement::Record::title)
-        .def_readwrite("bin_extent_low", &nuis::measurement::Record::bin_extent_low)
-        .def_readwrite("bin_extent_high", &nuis::measurement::Record::bin_extent_high)
-        .def_readwrite("bin_index", &nuis::measurement::Record::bin_index)
-        .def_readwrite("bin_width", &nuis::measurement::Record::bin_width)
-        .def_readwrite("bin_center", &nuis::measurement::Record::bin_center)
-        .def_readwrite("bin_mask", &nuis::measurement::Record::bin_mask)
-        .def_readwrite("data_value", &nuis::measurement::Record::data_value)
-        .def_readwrite("data_covariance", &nuis::measurement::Record::data_covariance)
-        .def_readwrite("data_error", &nuis::measurement::Record::data_error)
-        .def_readwrite("mc_counts", &nuis::measurement::Record::mc_counts)
-        .def_readwrite("mc_weights", &nuis::measurement::Record::mc_weights)
-        .def_readwrite("mc_errors", &nuis::measurement::Record::mc_errors)
-        .def_readwrite("total_mc_counts", &nuis::measurement::Record::total_mc_counts)
-        .def_readwrite("total_mc_weights", &nuis::measurement::Record::total_mc_weights)
-        .def_readwrite("total_mc_tally", &nuis::measurement::Record::total_mc_tally)
-        .def("x", &nuis::measurement::Record::GetXCenter)
-        .def("y", &nuis::measurement::Record::GetYCenter)
-        .def("z", &nuis::measurement::Record::GetZCenter)
-        .def("mc", &nuis::measurement::Record::GetMC)
-        .def("xerr", &nuis::measurement::Record::GetXErr)
-        .def("yerr", &nuis::measurement::Record::GetYErr)
-        .def("zerr", &nuis::measurement::Record::GetZErr)
-        .def("mcerr", &nuis::measurement::Record::GetMCErr);
+        .def("Reset",
+            &nuis::measurement::Record::Reset)
+        .def("GetBin",
+            &nuis::measurement::Record::GetBin)
+        .def("ResetBins",
+            &nuis::measurement::Record::ResetBins)
+        .def("GetMCCount",
+            &nuis::measurement::Record::GetMCCounts)
+        .def("GetMCWeight",
+            &nuis::measurement::Record::GetMCWeight)
+        .def("GetMCError",
+            &nuis::measurement::Record::GetMCError)
+        .def("GetMCError",
+            &nuis::measurement::Record::GetMCError)
+        .def("FillBinFromIndex",
+            &nuis::measurement::Record::FillBinFromIndex)
+        .def("FillBinFromProjection",
+            &nuis::measurement::Record::FillBinFromProjection)
+        .def_readwrite("label",
+            &nuis::measurement::Record::label)
+        .def_readwrite("name",
+            &nuis::measurement::Record::name)
+        .def_readwrite("title",
+            &nuis::measurement::Record::title)
+        .def_readwrite("bin_extent_low",
+            &nuis::measurement::Record::bin_extent_low)
+        .def_readwrite("bin_extent_high",
+            &nuis::measurement::Record::bin_extent_high)
+        .def_readwrite("bin_index",
+            &nuis::measurement::Record::bin_index)
+        .def_readwrite("bin_width",
+            &nuis::measurement::Record::bin_width)
+        .def_readwrite("bin_center",
+            &nuis::measurement::Record::bin_center)
+        .def_readwrite("bin_mask",
+            &nuis::measurement::Record::bin_mask)
+        .def_readwrite("data_value",
+            &nuis::measurement::Record::data_value)
+        .def_readwrite("data_covariance",
+            &nuis::measurement::Record::data_covariance)
+        .def_readwrite("data_error",
+            &nuis::measurement::Record::data_error)
+        .def_readwrite("mc_counts",
+            &nuis::measurement::Record::mc_counts)
+        .def_readwrite("mc_weights",
+            &nuis::measurement::Record::mc_weights)
+        .def_readwrite("mc_errors",
+            &nuis::measurement::Record::mc_errors)
+        .def_readwrite("total_mc_counts",
+            &nuis::measurement::Record::total_mc_counts)
+        .def_readwrite("total_mc_weights",
+            &nuis::measurement::Record::total_mc_weights)
+        .def_readwrite("total_mc_tally",
+            &nuis::measurement::Record::total_mc_tally)
+        .def("x",
+            &nuis::measurement::Record::GetXCenter)
+        .def("y",
+            &nuis::measurement::Record::GetYCenter)
+        .def("z",
+            &nuis::measurement::Record::GetZCenter)
+        .def("mc",
+            &nuis::measurement::Record::GetMC)
+        .def("xerr",
+            &nuis::measurement::Record::GetXErr)
+        .def("yerr",
+            &nuis::measurement::Record::GetYErr)
+        .def("zerr",
+            &nuis::measurement::Record::GetZErr)
+        .def("mcerr",
+            &nuis::measurement::Record::GetMCErr);
 
-
-    py::class_<nuis::measurement::Variables>(sel, "variables")
+    py::class_<nuis::measurement::Variables>(meas, "variables")
         .def(py::init<>())
         .def_readwrite("index", &nuis::measurement::Variables::values)
         .def_readwrite("low", &nuis::measurement::Variables::low)
@@ -265,8 +299,7 @@ PYBIND11_MODULE(pyMEASUREMENT, m) {
         .def_readwrite("name", &nuis::measurement::Variables::name)
         .def_readwrite("title", &nuis::measurement::Variables::title);
 
-
-    py::class_<nuis::measurement::MeasurementPyWrapper>(sel, "Measurement")
+    py::class_<nuis::measurement::MeasurementPyWrapper>(meas, "Measurement")
         .def(py::init<>())
         .def(py::init<YAML::Node>())
         .def("CreateRecord",
@@ -280,12 +313,7 @@ PYBIND11_MODULE(pyMEASUREMENT, m) {
         .def("FilterEvent",
             &nuis::measurement::MeasurementPyWrapper::FilterEvent);
 
-
-    sel.def("CalculateRecordLikelihood",
+    meas.def("CalculateRecordLikelihood",
             &nuis::measurement::CalculateRecordLikelihood);
-
-    
-  
-
 
 }
