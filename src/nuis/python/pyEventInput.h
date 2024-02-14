@@ -37,8 +37,8 @@ struct pyNormalizedEventSource {
     auto evt = evs->next();
 
     // PS : Needed this to fix event loop breaking issue
-    if (!evt){
-       return py::none();
+    if (!evt) {
+      return py::none();
     }
 
     curr_event = py::make_tuple(evt.value().evt, evt.value().cv_weight);
