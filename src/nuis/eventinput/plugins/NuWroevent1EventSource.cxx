@@ -1,5 +1,7 @@
 #include "nuis/eventinput/IEventSource.h"
 
+#include "nuis/eventinput/plugins/ROOTUtils.h"
+
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -35,38 +37,22 @@ class NuWroevent1EventSource : public IEventSource {
 
   event *ev;
 
-  void CheckAndAddPath(std::filesystem::path filepath) {
-    if (!std::filesystem::exists(filepath)) {
-      spdlog::warn("NuWroevent1EventSource ignoring non-existant path {}",
-                   filepath.native());
-      return;
-    }
-    std::ifstream fin(filepath);
-    char magicbytes[5];
-    fin.read(magicbytes, 4);
-    magicbytes[4] = '\0';
-    if (std::string(magicbytes) != "root") {
-      spdlog::warn(
-          "NuWroevent1EventSource ignoring non-root file {} (magicbytes: {})",
-          filepath.native(), magicbytes);
-      return;
-    }
-    filepaths.push_back(std::move(filepath));
-  }
-
 public:
   NuWroevent1EventSource(YAML::Node const &cfg) {
-    if (cfg["filepath"]) {
-      CheckAndAddPath(cfg["filepath"].as<std::string>());
+    if (cfg["filepath"] &&
+        HasTTree(cfg["filepath"].as<std::string>(), "treeout")) {
+      filepaths.push_back(cfg["filepath"].as<std::string>());
     } else if (cfg["filepaths"]) {
       for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
-        CheckAndAddPath(fp);
+        if (HasTTree(fp, "treeout")) {
+          filepaths.push_back(fp);
+        }
       }
     }
   };
 
   std::optional<HepMC3::GenEvent> first() {
-    
+
     if (!filepaths.size()) {
       return std::optional<HepMC3::GenEvent>();
     }
@@ -82,9 +68,15 @@ public:
     }
 
     ch_ents = chin->GetEntries();
+    ient = 0;
+
+    if (ch_ents == 0) {
+      return std::optional<HepMC3::GenEvent>();
+    }
+
     ev = nullptr;
     auto branch_status = chin->SetBranchAddress("e", &ev);
-    //should check this
+    // should check this
     (void)branch_status;
     chin->GetEntry(0);
 
