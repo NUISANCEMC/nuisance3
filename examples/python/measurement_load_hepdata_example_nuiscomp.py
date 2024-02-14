@@ -17,7 +17,9 @@ def run_comparison(label, source, measurements):
             proj = me.ProjectEvent(e)
             records[i].FillBinFromProjection( proj, cvw )
 
-    for r in records:
+    for i, me in enumerate(measurements):
+        me.FinalizeRecord( records[i],  source.fatx()  / source.sumw())
+
         plt.errorbar( x=r.x(), y=r.mc(), xerr=0.0, yerr=0.0, label=label)
         plt.show()
 
