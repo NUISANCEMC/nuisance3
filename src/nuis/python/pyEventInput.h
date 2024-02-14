@@ -68,7 +68,8 @@ IEventSource_sentinel end(pyNormalizedEventSource) {
   return IEventSource_sentinel();
 }
 
-PYBIND11_MODULE(pyEventInput, m) {
+void init_eventinput(py::module &m) {
+
   py::module pyHepMC3 = py::module::import("pyHepMC3");
   m.doc() = "NUISANCE implementation in python";
   py::class_<pyNormalizedEventSource>(m, "EventSource")

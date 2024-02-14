@@ -7,8 +7,12 @@
 #include "yaml-cpp/yaml.h"
 
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include "pybind11/stl_bind.h"
 
 #include "ProSelecta/ProSelecta.h"
+#include "nuis/python/pyMeasurement.h"
+#include "nuis/python/pyEventInput.h"
 
 std::vector<std::string> include_paths;
 std::string ProSelecta_env_dir;
@@ -57,7 +61,7 @@ void configure_environment() {
 
     // Should also check it exists
     auto DATABASE = getenv("NUISANCEDB");
-    if (!DATABASE){
+    if (!DATABASE) {
         std::cout
             << "[ERROR]: NUISANCEDB NOT SET!" << std::endl;
         abort();
@@ -66,7 +70,15 @@ void configure_environment() {
 
 
 
-PYBIND11_MODULE(pyNuisAnalysis, m) {
+PYBIND11_MODULE(pyNUISANCE, m) {
     m.doc() = "NUISANCE implementation in python";
     m.def("configure", &configure_environment);
+
+    py::bind_vector<std::vector<bool>>(m, "Vector_bool");
+    py::bind_vector<std::vector<int>>(m, "Vector_int");
+    py::bind_vector<std::vector<double>>(m, "Vector_double");
+    py::bind_vector<std::vector<uint32_t>>(m, "Vector_uint32_t");
+
+    init_eventinput(m);
+    init_measurement(m);
 }

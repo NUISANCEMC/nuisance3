@@ -8,9 +8,6 @@
 #include <pybind11/stl.h>
 #include "pybind11/stl_bind.h"
 
-// PYBIND11_MAKE_OPAQUE(std::vector<int>);
-// PYBIND11_MAKE_OPAQUE(std::map<std::string, double>);
-
 #include "yaml-cpp/yaml.h"
 
 #include "nuis/measurement/Record.h"
@@ -191,30 +188,25 @@ public:
 
 
 
-
-PYBIND11_MODULE(pyMEASUREMENT, meas) {
-    meas.doc() = "NUISANCE Measurement implementation in python";
-
-    py::bind_vector<std::vector<bool>>(meas, "Vector_bool");
-    py::bind_vector<std::vector<int>>(meas, "Vector_int");
-    py::bind_vector<std::vector<double>>(meas, "Vector_double");
-    py::bind_vector<std::vector<uint32_t>>(meas, "Vector_uint32_t");
+void init_measurement(py::module &m) {
+    
+    m.doc() = "NUISANCE Measurement implementation in python";
 
     py::bind_vector<std::vector<std::vector<bool>>>\
-        (meas, "vector_vector_bool");
+        (m, "vector_vector_bool");
 
     py::bind_vector<std::vector<std::vector<int>>>\
-        (meas, "vector_vector_int");
+        (m, "vector_vector_int");
 
     py::bind_vector<std::vector<std::vector<double>>>\
-        (meas, "vector_vector_double");
+        (m, "vector_vector_double");
 
     py::bind_vector<std::vector<std::vector<uint32_t>>>\
-        (meas, "vector_vector_uint32_t");
+        (m, "vector_vector_uint32_t");
 
-    py::bind_map<std::map<std::string, double>>(meas, "map_string_double");
+    py::bind_map<std::map<std::string, double>>(m, "map_string_double");
 
-    py::class_<nuis::measurement::Record>(meas, "Record")
+    py::class_<nuis::measurement::Record>(m, "Record")
         .def(py::init<>())
         .def(py::init<YAML::Node>())
         .def("Reset",
@@ -288,7 +280,7 @@ PYBIND11_MODULE(pyMEASUREMENT, meas) {
         .def("mcerr",
             &nuis::measurement::Record::GetMCErr);
 
-    py::class_<nuis::measurement::Variables>(meas, "variables")
+    py::class_<nuis::measurement::Variables>(m, "variables")
         .def(py::init<>())
         .def_readwrite("index", &nuis::measurement::Variables::values)
         .def_readwrite("low", &nuis::measurement::Variables::low)
@@ -299,7 +291,7 @@ PYBIND11_MODULE(pyMEASUREMENT, meas) {
         .def_readwrite("name", &nuis::measurement::Variables::name)
         .def_readwrite("title", &nuis::measurement::Variables::title);
 
-    py::class_<nuis::measurement::MeasurementPyWrapper>(meas, "Measurement")
+    py::class_<nuis::measurement::MeasurementPyWrapper>(m, "Measurement")
         .def(py::init<>())
         .def(py::init<YAML::Node>())
         .def("CreateRecord",
@@ -313,7 +305,7 @@ PYBIND11_MODULE(pyMEASUREMENT, meas) {
         .def("FilterEvent",
             &nuis::measurement::MeasurementPyWrapper::FilterEvent);
 
-    meas.def("CalculateRecordLikelihood",
+    m.def("CalculateRecordLikelihood",
             &nuis::measurement::CalculateRecordLikelihood);
 
 }
