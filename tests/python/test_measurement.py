@@ -2,11 +2,7 @@ import pytest
 
 import numpy as np
 import matplotlib.pyplot as plt
-
-import pyEVENTINPUT as ev
-import pyMEASUREMENT as me
-import pyNuisAnalysis as nuis
-from pyHepMC3 import HepMC3 as hm
+import pyNUISANCE as nuis
 
 # Some of these tests right now just check a 
 # piece of code runs without aborting..
@@ -24,7 +20,7 @@ def measurement_setup_1():
 
 @pytest.fixture
 def hepdata_handler(measurement_setup_1):
-    return me.Measurement(measurement_setup_1)
+    return nuis.Measurement(measurement_setup_1)
 
 def hepdata_createrecord(hepdata_handler):
     record = hepdata_handler.CreateRecord("")
@@ -36,11 +32,12 @@ def hepdata_finalizerecord(hepdata_handler):
 
 @pytest.fixture
 def nuwro_source_fixture():
-    return ev.EventSource("../../data/test_event_samples/nuwro-sample-ANL.root")
+    return nuis.EventSource("../../data/test_event_samples/nuwro-sample-ANL.root")
 
 @pytest.fixture
 def nuwro_event_fixture(nuwro_source_fixture):
-    return nuwro_source_fixture.first()
+    ev, _ = nuwro_source_fixture.first()
+    return ev
 
 def test_create_records(hepdata_handler):
     data = hepdata_handler.CreateRecord("")
@@ -58,6 +55,7 @@ def test_measurement_nuwro_proj(hepdata_handler, nuwro_event_fixture):
     assert proj is not None
 
 def test_measurement_nuwro_filter(hepdata_handler, nuwro_event_fixture):
+    print(nuwro_event_fixture)
     signal = hepdata_handler.FilterEvent(nuwro_event_fixture)
     assert signal is not None
 
@@ -65,10 +63,15 @@ def test_fill_records_from_nuwro_source(hepdata_handler, nuwro_source_fixture):
     nuwro_source = nuwro_source_fixture
     nuwro_record = hepdata_handler.CreateRecord("comp_nuwro")
 
+    if not nuwro_source_fixture.good():
+        print("Failed to open input file")
+        exit(1)
+
     # Fill records from events
-    for e in nuwro_source:
-        if not hepdata_handler.FilterEvent(e): continue
-        proj = hepdata_handler.ProjectEvent(e)
+    for data in nuwro_source:
+        print(data)
+        if not hepdata_handler.FilterEvent(data[0]): continue
+        proj = hepdata_handler.ProjectEvent(data[0])
         nuwro_record.FillBinFromProjection(proj, 1.0)
 
     # Assert records are filled
