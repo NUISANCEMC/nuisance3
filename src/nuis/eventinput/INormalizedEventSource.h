@@ -15,7 +15,7 @@ class INormalizedEventSource : public IEventSourceWrapper {
 
   std::optional<EventCVWeightPair> process(std::optional<HepMC3::GenEvent> ev) {
     if (!ev) {
-      std::optional<EventCVWeightPair>();
+      return std::optional<EventCVWeightPair>();
     }
     double cvw = xs_acc->process(ev.value());
     return EventCVWeightPair{std::move(ev.value()), cvw};
