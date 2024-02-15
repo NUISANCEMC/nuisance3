@@ -31,8 +31,6 @@ class neutvectEventSource : public IEventSource {
 
   NeutVect *nv;
 
-  void CheckAndAddPath(std::filesystem::path filepath);
-
 public:
   neutvectEventSource(YAML::Node const &cfg);
 

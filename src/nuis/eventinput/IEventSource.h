@@ -6,13 +6,10 @@ namespace nuis {
 
 class IEventSource {
 public:
-  virtual std::optional<HepMC3::GenEvent> first() {
-    return HepMC3::GenEvent();
-  };
-  virtual std::optional<HepMC3::GenEvent> next() { return HepMC3::GenEvent(); };
+  virtual std::optional<HepMC3::GenEvent> first() = 0;
+  virtual std::optional<HepMC3::GenEvent> next() = 0;
 
   virtual ~IEventSource(){};
-  std::string filenames;
 };
 
 } // namespace nuis
