@@ -89,7 +89,7 @@ void init_eventinput(py::module &m) {
       .def("run_info", &pyNormalizedEventSource::run_info)
       .def("fatx", &pyNormalizedEventSource::fatx)
       .def("sumw", &pyNormalizedEventSource::sumw)
-      .def("good", &pyNormalizedEventSource::good)
+      .def("__bool__", &pyNormalizedEventSource::good)
       .def(
           "__iter__",
           [](pyNormalizedEventSource &s) {

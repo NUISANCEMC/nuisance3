@@ -13,7 +13,7 @@ import pyEventInput as ei
 
 evs = ei.EventSource("path/to/my/inputfile")
 
-if not evs.good():
+if not evs:
   print("Failed to open input file")
   exit(1)
 
