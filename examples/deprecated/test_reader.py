@@ -14,7 +14,7 @@ anlsetup = { "measurement": "ANL_Analysis_mycustomtag",
             "release": "ANL/CCQE/182176/",
             "table": "EventCounts-Q2"}
 
-anl_handler = me.measurement.HEPDataLoader(anlsetup)
+anl_handler = me.measurement.HEPDataRecord(anlsetup)
 anl_nuwro = anl_handler.CreateProjection("anl_comp_nuwro")
 anl_neut  = anl_handler.CreateProjection("anl_comp_neut")
 

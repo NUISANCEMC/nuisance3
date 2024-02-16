@@ -12,7 +12,7 @@ t2ksetup = { "measurement": "T2K_Analysis_mycustomtag",
             "release": "T2K/CC0pi_XSec_2DPcos_nu",
             "table": "CrossSection-CosThetaMuPMu_AnalysisI",
             "input": {"file": "neutvect_nu.root", "weight": 1.0} }
-t2k_handler = pn.hepdata.HEPDataLoader(t2ksetup)
+t2k_handler = pn.hepdata.HEPDataRecord(t2ksetup)
 t2k_data    = t2k_handler.CreateProjection("t2k_comp")
 t2k_events  = pn.generator.build_reader(t2ksetup)
 

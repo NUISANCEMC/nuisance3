@@ -28,30 +28,46 @@
 #include "nuis/measurement/Projection.h"
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"
-#include "nuis/measurement/MeasurementLoader.h"
 
 namespace nuis {
 namespace measurement {
 
 using ProjectionPtr = std::shared_ptr<nuis::measurement::Projection>;
 
-class HEPDataLoader : public MeasurementLoader {
-public:
-  HEPDataLoader() {}
+class IRecord {
+ public:
+  IRecord() {}
 
-  explicit HEPDataLoader(YAML::Node config);
+  inline virtual ~IRecord() {}
 
-  virtual ~HEPDataLoader() {}
+  inline virtual std::vector<double>
+    ProjectEvent(const HepMC3::GenEvent& event) = 0;
 
-  std::vector<double> ProjectEvent(const HepMC3::GenEvent& event);
+  inline virtual bool FilterEvent(const HepMC3::GenEvent& event) = 0;
 
-  bool FilterEvent(const HepMC3::GenEvent& event);
+  inline virtual double WeightEvent(const HepMC3::GenEvent& event) = 0;
 
-  double WeightEvent(const HepMC3::GenEvent& event);
+  virtual Projection CreateProjection(const std::string label = "MC") = 0;
 
-  Projection CreateProjection(const std::string label = "MC");
-  
-  void FinalizeProjection(ProjectionPtr h, double scaling);
+  virtual void FinalizeProjection(ProjectionPtr h, double scaling) = 0;
+
+  std::string measurement_name;
+  std::string filter_symname;
+  std::string weight_symname;
+  // std::string finalize_symname;
+  std::vector<std::string> proj_funcnames;
+
+  ProSelecta_ftypes::sel filter_func;
+  ProSelecta_ftypes::wgt weight_func;
+  // ProSelecta_ftypes::fin finalize_func;
+  std::vector<ProSelecta_ftypes::pro> proj_funcs;
+
+  Document measurement_document;
+  std::vector<Variables> independent_variables;
+  std::vector<Variables> dependent_variables;
+
+  std::vector<Variables> independent_covariances;
+  std::vector<Variables> dependent_covariances;
 };
 
 }  // namespace measurement

@@ -12,7 +12,7 @@ anlsetup = { "measurement": "ANL_Analysis_mycustomtag",
             "release": "ANL/CCQE/182176/",
             "table": "EventCounts-Q2",
             "input": {"type": "NEUT", "file": "../../../runs/NEUT-D2-ANL_77-numu/NEUT.numu.numu_flux.ANL_1977_2horn_rescan.28328.evts.root", "weight": 1.0} }
-anl_handler = pn.hepdata.HEPDataLoader(anlsetup)
+anl_handler = pn.hepdata.HEPDataRecord(anlsetup)
 anl_data    = anl_handler.CreateProjection("anl_comp")
 anl_events  = pn.generator.build_reader(anlsetup)
 

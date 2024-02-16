@@ -152,9 +152,6 @@ class Projection {
 
      std::vector<std::vector<double>> data_covariance;
 
-     int total_mc_counts;
-     double total_mc_weights;
-     int total_mc_tally;
 
 
      // Eigen::VectorXd 

@@ -5,7 +5,7 @@
 #pragma GCC diagnostic ignored "-Wsign-compare"
 
 #include "nuis/measurement/Projection.h"
-#include "nuis/measurement/SimpleStatistics.h"
+#include "nuis/measurement/Statistics.h"
 
 namespace nuis {
 namespace measurement {

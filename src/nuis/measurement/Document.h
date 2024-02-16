@@ -31,13 +31,6 @@ struct Document {
   std::string data_file;
   std::string description;
 
-  inline YAML::Node yaml_template() {
-    YAML::Node n;
-    n["name"] = "template";
-    n["data_file"] = "path_to_datafile";
-    return n;
-  }
-
   inline Document() {}
 
   inline explicit Document(YAML::Node node) {
@@ -47,12 +40,10 @@ struct Document {
 
     // Return empty if no node
     if (!node) {
-      std::cout << "NODE EMPTY" << std::endl;
       return;
     }
 
     if (!node["name"]) return;
-    std::cout << "NAME " << node["name"] << std::endl;
 
     if (node["name"]) this->name = node["name"].as<std::string>();
     if (node["data_file"]) {

@@ -19,7 +19,7 @@
 #include <map>
 #include <filesystem>
 
-#include "nuis/measurement/MeasurementLoader.h"
+#include "nuis/measurement/IRecord.h"
 
 #include "yaml-cpp/yaml.h"
 using namespace YAML;
@@ -30,7 +30,7 @@ using namespace YAML;
 #include "nuis/measurement/Projection.h"
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"
-#include "nuis/measurement/HEPDataLoader.h"
+#include "nuis/measurement/HEPDataRecord.h"
 #include "spdlog/spdlog.h"
 
 
@@ -55,7 +55,7 @@ std::string validate_env() {
   return std::string(DATABASE);
 }
 
-HEPDataLoader::HEPDataLoader(YAML::Node config) {
+HEPDataRecord::HEPDataRecord(YAML::Node config) {
 
   std::string DATABASE = validate_env();
 
@@ -198,7 +198,7 @@ HEPDataLoader::HEPDataLoader(YAML::Node config) {
   }
 }
 
-std::vector<double> HEPDataLoader::ProjectEvent(const HepMC3::GenEvent& event) {
+std::vector<double> HEPDataRecord::ProjectEvent(const HepMC3::GenEvent& event) {
   std::vector<double> data;
   for (size_t i = 0; i < proj_funcs.size(); ++i) {
     data.push_back(proj_funcs[i](event));
@@ -206,15 +206,15 @@ std::vector<double> HEPDataLoader::ProjectEvent(const HepMC3::GenEvent& event) {
   return data;
 }
 
-bool HEPDataLoader::FilterEvent(const HepMC3::GenEvent& event) {
+bool HEPDataRecord::FilterEvent(const HepMC3::GenEvent& event) {
   return filter_func(event);
 }
 
-double HEPDataLoader::WeightEvent(const HepMC3::GenEvent& /*event*/) {
+double HEPDataRecord::WeightEvent(const HepMC3::GenEvent& /*event*/) {
   return 1.0;
 }
 
-Projection HEPDataLoader::CreateProjection(const std::string label) { 
+Projection HEPDataRecord::CreateProjection(const std::string label) { 
   return Projection(measurement_name + "_" + label,
     measurement_document,
     independent_variables,
@@ -223,7 +223,7 @@ Projection HEPDataLoader::CreateProjection(const std::string label) {
     dependent_covariances);
 }
 
-void HEPDataLoader::FinalizeProjection(ProjectionPtr /*h*/, double /*scaling*/) {
+void HEPDataRecord::FinalizeProjection(ProjectionPtr /*h*/, double /*scaling*/) {
 }
 
 } 

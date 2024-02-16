@@ -11,9 +11,9 @@
 #include "yaml-cpp/yaml.h"
 
 #include "nuis/measurement/Projection.h"
-#include "nuis/measurement/MeasurementLoader.h"
-#include "nuis/measurement/HEPDataLoader.h"
-#include "nuis/measurement/SimpleStatistics.h"
+#include "nuis/measurement/IRecord.h"
+#include "nuis/measurement/HEPDataRecord.h"
+#include "nuis/measurement/Statistics.h"
 
 namespace py = pybind11;
 
@@ -157,7 +157,7 @@ public:
   MeasurementPyWrapper() {}
 
   explicit MeasurementPyWrapper(YAML::Node config) {
-    meas = std::make_shared<HEPDataLoader>(HEPDataLoader(config));
+    meas = std::make_shared<HEPDataRecord>(HEPDataRecord(config));
   }
 
   std::vector<double> ProjectEvent(const HepMC3::GenEvent& event) {
@@ -180,7 +180,7 @@ public:
     meas->FinalizeProjection(h, scaling);
   }
 
-  std::shared_ptr<MeasurementLoader> meas;
+  std::shared_ptr<IRecord> meas;
 };
 
 }  // namespace measurement

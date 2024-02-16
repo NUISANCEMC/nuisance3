@@ -19,26 +19,29 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <memory>
 
 #include "yaml-cpp/yaml.h"
 #include "HepMC3/GenEvent.h"
 #include "ProSelecta/ProSelecta.h"
 
-#include "Projection.h"
-#include "Variables.h"
-#include "Document.h"
-#include "MeasurementLoader.h"
+#include "nuis/measurement/Projection.h"
+#include "nuis/measurement/Variables.h"
+#include "nuis/measurement/Document.h"
+#include "nuis/measurement/IRecord.h"
 
 namespace nuis {
 namespace measurement {
 
-class EXFORLoader : public MeasurementLoader {
+using ProjectionPtr = std::shared_ptr<nuis::measurement::Projection>;
+
+class HEPDataRecord : public IRecord {
 public:
-  EXFORLoader() {}
+  HEPDataRecord() {}
 
-  explicit EXFORLoader(YAML::Node config);
+  explicit HEPDataRecord(YAML::Node config);
 
-  virtual ~EXFORLoader() {}
+  virtual ~HEPDataRecord() {}
 
   std::vector<double> ProjectEvent(const HepMC3::GenEvent& event);
 
@@ -46,41 +49,9 @@ public:
 
   double WeightEvent(const HepMC3::GenEvent& event);
 
-  Projection CreateProjection(const std::string label="MC");
-
-  bool FillProjectionFromEvent(Projection& h, const HepMC3::GenEvent& event, const double weight);
-
-  bool FillProjectionFromProj(Projection& h, const std::vector<double>& val, const double weight);
-
-  void FinalizeProjection(Projection& h, double scaling);
-
-  std::string summary();
-
-  void print();
-
-    // isotope=C12
-  // interaction=2
-  // ceam=proton
-  // min_energy
-  // max_energy
-  // analysis=
-  // [tobeadded] reference=""
-
-  beam = "proton";
-  if (config["beam"]) config["beam"].as<std::string>();
-
-  interaction = "total";
-  if (config["total"]) interaction = config["total"].as<std::string>();
-
-  isotope = "12C"
-  if (config["isotope"]) isotope = config["isotope"].as<std::string>();
-
-  min_energy = -1;
-  max_energy = -1;
-  analysis = "analysis.cxx";
-  reference = "";
-
+  Projection CreateProjection(const std::string label = "MC");
   
+  void FinalizeProjection(ProjectionPtr h, double scaling);
 };
 
 }  // namespace measurement
