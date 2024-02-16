@@ -80,6 +80,10 @@
         "utility": "cpp",
         "cinttypes": "cpp",
         "regex": "cpp",
-        "core": "cpp"
+        "core": "cpp",
+        "*.ipp": "cpp",
+        "queue": "cpp",
+        "span": "cpp",
+        "stack": "cpp"
     }
 }

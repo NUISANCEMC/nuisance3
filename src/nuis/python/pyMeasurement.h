@@ -206,79 +206,79 @@ void init_measurement(py::module &m) {
 
     py::bind_map<std::map<std::string, double>>(m, "map_string_double");
 
-    py::class_<nuis::measurement::Projection>(m, "Projection")
-        .def(py::init<>())
-        .def(py::init<YAML::Node>())
-        .def("Reset",
-            &nuis::measurement::Projection::Reset)
-        .def("GetBin",
-            &nuis::measurement::Projection::GetBin)
-        .def("ResetBins",
-            &nuis::measurement::Projection::ResetBins)
-        .def("GetMCCount",
-            &nuis::measurement::Projection::GetMCCounts)
-        .def("GetMCWeight",
-            &nuis::measurement::Projection::GetMCWeight)
-        .def("GetMCError",
-            &nuis::measurement::Projection::GetMCError)
-        .def("GetMCError",
-            &nuis::measurement::Projection::GetMCError)
-        .def("FillBinFromIndex",
-            &nuis::measurement::Projection::FillBinFromIndex)
-        .def("FillBinFromProjection",
-            &nuis::measurement::Projection::FillBinFromProjection)
-        .def_readwrite("label",
-            &nuis::measurement::Projection::label)
-        .def_readwrite("name",
-            &nuis::measurement::Projection::name)
-        .def_readwrite("title",
-            &nuis::measurement::Projection::title)
-        .def_readwrite("bin_extent_low",
-            &nuis::measurement::Projection::bin_extent_low)
-        .def_readwrite("bin_extent_high",
-            &nuis::measurement::Projection::bin_extent_high)
-        .def_readwrite("bin_index",
-            &nuis::measurement::Projection::bin_index)
-        .def_readwrite("bin_width",
-            &nuis::measurement::Projection::bin_width)
-        .def_readwrite("bin_center",
-            &nuis::measurement::Projection::bin_center)
-        .def_readwrite("bin_mask",
-            &nuis::measurement::Projection::bin_mask)
-        .def_readwrite("data_value",
-            &nuis::measurement::Projection::data_value)
-        .def_readwrite("data_covariance",
-            &nuis::measurement::Projection::data_covariance)
-        .def_readwrite("data_error",
-            &nuis::measurement::Projection::data_error)
-        .def_readwrite("mc_counts",
-            &nuis::measurement::Projection::mc_counts)
-        .def_readwrite("mc_weights",
-            &nuis::measurement::Projection::mc_weights)
-        .def_readwrite("mc_errors",
-            &nuis::measurement::Projection::mc_errors)
-        .def_readwrite("total_mc_counts",
-            &nuis::measurement::Projection::total_mc_counts)
-        .def_readwrite("total_mc_weights",
-            &nuis::measurement::Projection::total_mc_weights)
-        .def_readwrite("total_mc_tally",
-            &nuis::measurement::Projection::total_mc_tally)
-        .def("x",
-            &nuis::measurement::Projection::GetXCenter)
-        .def("y",
-            &nuis::measurement::Projection::GetYCenter)
-        .def("z",
-            &nuis::measurement::Projection::GetZCenter)
-        .def("mc",
-            &nuis::measurement::Projection::GetMC)
-        .def("xerr",
-            &nuis::measurement::Projection::GetXErr)
-        .def("yerr",
-            &nuis::measurement::Projection::GetYErr)
-        .def("zerr",
-            &nuis::measurement::Projection::GetZErr)
-        .def("mcerr",
-            &nuis::measurement::Projection::GetMCErr);
+    // py::class_<nuis::measurement::Projection>(m, "Projection")
+    //     .def(py::init<>())
+    //     .def(py::init<YAML::Node>())
+    //     .def("Reset",
+    //         &nuis::measurement::Projection::Reset)
+    //     .def("GetBin",
+    //         &nuis::measurement::Projection::GetBin)
+    //     .def("ResetBins",
+    //         &nuis::measurement::Projection::ResetBins)
+    //     .def("GetMCCount",
+    //         &nuis::measurement::Projection::GetMCCounts)
+    //     .def("GetMCWeight",
+    //         &nuis::measurement::Projection::GetMCWeight)
+    //     .def("GetMCError",
+    //         &nuis::measurement::Projection::GetMCError)
+    //     .def("GetMCError",
+    //         &nuis::measurement::Projection::GetMCError)
+    //     .def("FillBinFromIndex",
+    //         &nuis::measurement::Projection::FillBinFromIndex)
+    //     .def("FillBinFromProjection",
+    //         &nuis::measurement::Projection::FillBinFromProjection)
+    //     .def_readwrite("label",
+    //         &nuis::measurement::Projection::label)
+    //     .def_readwrite("name",
+    //         &nuis::measurement::Projection::name)
+    //     .def_readwrite("title",
+    //         &nuis::measurement::Projection::title)
+    //     .def_readwrite("bin_extent_low",
+    //         &nuis::measurement::Projection::bin_extent_low)
+    //     .def_readwrite("bin_extent_high",
+    //         &nuis::measurement::Projection::bin_extent_high)
+    //     .def_readwrite("bin_index",
+    //         &nuis::measurement::Projection::bin_index)
+    //     .def_readwrite("bin_width",
+    //         &nuis::measurement::Projection::bin_width)
+    //     .def_readwrite("bin_center",
+    //         &nuis::measurement::Projection::bin_center)
+    //     .def_readwrite("bin_mask",
+    //         &nuis::measurement::Projection::bin_mask)
+    //     .def_readwrite("data_value",
+    //         &nuis::measurement::Projection::data_value)
+    //     .def_readwrite("data_covariance",
+    //         &nuis::measurement::Projection::data_covariance)
+    //     .def_readwrite("data_error",
+    //         &nuis::measurement::Projection::data_error)
+    //     .def_readwrite("mc_counts",
+    //         &nuis::measurement::Projection::mc_counts)
+    //     .def_readwrite("mc_weights",
+    //         &nuis::measurement::Projection::mc_weights)
+    //     .def_readwrite("mc_errors",
+    //         &nuis::measurement::Projection::mc_errors)
+    //     .def_readwrite("total_mc_counts",
+    //         &nuis::measurement::Projection::total_mc_counts)
+    //     .def_readwrite("total_mc_weights",
+    //         &nuis::measurement::Projection::total_mc_weights)
+    //     .def_readwrite("total_mc_tally",
+    //         &nuis::measurement::Projection::total_mc_tally)
+    //     .def("x",
+    //         &nuis::measurement::Projection::GetXCenter)
+    //     .def("y",
+    //         &nuis::measurement::Projection::GetYCenter)
+    //     .def("z",
+    //         &nuis::measurement::Projection::GetZCenter)
+    //     .def("mc",
+    //         &nuis::measurement::Projection::GetMC)
+    //     .def("xerr",
+    //         &nuis::measurement::Projection::GetXErr)
+    //     .def("yerr",
+    //         &nuis::measurement::Projection::GetYErr)
+    //     .def("zerr",
+    //         &nuis::measurement::Projection::GetZErr)
+    //     .def("mcerr",
+    //         &nuis::measurement::Projection::GetMCErr);
 
     py::class_<nuis::measurement::Variables>(m, "variables")
         .def(py::init<>())

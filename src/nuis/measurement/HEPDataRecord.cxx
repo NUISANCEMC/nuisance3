@@ -215,12 +215,81 @@ double HEPDataRecord::WeightEvent(const HepMC3::GenEvent& /*event*/) {
 }
 
 Projection HEPDataRecord::CreateProjection(const std::string label) { 
-  return Projection(measurement_name + "_" + label,
-    measurement_document,
-    independent_variables,
-    dependent_variables,
-    independent_covariances,
-    dependent_covariances);
+  // return Projection(measurement_name + "_" + label,
+  //   measurement_document,
+  //   independent_variables,
+  //   dependent_variables,
+  //   independent_covariances,
+  //   dependent_covariances);
+  std::cout << label << std::endl;
+    auto project = Projection();
+    return project;
+
+    // int nbins  = (dependent_variables)[0].n;
+
+    // std::vector<double> bini;
+    // std::vector<double> binj;
+
+    // for (int i = 0; i < in_independent_covariances.size(); i++) {
+    //     std::cout << in_independent_covariances[i].name << std::endl;
+    //     if (in_independent_covariances[i].name  == "Bini") {
+    //         bini = in_independent_covariances[i].values;
+    //     }
+    //     if (in_independent_covariances[i].name  == "Binj") {
+    //         binj = in_independent_covariances[i].values;
+    //     }
+    // }
+
+    // std::vector<double> covariance_ravel;
+    // for (int i = 0; i < in_dependent_covariances.size(); i++) {
+    //     std::cout << in_dependent_covariances[i].name << std::endl;
+    //     if (in_dependent_covariances[i].name  == "TotalCovariance") {
+    //         covariance_ravel = in_dependent_covariances[i].values;
+    //     }
+    // }
+
+    // std::vector<std::vector<double>> covariance;
+    // for (int i = 0; i < bini.size(); i++) {
+    //     covariance.push_back( std::vector<double>(bini.size(), 0));
+    // }
+    // for (int i = 0; i < bini.size(); i++) {
+    //     int bi = int(bini[i]);
+    //     int bj = int(binj[i]);
+    //     covariance[bi][bj] = covariance_ravel[i];
+    // }
+
+    // data_value = (dependent_variables)[0].values;
+    // if (covariance.size() > 0) {
+    //     data_error = std::vector<double>(data_value.size(), 0.0);
+    //     for (int i = 0; i < data_value.size(); i++) {
+    //         data_error[i] = sqrt(data_covariance[i][i]);
+    //     }
+    // } else {
+    //     data_error = (dependent_variables)[0].errors;
+    // }
+
+    // mc_counts = std::vector<uint32_t>(nbins, 0);
+    // mc_weights = std::vector<double>(nbins, 0.0);
+    // mc_errors = std::vector<double>(nbins, 0.0);
+
+    // for (size_t i = 0; i < nbins; i++) {
+    //     bin_index.push_back(i);
+    //     bin_mask.push_back(false);
+
+    //     bin_extent_low.push_back(std::vector<double>());
+    //     bin_extent_high.push_back(std::vector<double>());
+    //     bin_center.push_back(std::vector<double>());
+    //     bin_width.push_back(std::vector<double>());
+
+    //     for (int j = 0; j < independent_variables.size(); j++) {
+    //         double low  = (independent_variables)[j].low[i];
+    //         double high = (independent_variables)[j].high[i];
+    //         bin_extent_low[i].push_back(low);
+    //         bin_extent_high[i].push_back(high);
+    //         bin_center[i].push_back((high+low));
+    //         bin_width[i].push_back((high-low));
+    //     }
+    // }
 }
 
 void HEPDataRecord::FinalizeProjection(ProjectionPtr /*h*/, double /*scaling*/) {

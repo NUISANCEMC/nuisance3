@@ -10,7 +10,8 @@
 namespace nuis {
 namespace measurement {
 
-double CalculateProjectionLikelihood(const nuis::measurement::Projection& record) {
+double CalculateProjectionLikelihood(const nuis::measurement::Projection& /*record*/) {
+    /*
     // Returns record likelihood based on data mc conversion
     Eigen::VectorXd residuals(record.data_value.size());
     for (size_t i = 0; i < record.data_value.size(); i++) {
@@ -32,8 +33,8 @@ double CalculateProjectionLikelihood(const nuis::measurement::Projection& record
 
     // Now run our chi2 calculation
     double chi2 = (residuals.transpose() * covariance.inverse() * residuals);
-
-    return chi2;
+    */
+    return 0.0;
 }
 
 

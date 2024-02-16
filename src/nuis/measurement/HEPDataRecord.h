@@ -50,7 +50,7 @@ public:
   double WeightEvent(const HepMC3::GenEvent& event);
 
   Projection CreateProjection(const std::string label = "MC");
-  
+
   void FinalizeProjection(ProjectionPtr h, double scaling);
 };
 
