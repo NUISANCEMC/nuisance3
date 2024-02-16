@@ -117,8 +117,8 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  double fatx = evs->norm_info().fatx();
-  double sumw = evs->norm_info().sumweights();
+  double fatx = evs->norm_info().fatx;
+  double sumw = evs->norm_info().sumweights;
 
   double sf_cm2_N = (fatx / sumw) * xs_to_pb_N;
 

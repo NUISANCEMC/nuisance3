@@ -89,16 +89,17 @@ int main(int argc, char const *argv[]) {
     // spdlog::info("\tnum FS pi0 = {}", npi0);
     // spdlog::info("-------------------");
 
-    // spdlog::info("evt: mode {}, wght GENIEReWeight: {}", procids[procid].first,
+    // spdlog::info("evt: mode {}, wght GENIEReWeight: {}",
+    // procids[procid].first,
     //              weighters->CalcWeight(ev));
 
     if (ctr && !(ctr % 50000)) {
       spdlog::info("Processed {} events. FATX default estimate = {}", ctr,
-                   evs->norm_info().fatx());
+                   evs->norm_info().fatx);
     }
 
     ctr++;
   }
 
-  spdlog::info("Final FATX estimate: {}", evs->norm_info().fatx());
+  spdlog::info("Final FATX estimate: {}", evs->norm_info().fatx);
 }

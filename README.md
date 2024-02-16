@@ -27,6 +27,10 @@ printenv | grep -i nuisance
 
 For python bindings documentation see [here](src/nuis/python/README.md).
 
+### `nuis::Frame`
+
+For documentation on the minimal dataframe that NUISANCE provides, see [here](src/nuis/frame/README.md).
+
 ### C++
 
 #### Read an event source
