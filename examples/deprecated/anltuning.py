@@ -13,7 +13,7 @@ anlsetup = { "measurement": "ANL_Analysis_mycustomtag",
             "table": "EventCounts-Q2",
             "input": {"type": "NEUT", "file": "../../../runs/NEUT-D2-ANL_77-numu/NEUT.numu.numu_flux.ANL_1977_2horn_rescan.28328.evts.root", "weight": 1.0} }
 anl_handler = pn.hepdata.HEPDataLoader(anlsetup)
-anl_data    = anl_handler.CreateRecord("anl_comp")
+anl_data    = anl_handler.CreateProjection("anl_comp")
 anl_events  = pn.generator.build_reader(anlsetup)
 
 print("BUILT READER")
@@ -22,7 +22,7 @@ print(anl_data.bin_center)
 print(anl_data.data_error)
 
 #print("Attempting to calculate a likelihood")
-#print(pn.statistical.CalculateRecordLikelihood(anl_data))
+#print(pn.statistical.CalculateProjectionLikelihood(anl_data))
 #print(anl_data.data_covariance)
 
 print(anl_data.data_value)
@@ -36,7 +36,7 @@ plt.savefig("test.png")
 #            "table": "CrossSection-CosThetaMuPMu_AnalysisI",
 #            "input": {"file": "neutvect_nu_miniboone.root", "weight": 1.0} }
 #miniboone_handler = pn.hepdata.measurement(miniboonesetup)
-#miniboone_data   = miniboone_handler.CreateRecord("miniboone_comp")
+#miniboone_data   = miniboone_handler.CreateProjection("miniboone_comp")
 #miniboone_events = pn.generator.build_reader(miniboonesetup)
 
 #Create a custom weight handler
@@ -54,9 +54,9 @@ def objective_function(x):
     print("NEW OBJECTIVE : ", x)
     anl_events.SetDial("MaCCQE", x[0])
 
-    anl_handler.FillRecordFromReader(anl_data, anl_events, wmanager)
+    anl_handler.FillProjectionFromReader(anl_data, anl_events, wmanager)
 
-    chi2_data = (pn.statistical.CalculateRecordLikelihood(anl_data))
+    chi2_data = (pn.statistical.CalculateProjectionLikelihood(anl_data))
     
     return chi2_data
 

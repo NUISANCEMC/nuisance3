@@ -16,8 +16,8 @@ anlsetup = { "measurement": "ANL_Analysis_mycustomtag",
             "table": "EventCounts-Q2"}
 
 anl_handler = pn.Measurement(anlsetup)
-anl_nuwro = anl_handler.CreateRecord("anl_comp_nuwro")
-anl_neut  = anl_handler.CreateRecord("anl_comp_neut")
+anl_nuwro = anl_handler.CreateProjection("anl_comp_nuwro")
+anl_neut  = anl_handler.CreateProjection("anl_comp_neut")
 
 for e, cvw in neut_source:
     if not anl_handler.FilterEvent(e): continue
@@ -29,8 +29,8 @@ for e, cvw in nuwro_source:
     proj = anl_handler.ProjectEvent(e)
     anl_nuwro.FillBinFromProjection( proj, cvw )
 
-anl_handler.FinalizeRecord( anl_neut, 1.0 )#  neut_source.fatx()  / neut_source.sumw())
-anl_handler.FinalizeRecord( anl_nuwro, 1.0) # nuwro_source.fatx() / nuwro_source.sumw())
+anl_handler.FinalizeProjection( anl_neut, 1.0 )#  neut_source.fatx()  / neut_source.sumw())
+anl_handler.FinalizeProjection( anl_nuwro, 1.0) # nuwro_source.fatx() / nuwro_source.sumw())
 
 plt.errorbar( x=anl_nuwro.x(), y=anl_nuwro.mc(), xerr=0.0, yerr=0.0, label="NUWRO")
 plt.errorbar( x=anl_nuwro.x(), y=anl_neut.mc(), xerr=0.0, yerr=0.0, label="NEUT")

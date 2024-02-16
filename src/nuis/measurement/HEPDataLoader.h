@@ -25,7 +25,7 @@
 #include "HepMC3/GenEvent.h"
 #include "ProSelecta/ProSelecta.h"
 
-#include "nuis/measurement/Record.h"
+#include "nuis/measurement/Projection.h"
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"
 #include "nuis/measurement/MeasurementLoader.h"
@@ -33,7 +33,7 @@
 namespace nuis {
 namespace measurement {
 
-using RecordPtr = std::shared_ptr<nuis::measurement::Record>;
+using ProjectionPtr = std::shared_ptr<nuis::measurement::Projection>;
 
 class HEPDataLoader : public MeasurementLoader {
 public:
@@ -49,9 +49,9 @@ public:
 
   double WeightEvent(const HepMC3::GenEvent& event);
 
-  Record CreateRecord(const std::string label = "MC");
+  Projection CreateProjection(const std::string label = "MC");
   
-  void FinalizeRecord(RecordPtr h, double scaling);
+  void FinalizeProjection(ProjectionPtr h, double scaling);
 };
 
 }  // namespace measurement

@@ -27,7 +27,7 @@ using namespace YAML;
 #include "ProSelecta/ProSelecta.h"
 #include "HepMC3/GenEvent.h"
 
-#include "nuis/measurement/Record.h"
+#include "nuis/measurement/Projection.h"
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"
 #include "nuis/measurement/HEPDataLoader.h"
@@ -154,14 +154,14 @@ double EXFORLoader::WeightEvent(const HepMC3::GenEvent& event) {
   return 1.0;
 }
 
-Record EXFORLoader::CreateRecord(const std::string label) { 
-  return Record(measurement_name,
+Projection EXFORLoader::CreateProjection(const std::string label) { 
+  return Projection(measurement_name,
     measurement_document,
     independent_variables,
     dependent_variables);
 };
 
-bool EXFORLoader::FillRecordFromEvent(Record& h,
+bool EXFORLoader::FillProjectionFromEvent(Projection& h,
   const HepMC3::GenEvent& e, const double weight) {
   h.FillTally();
   if (!FilterEvent(e)) return false;
@@ -169,14 +169,14 @@ bool EXFORLoader::FillRecordFromEvent(Record& h,
   return true;
 }
 
-bool EXFORLoader::FillRecordFromProj(Record& h, 
+bool EXFORLoader::FillProjectionFromProj(Projection& h, 
   const std::vector<double>& v, const double weight) {
-  h.FillTally();  // Hack so that Records record total passed through.
+  h.FillTally();  // Hack so that Projections record total passed through.
   h.FillBin(v, weight);
   return true;
 }
 
-void EXFORLoader::FinalizeRecord(Record& h, double scaling) {
+void EXFORLoader::FinalizeProjection(Projection& h, double scaling) {
   h.Scale(scaling / h.GetTally());
 }
 

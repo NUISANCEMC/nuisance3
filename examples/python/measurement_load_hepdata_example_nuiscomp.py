@@ -9,7 +9,7 @@ def run_comparison(label, source, measurements):
 
     records = []
     for me in measurements:
-        records.append( me.CreateRecord(label) )
+        records.append( me.CreateProjection(label) )
 
     for e, cvw in source:
         for i, me in enumerate(measurements):
@@ -18,7 +18,7 @@ def run_comparison(label, source, measurements):
             records[i].FillBinFromProjection( proj, cvw )
 
     for i, me in enumerate(measurements):
-        me.FinalizeRecord( records[i],  source.fatx()  / source.sumw())
+        me.FinalizeProjection( records[i],  source.fatx()  / source.sumw())
 
         plt.errorbar( x=r.x(), y=r.mc(), xerr=0.0, yerr=0.0, label=label)
         plt.show()

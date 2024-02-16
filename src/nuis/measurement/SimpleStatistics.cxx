@@ -4,13 +4,13 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wsign-compare"
 
-#include "nuis/measurement/Record.h"
+#include "nuis/measurement/Projection.h"
 #include "nuis/measurement/SimpleStatistics.h"
 
 namespace nuis {
 namespace measurement {
 
-double CalculateRecordLikelihood(const nuis::measurement::Record& record) {
+double CalculateProjectionLikelihood(const nuis::measurement::Projection& record) {
     // Returns record likelihood based on data mc conversion
     Eigen::VectorXd residuals(record.data_value.size());
     for (size_t i = 0; i < record.data_value.size(); i++) {

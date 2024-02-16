@@ -27,7 +27,7 @@ using namespace YAML;
 #include "ProSelecta/ProSelecta.h"
 #include "HepMC3/GenEvent.h"
 
-#include "nuis/measurement/Record.h"
+#include "nuis/measurement/Projection.h"
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"
 #include "nuis/measurement/HEPDataLoader.h"
@@ -214,8 +214,8 @@ double HEPDataLoader::WeightEvent(const HepMC3::GenEvent& /*event*/) {
   return 1.0;
 }
 
-Record HEPDataLoader::CreateRecord(const std::string label) { 
-  return Record(measurement_name + "_" + label,
+Projection HEPDataLoader::CreateProjection(const std::string label) { 
+  return Projection(measurement_name + "_" + label,
     measurement_document,
     independent_variables,
     dependent_variables,
@@ -223,7 +223,7 @@ Record HEPDataLoader::CreateRecord(const std::string label) {
     dependent_covariances);
 }
 
-void HEPDataLoader::FinalizeRecord(RecordPtr /*h*/, double /*scaling*/) {
+void HEPDataLoader::FinalizeProjection(ProjectionPtr /*h*/, double /*scaling*/) {
 }
 
 } 

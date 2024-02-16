@@ -22,7 +22,7 @@
 #pragma GCC diagnostic ignored "-Wreturn-type"
 #pragma GCC diagnostic ignored "-Wsign-compare"
 
-#include "nuis/measurement/Record.h"
+#include "nuis/measurement/Projection.h"
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"
 #include <algorithm>
@@ -43,11 +43,11 @@ void str_replace(std::string& in,
 namespace nuis{
 namespace measurement{
 
-Record::Record()
+Projection::Projection()
 : total_mc_tally(0) {
 };
 
-Record::Record(YAML::Node config) {
+Projection::Projection(YAML::Node config) {
     if (config["bin_extent_low"])
         bin_extent_low = config["bin_extent_low"]\
             .as<std::vector<std::vector<double> > >();
@@ -78,7 +78,7 @@ Record::Record(YAML::Node config) {
         mc_errors = config["mc_errors"].as<std::vector<double> >();
 }
 
-Record::Record(std::string iname,
+Projection::Projection(std::string iname,
     const Document& in_document,
     const std::vector<Variables>& in_independent_variables,
     const std::vector<Variables>& in_dependent_variables,
@@ -177,14 +177,14 @@ Record::Record(std::string iname,
     }
 }
 
-Record::~Record() {
+Projection::~Projection() {
 }
 
-void Record::Reset() {
+void Projection::Reset() {
     ResetBins();
 }
 
-void Record::ResetBins() {
+void Projection::ResetBins() {
     for (size_t i = 0; i < mc_counts.size(); i++) {
         mc_counts[i] = 0;
         mc_weights[i] = 0;
@@ -192,7 +192,7 @@ void Record::ResetBins() {
     }
 }
 
-int Record::GetBin(const std::vector<double>& invals) {
+int Projection::GetBin(const std::vector<double>& invals) {
     for (int i = 0; i < mc_counts.size(); i++) {
         bool foundbin = true;
 
@@ -212,7 +212,7 @@ int Record::GetBin(const std::vector<double>& invals) {
     return -1;
 }
 
-int Record::FillBin(int i, double w) {
+int Projection::FillBin(int i, double w) {
     if (i < 0) return -1;
 
     mc_counts[i] += 1;
@@ -228,24 +228,24 @@ int Record::FillBin(int i, double w) {
 }
 
 
-int Record::FillBin(const std::vector<double>& indep_vals, double w) {
+int Projection::FillBin(const std::vector<double>& indep_vals, double w) {
     int i = GetBin(indep_vals);
     return FillBin(i, w);
 }
 
-uint32_t Record::GetMCCounts(const uint32_t i) {
+uint32_t Projection::GetMCCounts(const uint32_t i) {
     return mc_counts[i];
 }
 
-double Record::GetMCWeight(const uint32_t i) {
+double Projection::GetMCWeight(const uint32_t i) {
     return mc_weights[i];
 }
 
-double Record::GetMCError(const uint32_t i) {
+double Projection::GetMCError(const uint32_t i) {
     return mc_errors[i];
 }
 
-double Record::GetTotalMCCounts() {
+double Projection::GetTotalMCCounts() {
     int tot = 0;
     for (auto const& b : mc_counts) {
         tot += b;
@@ -253,7 +253,7 @@ double Record::GetTotalMCCounts() {
     return tot;
 }
 
-double Record::GetTotalMCWeight() {
+double Projection::GetTotalMCWeight() {
     int tot = 0;
     for (auto const& b : mc_weights) {
         tot += b;
@@ -261,37 +261,37 @@ double Record::GetTotalMCWeight() {
     return tot;
 }
 
-double Record::GetTotalMCValue() {
+double Projection::GetTotalMCValue() {
     return GetTotalMCWeight();
 }
 
-std::string Record::Summary() {
+std::string Projection::Summary() {
     return "";
 }
 
-void Record::Scale(double s) {
+void Projection::Scale(double s) {
     for (int i = 0; i < mc_counts.size(); i++) {
         mc_counts[i] *= s;
     }
 }
 
-void Record::Print() {
+void Projection::Print() {
     std::cout << Summary() << std::endl;
 }
 
-double Record::GetBinContent(int index) {
+double Projection::GetBinContent(int index) {
     return GetMCWeight(index);
 }
 
-double Record::GetBinEntries(int index) {
+double Projection::GetBinEntries(int index) {
     return GetMCCounts(index);
 }
 
-double Record::GetBinError(int index) {
+double Projection::GetBinError(int index) {
     return GetMCError(index);
 }
 
-std::vector<double> Record::GetSlice(
+std::vector<double> Projection::GetSlice(
     const std::vector<std::vector<double>>& slice,
     int i) {
 
@@ -307,62 +307,62 @@ std::vector<double> Record::GetSlice(
     return v1;
 }
 
-std::vector<double> Record::GetXCenter() {
+std::vector<double> Projection::GetXCenter() {
     return GetSlice(bin_center, 0);
 }
 
-std::vector<double> Record::GetYCenter() {
+std::vector<double> Projection::GetYCenter() {
     return GetSlice(bin_center, 1);
 }
 
-std::vector<double> Record::GetZCenter() {
+std::vector<double> Projection::GetZCenter() {
     return GetSlice(bin_center, 2);
 }
 
-std::vector<double> Record::GetXEdge(bool low) {
+std::vector<double> Projection::GetXEdge(bool low) {
     return GetSlice(low ? bin_extent_low : bin_extent_high, 0);
 }
 
-std::vector<double> Record::GetYEdge(bool low) {
+std::vector<double> Projection::GetYEdge(bool low) {
     return GetSlice(low ? bin_extent_low : bin_extent_high, 1);
 }
 
-std::vector<double> Record::GetZEdge(bool low) {
+std::vector<double> Projection::GetZEdge(bool low) {
     return GetSlice(low ? bin_extent_low : bin_extent_high, 2);
 }
 
-std::vector<double> Record::GetXWidth() {
+std::vector<double> Projection::GetXWidth() {
     return GetSlice(bin_width, 0);
 }
 
-std::vector<double> Record::GetYWidth() {
+std::vector<double> Projection::GetYWidth() {
     return GetSlice(bin_width, 1);
 }
 
-std::vector<double> Record::GetZWidth() {
+std::vector<double> Projection::GetZWidth() {
     return GetSlice(bin_width, 2);
 }
 
-std::vector<double> Record::GetMC() {
+std::vector<double> Projection::GetMC() {
     return mc_weights;
 }
-std::vector<double> Record::GetMCErr() {
+std::vector<double> Projection::GetMCErr() {
     return mc_errors;
 }
 
-std::vector<double> Record::GetXErr() {
+std::vector<double> Projection::GetXErr() {
     std::vector<double> v = GetSlice(bin_width, 0);
     for_each(v.begin(), v.end(), [](double &c){ c /= 2.0; });
     return v;
 }
 
-std::vector<double> Record::GetYErr() {
+std::vector<double> Projection::GetYErr() {
     std::vector<double> v = GetSlice(bin_width, 1);
     for_each(v.begin(), v.end(), [](double &c){ c /= 2.0; });
     return v;
 }
 
-std::vector<double> Record::GetZErr() {
+std::vector<double> Projection::GetZErr() {
     std::vector<double> v = GetSlice(bin_width, 2);
     for_each(v.begin(), v.end(), [](double &c){ c /= 2.0; });
     return v;

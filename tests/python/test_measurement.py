@@ -24,12 +24,12 @@ def hepdata_handler(measurement_setup_1):
     return nuis.Measurement(measurement_setup_1)
 
 def hepdata_createrecord(hepdata_handler):
-    record = hepdata_handler.CreateRecord("")
+    record = hepdata_handler.CreateProjection("")
     assert record is not None
 
 def hepdata_finalizerecord(hepdata_handler):
-    record = hepdata_handler.CreateRecord("")
-    hepdata_handler.FinalizeRecord(record)
+    record = hepdata_handler.CreateProjection("")
+    hepdata_handler.FinalizeProjection(record)
 
 @pytest.fixture
 def nuwro_source_fixture():
@@ -41,13 +41,13 @@ def nuwro_event_fixture(nuwro_source_fixture):
     return ev
 
 def test_create_records(hepdata_handler):
-    data = hepdata_handler.CreateRecord("")
+    data = hepdata_handler.CreateProjection("")
     assert data is not None
     assert data.mc_counts is not None
     assert data.mc_weights is not None
     assert data.data_value is not None
 
-    data = hepdata_handler.CreateRecord("data")
+    data = hepdata_handler.CreateProjection("data")
     assert data is not None
 
 
@@ -62,7 +62,7 @@ def test_measurement_nuwro_filter(hepdata_handler, nuwro_event_fixture):
 
 def test_fill_records_from_nuwro_source(hepdata_handler, nuwro_source_fixture):
     nuwro_source = nuwro_source_fixture
-    nuwro_record = hepdata_handler.CreateRecord("comp_nuwro")
+    nuwro_record = hepdata_handler.CreateProjection("comp_nuwro")
 
     if not nuwro_source_fixture.good():
         print("Failed to open input file")
@@ -83,8 +83,8 @@ def test_fill_records_from_nuwro_source(hepdata_handler, nuwro_source_fixture):
 
 
 # def test_plot_results(hepdata_handler):
-#     nuwro_record = hepdata_handler.CreateRecord("anl_comp_nuwro")
-#     nuwro_record = hepdata_handler.CreateRecord("anl_comp_neut")
+#     nuwro_record = hepdata_handler.CreateProjection("anl_comp_nuwro")
+#     nuwro_record = hepdata_handler.CreateProjection("anl_comp_neut")
 
 #     # Plot results
 #     plt.xkcd()

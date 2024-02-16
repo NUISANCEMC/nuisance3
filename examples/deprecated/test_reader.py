@@ -15,14 +15,14 @@ anlsetup = { "measurement": "ANL_Analysis_mycustomtag",
             "table": "EventCounts-Q2"}
 
 anl_handler = me.measurement.HEPDataLoader(anlsetup)
-anl_nuwro = anl_handler.CreateRecord("anl_comp_nuwro")
-anl_neut  = anl_handler.CreateRecord("anl_comp_neut")
+anl_nuwro = anl_handler.CreateProjection("anl_comp_nuwro")
+anl_neut  = anl_handler.CreateProjection("anl_comp_neut")
 
 for e in neut_source:
-  anl_handler.FillRecordFromEvent( anl_neut, e, 1.0 )
+  anl_handler.FillProjectionFromEvent( anl_neut, e, 1.0 )
 
 for e in nuwro_source:
-  anl_handler.FillRecordFromEvent( anl_nuwro, e, 1.0 )
+  anl_handler.FillProjectionFromEvent( anl_nuwro, e, 1.0 )
 
 plt.errorbar( x=anl_nuwro.x(), y=anl_nuwro.mc(), xerr=0.0, yerr=0.0, label="NUWRO")
 plt.errorbar( x=anl_nuwro.x(), y=anl_neut.mc(), xerr=0.0, yerr=0.0, label="NEUT")

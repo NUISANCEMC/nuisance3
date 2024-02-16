@@ -21,6 +21,8 @@
 #include <string>
 #include <iostream>
 #include <memory>
+#include <Eigen/Dense>
+
 
 #include "yaml-cpp/yaml.h"
 using namespace YAML;
@@ -39,20 +41,20 @@ enum ErrorSource {
 namespace nuis {
 namespace measurement {
 
-class Record {
+class Projection {
   public:
-     Record();
+     Projection();
 
-     Record(YAML::Node config);
+     explicit Projection(YAML::Node config);
 
-     Record(std::string iname,
+     Projection(std::string iname,
           const Document& in_document,
           const std::vector<Variables>& in_independent_variables,
           const std::vector<Variables>& in_dependent_variables,
           const std::vector<Variables>& in_dependent_covariances,
           const std::vector<Variables>& in_independent_covariances);
 
-     ~Record();
+     ~Projection();
 
      std::string Summary();
      void Print();
@@ -143,16 +145,22 @@ class Record {
 
      std::vector<double> data_value;
      std::vector<double> data_error;
+     
      std::vector<uint32_t> mc_counts;
      std::vector<double>   mc_weights;
      std::vector<double>   mc_errors;
-
 
      std::vector<std::vector<double>> data_covariance;
 
      int total_mc_counts;
      double total_mc_weights;
      int total_mc_tally;
+
+
+     // Eigen::VectorXd 
+     // Eigen::MatrixXd bin_extent_low;
+     // Eigen::MatrixXd bin_extent_high;
+
 
 };
 

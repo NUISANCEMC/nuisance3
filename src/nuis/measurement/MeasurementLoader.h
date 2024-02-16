@@ -19,23 +19,23 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <memory>
 
 #include "yaml-cpp/yaml.h"
 #include "HepMC3/GenEvent.h"
 #include "ProSelecta/ProSelecta.h"
 
-#include "nuis/measurement/Record.h"
+#include "nuis/measurement/Projection.h"
 #include "nuis/measurement/Variables.h"
 #include "nuis/measurement/Document.h"
 
 namespace nuis {
 namespace measurement {
 
-using RecordPtr = std::shared_ptr<nuis::measurement::Record>;
+using ProjectionPtr = std::shared_ptr<nuis::measurement::Projection>;
 
 class MeasurementLoader {
-public:
-
+ public:
   MeasurementLoader() {}
 
   inline virtual ~MeasurementLoader() {}
@@ -47,9 +47,9 @@ public:
 
   inline virtual double WeightEvent(const HepMC3::GenEvent& event) = 0;
 
-  virtual Record CreateRecord(const std::string label = "MC") = 0;
+  virtual Projection CreateProjection(const std::string label = "MC") = 0;
 
-  virtual void FinalizeRecord(RecordPtr h, double scaling) = 0;
+  virtual void FinalizeProjection(ProjectionPtr h, double scaling) = 0;
 
   std::string measurement_name;
   std::string filter_symname;

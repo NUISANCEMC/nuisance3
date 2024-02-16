@@ -10,7 +10,7 @@
 
 #include "yaml-cpp/yaml.h"
 
-#include "nuis/measurement/Record.h"
+#include "nuis/measurement/Projection.h"
 #include "nuis/measurement/MeasurementLoader.h"
 #include "nuis/measurement/HEPDataLoader.h"
 #include "nuis/measurement/SimpleStatistics.h"
@@ -172,12 +172,12 @@ public:
     return meas->WeightEvent(event);
   }
 
-  Record CreateRecord(const std::string label = "MC") {
-    return meas->CreateRecord(label);
+  Projection CreateProjection(const std::string label = "MC") {
+    return meas->CreateProjection(label);
   }
 
-  void FinalizeRecord(RecordPtr h, double scaling) {
-    meas->FinalizeRecord(h, scaling);
+  void FinalizeProjection(ProjectionPtr h, double scaling) {
+    meas->FinalizeProjection(h, scaling);
   }
 
   std::shared_ptr<MeasurementLoader> meas;
@@ -206,79 +206,79 @@ void init_measurement(py::module &m) {
 
     py::bind_map<std::map<std::string, double>>(m, "map_string_double");
 
-    py::class_<nuis::measurement::Record>(m, "Record")
+    py::class_<nuis::measurement::Projection>(m, "Projection")
         .def(py::init<>())
         .def(py::init<YAML::Node>())
         .def("Reset",
-            &nuis::measurement::Record::Reset)
+            &nuis::measurement::Projection::Reset)
         .def("GetBin",
-            &nuis::measurement::Record::GetBin)
+            &nuis::measurement::Projection::GetBin)
         .def("ResetBins",
-            &nuis::measurement::Record::ResetBins)
+            &nuis::measurement::Projection::ResetBins)
         .def("GetMCCount",
-            &nuis::measurement::Record::GetMCCounts)
+            &nuis::measurement::Projection::GetMCCounts)
         .def("GetMCWeight",
-            &nuis::measurement::Record::GetMCWeight)
+            &nuis::measurement::Projection::GetMCWeight)
         .def("GetMCError",
-            &nuis::measurement::Record::GetMCError)
+            &nuis::measurement::Projection::GetMCError)
         .def("GetMCError",
-            &nuis::measurement::Record::GetMCError)
+            &nuis::measurement::Projection::GetMCError)
         .def("FillBinFromIndex",
-            &nuis::measurement::Record::FillBinFromIndex)
+            &nuis::measurement::Projection::FillBinFromIndex)
         .def("FillBinFromProjection",
-            &nuis::measurement::Record::FillBinFromProjection)
+            &nuis::measurement::Projection::FillBinFromProjection)
         .def_readwrite("label",
-            &nuis::measurement::Record::label)
+            &nuis::measurement::Projection::label)
         .def_readwrite("name",
-            &nuis::measurement::Record::name)
+            &nuis::measurement::Projection::name)
         .def_readwrite("title",
-            &nuis::measurement::Record::title)
+            &nuis::measurement::Projection::title)
         .def_readwrite("bin_extent_low",
-            &nuis::measurement::Record::bin_extent_low)
+            &nuis::measurement::Projection::bin_extent_low)
         .def_readwrite("bin_extent_high",
-            &nuis::measurement::Record::bin_extent_high)
+            &nuis::measurement::Projection::bin_extent_high)
         .def_readwrite("bin_index",
-            &nuis::measurement::Record::bin_index)
+            &nuis::measurement::Projection::bin_index)
         .def_readwrite("bin_width",
-            &nuis::measurement::Record::bin_width)
+            &nuis::measurement::Projection::bin_width)
         .def_readwrite("bin_center",
-            &nuis::measurement::Record::bin_center)
+            &nuis::measurement::Projection::bin_center)
         .def_readwrite("bin_mask",
-            &nuis::measurement::Record::bin_mask)
+            &nuis::measurement::Projection::bin_mask)
         .def_readwrite("data_value",
-            &nuis::measurement::Record::data_value)
+            &nuis::measurement::Projection::data_value)
         .def_readwrite("data_covariance",
-            &nuis::measurement::Record::data_covariance)
+            &nuis::measurement::Projection::data_covariance)
         .def_readwrite("data_error",
-            &nuis::measurement::Record::data_error)
+            &nuis::measurement::Projection::data_error)
         .def_readwrite("mc_counts",
-            &nuis::measurement::Record::mc_counts)
+            &nuis::measurement::Projection::mc_counts)
         .def_readwrite("mc_weights",
-            &nuis::measurement::Record::mc_weights)
+            &nuis::measurement::Projection::mc_weights)
         .def_readwrite("mc_errors",
-            &nuis::measurement::Record::mc_errors)
+            &nuis::measurement::Projection::mc_errors)
         .def_readwrite("total_mc_counts",
-            &nuis::measurement::Record::total_mc_counts)
+            &nuis::measurement::Projection::total_mc_counts)
         .def_readwrite("total_mc_weights",
-            &nuis::measurement::Record::total_mc_weights)
+            &nuis::measurement::Projection::total_mc_weights)
         .def_readwrite("total_mc_tally",
-            &nuis::measurement::Record::total_mc_tally)
+            &nuis::measurement::Projection::total_mc_tally)
         .def("x",
-            &nuis::measurement::Record::GetXCenter)
+            &nuis::measurement::Projection::GetXCenter)
         .def("y",
-            &nuis::measurement::Record::GetYCenter)
+            &nuis::measurement::Projection::GetYCenter)
         .def("z",
-            &nuis::measurement::Record::GetZCenter)
+            &nuis::measurement::Projection::GetZCenter)
         .def("mc",
-            &nuis::measurement::Record::GetMC)
+            &nuis::measurement::Projection::GetMC)
         .def("xerr",
-            &nuis::measurement::Record::GetXErr)
+            &nuis::measurement::Projection::GetXErr)
         .def("yerr",
-            &nuis::measurement::Record::GetYErr)
+            &nuis::measurement::Projection::GetYErr)
         .def("zerr",
-            &nuis::measurement::Record::GetZErr)
+            &nuis::measurement::Projection::GetZErr)
         .def("mcerr",
-            &nuis::measurement::Record::GetMCErr);
+            &nuis::measurement::Projection::GetMCErr);
 
     py::class_<nuis::measurement::Variables>(m, "variables")
         .def(py::init<>())
@@ -294,10 +294,10 @@ void init_measurement(py::module &m) {
     py::class_<nuis::measurement::MeasurementPyWrapper>(m, "Measurement")
         .def(py::init<>())
         .def(py::init<YAML::Node>())
-        .def("CreateRecord",
-            &nuis::measurement::MeasurementPyWrapper::CreateRecord)
-        .def("FinalizeRecord",
-            &nuis::measurement::MeasurementPyWrapper::FinalizeRecord)
+        .def("CreateProjection",
+            &nuis::measurement::MeasurementPyWrapper::CreateProjection)
+        .def("FinalizeProjection",
+            &nuis::measurement::MeasurementPyWrapper::FinalizeProjection)
         .def("ProjectEvent",
             &nuis::measurement::MeasurementPyWrapper::ProjectEvent)
         .def("WeightEvent",
@@ -305,7 +305,7 @@ void init_measurement(py::module &m) {
         .def("FilterEvent",
             &nuis::measurement::MeasurementPyWrapper::FilterEvent);
 
-    m.def("CalculateRecordLikelihood",
-            &nuis::measurement::CalculateRecordLikelihood);
+    m.def("CalculateProjectionLikelihood",
+            &nuis::measurement::CalculateProjectionLikelihood);
 
 }

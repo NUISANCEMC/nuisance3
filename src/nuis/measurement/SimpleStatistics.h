@@ -18,12 +18,12 @@
  *******************************************************************************/
 #pragma once
 #include <string>
-#include "nuis/measurement/Record.h"
+#include "nuis/measurement/Projection.h"
 
 namespace nuis {
 namespace measurement {
 
-    double CalculateRecordLikelihood(const nuis::measurement::Record& record);
+    double CalculateProjectionLikelihood(const nuis::measurement::Projection& record);
     // double CalculateDialLikelihood(const WeightManager& manager);
 
 }  // namespace statistical

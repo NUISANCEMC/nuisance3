@@ -79,6 +79,7 @@
         "type_traits": "cpp",
         "utility": "cpp",
         "cinttypes": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "core": "cpp"
     }
 }

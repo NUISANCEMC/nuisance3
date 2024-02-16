@@ -24,7 +24,7 @@
 #include "HepMC3/GenEvent.h"
 #include "ProSelecta/ProSelecta.h"
 
-#include "Record.h"
+#include "Projection.h"
 #include "Variables.h"
 #include "Document.h"
 #include "MeasurementLoader.h"
@@ -46,13 +46,13 @@ public:
 
   double WeightEvent(const HepMC3::GenEvent& event);
 
-  Record CreateRecord(const std::string label="MC");
+  Projection CreateProjection(const std::string label="MC");
 
-  bool FillRecordFromEvent(Record& h, const HepMC3::GenEvent& event, const double weight);
+  bool FillProjectionFromEvent(Projection& h, const HepMC3::GenEvent& event, const double weight);
 
-  bool FillRecordFromProj(Record& h, const std::vector<double>& val, const double weight);
+  bool FillProjectionFromProj(Projection& h, const std::vector<double>& val, const double weight);
 
-  void FinalizeRecord(Record& h, double scaling);
+  void FinalizeProjection(Projection& h, double scaling);
 
   std::string summary();
 

@@ -13,11 +13,11 @@ t2ksetup = { "measurement": "T2K_Analysis_mycustomtag",
             "table": "CrossSection-CosThetaMuPMu_AnalysisI",
             "input": {"file": "neutvect_nu.root", "weight": 1.0} }
 t2k_handler = pn.hepdata.HEPDataLoader(t2ksetup)
-t2k_data    = t2k_handler.CreateRecord("t2k_comp")
+t2k_data    = t2k_handler.CreateProjection("t2k_comp")
 t2k_events  = pn.generator.build_reader(t2ksetup)
 
 print("Attempting to calculate a likelihood")
-print(pn.statistical.CalculateRecordLikelihood(t2k_data))
+print(pn.statistical.CalculateProjectionLikelihood(t2k_data))
 print(t2k_data.data_covariance)
 
 #miniboonesetup = { "measurement": "MiniBooNE_CC0pi",
@@ -25,7 +25,7 @@ print(t2k_data.data_covariance)
 #            "table": "CrossSection-CosThetaMuPMu_AnalysisI",
 #            "input": {"file": "neutvect_nu_miniboone.root", "weight": 1.0} }
 #miniboone_handler = pn.hepdata.measurement(miniboonesetup)
-#miniboone_data   = miniboone_handler.CreateRecord("miniboone_comp")
+#miniboone_data   = miniboone_handler.CreateProjection("miniboone_comp")
 #miniboone_events = pn.generator.build_reader(miniboonesetup)
 
 #Create a custom weight handler
@@ -41,11 +41,11 @@ def objective_function(x):
     print("NEW OBJECTIVE : ", x)
     wmanager.SetDials(x)
 
-    t2k_handler.FillRecordFromReader(t2k_data, t2k_events, wmanager)
-    miniboone_handler.FillRecordFromReader(miniboone_data, miniboone_events, wmanager)
+    t2k_handler.FillProjectionFromReader(t2k_data, t2k_events, wmanager)
+    miniboone_handler.FillProjectionFromReader(miniboone_data, miniboone_events, wmanager)
 
-    chi2_data = (pn.statistical.CalculateRecordLikelihood(t2k_data) +
-        pn.statistical.CalculateRecordLikelihood(miniboone_data))
+    chi2_data = (pn.statistical.CalculateProjectionLikelihood(t2k_data) +
+        pn.statistical.CalculateProjectionLikelihood(miniboone_data))
     
     chi2_dial = pn.statistical.CalculateDialLikelihood(wmanager)
     chi2_norm = pn.statistical.CalclulateNormLikelihood(wmanager)
