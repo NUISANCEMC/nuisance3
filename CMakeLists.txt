@@ -167,6 +167,7 @@ set(NUISANCE_PYSITEARCH "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
 set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/frame)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/python)
