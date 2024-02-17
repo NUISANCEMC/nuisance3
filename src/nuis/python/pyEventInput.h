@@ -1,4 +1,4 @@
-
+#pragma once
 #include "nuis/eventinput/EventSourceFactory.h"
 
 #include "pybind11/pybind11.h"

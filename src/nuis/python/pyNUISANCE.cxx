@@ -13,6 +13,7 @@
 #include "ProSelecta/ProSelecta.h"
 #include "nuis/python/pyMeasurement.h"
 #include "nuis/python/pyEventInput.h"
+#include "nuis/python/pyFrame.h"
 
 std::vector<std::string> include_paths;
 std::string ProSelecta_env_dir;
@@ -81,4 +82,5 @@ PYBIND11_MODULE(pyNUISANCE, m) {
 
     init_eventinput(m);
     init_measurement(m);
+    init_frame(m);
 }

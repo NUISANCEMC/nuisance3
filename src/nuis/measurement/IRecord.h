@@ -51,6 +51,8 @@ class IRecord {
 
   virtual void FinalizeProjection(ProjectionPtr h, double scaling) = 0;
 
+  // TODO : Remove Variables locals and have these interpretted at record build time
+  // TODO : Clean up function returns
   std::string measurement_name;
   std::string filter_symname;
   std::string weight_symname;
