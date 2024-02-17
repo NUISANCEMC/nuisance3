@@ -4,15 +4,18 @@
 
 #include "Eigen/Dense"
 
-#include <vector>
+#include <iostream>
 #include <string>
+#include <vector>
 
 namespace nuis {
 
 struct Frame {
   std::vector<std::string> ColumnNames;
   Eigen::MatrixXd Table;
-  NormInfo norm_info; 
+  NormInfo norm_info;
 };
 
-}
+} // namespace nuis
+
+std::ostream &operator<<(std::ostream &os, nuis::Frame const &);
