@@ -55,8 +55,8 @@ int main(int argc, char const *argv[]) {
       {"ZExpA1CCQE", +2},
   });
 
-  auto frame = FrameGen(evs).Limit(10).Evaluate();
-  std::cout << frame << std::endl;
+  auto frame = FrameGen(evs).Limit(1000).Evaluate();
+  std::cout << FramePrinter(frame,10,false) << std::endl;
   std::cout << "NEvents Read:" << frame.norm_info.nevents << std::endl;
   std::cout << "NRows selected:" << frame.Table.rows() << std::endl;
 

@@ -4,9 +4,16 @@
 
 #include <sstream>
 
-std::ostream &operator<<(std::ostream &os, nuis::Frame const &f) {
+std::ostream &operator<<(std::ostream &os, nuis::FramePrinter fp) {
 
-  size_t abs_max_width = 12;
+  size_t abs_max_width = fp.max_col_width;
+
+  auto f = fp.fr.get();
+
+  if (!fp.prettyprint) {
+    return os << f.Table.topRows(fp.max_rows);
+  }
+
   std::vector<size_t> col_widths(f.Table.cols(), 0);
 
   // check up to the first 20 rows to guess how wide we need each column
@@ -16,7 +23,7 @@ std::ostream &operator<<(std::ostream &os, nuis::Frame const &f) {
       size_t len = test.size() - test.find_first_not_of(" ");
       col_widths[ci] = std::min(std::max(col_widths[ci], len), abs_max_width);
     }
-    if (ri > 20) {
+    if (ri >= 20) {
       break;
     }
   }
@@ -50,7 +57,19 @@ std::ostream &operator<<(std::ostream &os, nuis::Frame const &f) {
       os << fmt::format(fmtstrs[ci], f.Table(ri, ci));
     }
     os << std::endl;
+    if (ri >= fp.max_rows) {
+      os << " |";
+      for (int ci = 0; ci < f.Table.cols(); ++ci) {
+        os << fmt::format(fmtstrs[ci], "...");
+      }
+      os << std::endl;
+      break;
+    }
   }
 
   return os << " " << line.data();
+}
+
+std::ostream &operator<<(std::ostream &os, nuis::Frame const &f) {
+  return os << nuis::FramePrinter(f);
 }
