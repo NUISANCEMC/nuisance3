@@ -45,9 +45,12 @@ public:
   };
   void SetParameters(std::map<std::string, double> const &params) {
     for (auto &[p, v] : params) {
+      spdlog::info("GENIEReWeightCalc: Setting parameter {} to {}", p, v);
       fGENIE3RW->Systematics().Set(GSyst::FromString(p), v);
     }
+    spdlog::info("GENIEReWeightCalc: Beginning Reconfigure");
     fGENIE3RW->Reconfigure();
+    spdlog::info("GENIEReWeightCalc: Done Reconfigure");
   };
   bool good() const { return bool(nevs); }
 

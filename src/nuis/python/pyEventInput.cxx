@@ -39,8 +39,8 @@ struct pyNormalizedEventSource {
     return curr_event;
   }
   auto run_info() { return gri; }
-  auto fatx() { return evs ? evs->norm_info().fatx() : 0; }
-  auto sumw() { return evs ? evs->norm_info().sumweights() : 0; }
+  auto fatx() { return evs ? evs->norm_info().fatx : 0; }
+  auto sumw() { return evs ? evs->norm_info().sumweights : 0; }
   auto good() { return bool(evs); }
 };
 
@@ -54,9 +54,7 @@ public:
     curr_event = pysource.get().first();
   }
   void operator++() { curr_event = pysource.get().next(); }
-  py::object const &operator*() {
-    return curr_event;
-  }
+  py::object const &operator*() { return curr_event; }
   bool operator!=(IEventSource_sentinel const &) const {
     return !curr_event.is(py::none());
   }

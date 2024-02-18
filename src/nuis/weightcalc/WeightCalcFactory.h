@@ -47,7 +47,8 @@ public:
     }
   }
 
-  IWeightCalcHM3MapPtr Make(IEventSourcePtr evs, YAML::Node const &cfg = {}) {
+  IWeightCalcHM3MapPtr MakeAll(IEventSourcePtr evs,
+                               YAML::Node const &cfg = {}) {
     if (!evs) {
       return nullptr;
     }
@@ -65,6 +66,29 @@ public:
     }
 
     return matching_plugins;
+  }
+
+  IWeightCalcHM3MapPtr MakeAll(IWrappedEventSourcePtr evs,
+                               YAML::Node const &cfg = {}) {
+    return MakeAll(evs->unwrap(), cfg);
+  }
+
+  IWeightCalcHM3MapPtr Make(IEventSourcePtr evs, YAML::Node const &cfg = {}) {
+    if (!evs) {
+      return nullptr;
+    }
+
+    for (auto &[pluginso, plugin] : pluginfactories) {
+      auto wc = plugin(evs, cfg);
+      if (wc->good()) {
+        spdlog::info("Found WeightCalculator plugin: {} that can process "
+                     " proffered IEventSource",
+                     pluginso.native());
+        return wc;
+      }
+    }
+
+    return nullptr;
   }
 
   IWeightCalcHM3MapPtr Make(IWrappedEventSourcePtr evs,

@@ -7,6 +7,12 @@
 
 namespace nuis {
 
+struct NormInfo {
+  double fatx;
+  double sumweights;
+  size_t nevents;
+};
+
 /// An event source wrapper that keeps track of the FATX, if we cannot determine
 /// how to normalize it, this is considered a resource acquisition failure
 class INormalizedEventSource : public IEventSourceWrapper {
@@ -43,7 +49,9 @@ public:
     return process(wrapped_ev_source->next());
   }
 
-  NuHepMC::FATX::Accumulator const &norm_info() { return *xs_acc; }
+  NormInfo norm_info() {
+    return {xs_acc->fatx(), xs_acc->sumweights(), xs_acc->events()};
+  }
 };
 
 } // namespace nuis
