@@ -87,6 +87,7 @@
         "stack": "cpp",
         "complex": "cpp",
         "__memory": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "source_location": "cpp"
     }
 }

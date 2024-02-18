@@ -68,7 +68,25 @@ struct pyFrameGen {
 };
 }
 
+Eigen::VectorXd frame_gettattr(nuis::Frame &s, std::string column){
+  for (size_t i = 0; i < s.ColumnNames.size(); i++){
+    if (s.ColumnNames[i] == column){
+      return s.Table.col(i);
+    }
+  }
+  std::cout << "Column not found " << column << std::endl;
+  abort();
+}
 
+void frame_settattr(nuis::Frame &s, std::string column, Eigen::VectorXd& data){
+  for (size_t i = 0; i < s.ColumnNames.size(); i++){
+    if (s.ColumnNames[i] == column){
+      s.Table.col(i) = data;
+    }
+  }
+  std::cout << "Column not found " << column << std::endl;
+  abort();
+}
 
 void init_frame(py::module &m) {
 
@@ -81,7 +99,13 @@ void init_frame(py::module &m) {
             py::return_value_policy::reference_internal)
         .def("fatx", [](nuis::Frame &s){ return s.norm_info.fatx; })
         .def("sumw", [](nuis::Frame &s){ return s.norm_info.sumweights; })
-        .def("nevents", [](nuis::Frame &s){ return s.norm_info.nevents; });
+        .def("nevents", [](nuis::Frame &s){ return s.norm_info.nevents; })
+        // Pandas style data access
+        .def("__getattr__", &frame_gettattr)
+        .def("__setattr__", &frame_settattr)
+        .def("__getitem__", &frame_gettattr)
+        .def("__setitem__", &frame_settattr);
+
 
     py::class_<nuis::pyFrameGen>(m, "FrameGen")
         .def(py::init<pyNormalizedEventSource, size_t>())
