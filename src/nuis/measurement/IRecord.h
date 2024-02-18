@@ -49,6 +49,10 @@ class IRecord {
 
   virtual Projection CreateProjection(const std::string label = "MC") = 0;
 
+  // Added for profiling direct C++ fills.
+  virtual void FillProjectionFromEvent(
+      Projection& proj, const HepMC3::GenEvent& ev) = 0;
+
   virtual void FinalizeProjection(ProjectionPtr h, double scaling) = 0;
 
   // TODO : Remove Variables locals and have these interpretted at record build time

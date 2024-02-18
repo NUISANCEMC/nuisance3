@@ -10,10 +10,12 @@ namespace nuis {
 class FrameGen {
 
 public:
-  using FilterFunc = std::function<bool(HepMC3::GenEvent const &)>;
+  using FilterFunc = std::function<int(HepMC3::GenEvent const &)>;
   using ProjectionFunc = std::function<double(HepMC3::GenEvent const &)>;
   using ProjectionsFunc =
       std::function<std::vector<double>(HepMC3::GenEvent const &)>;
+
+// PS An option to input a vector of functions is also needed (instead of requiring a lambda to build it)
 
   FrameGen(INormalizedEventSourcePtr evs, size_t block_size = 50000);
 

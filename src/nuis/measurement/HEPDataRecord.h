@@ -51,6 +51,8 @@ public:
 
   Projection CreateProjection(const std::string label = "MC");
 
+  void FillProjectionFromEvent(Projection& proj, const HepMC3::GenEvent& ev);
+
   void FinalizeProjection(ProjectionPtr h, double scaling);
 };
 

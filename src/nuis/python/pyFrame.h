@@ -31,7 +31,7 @@ namespace py = pybind11;
 
 namespace nuis {
 struct pyFrameGen {
-  using FilterFunc = std::function<bool(HepMC3::GenEvent const &)>;
+  using FilterFunc = std::function<int(HepMC3::GenEvent const &)>;
   using ProjectionFunc = std::function<double(HepMC3::GenEvent const &)>;
   using ProjectionsFunc =
       std::function<std::vector<double>(HepMC3::GenEvent const &)>;

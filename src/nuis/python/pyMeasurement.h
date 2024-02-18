@@ -153,11 +153,30 @@ namespace measurement {
 // to build. Python bindings all then assume that
 // the they are dealing with a PyWrapper class.
 class MeasurementPyWrapper {
-public:
+ public:
+
+
+    using ProjectionsFunc =
+      std::function<std::vector<double>(HepMC3::GenEvent const &)>;
+    
+    using ProjectFunc =
+        std::function<double(HepMC3::GenEvent const &)>;
+
+    using FilterFunc =
+        std::function<bool(HepMC3::GenEvent const &)>;
+
   MeasurementPyWrapper() {}
 
   explicit MeasurementPyWrapper(YAML::Node config) {
     meas = std::make_shared<HEPDataRecord>(HEPDataRecord(config));
+    filter = meas->filter_func;
+    projections = meas->proj_funcs;
+  }
+
+    // Currently this is needed for python->C++ propogation. Needs to be better.
+  void Reconfigure(){
+    meas->filter_func = filter;
+    meas->proj_funcs = projections;
   }
 
   std::vector<double> ProjectEvent(const HepMC3::GenEvent& event) {
@@ -180,7 +199,45 @@ public:
     meas->FinalizeProjection(h, scaling);
   }
 
-  std::shared_ptr<IRecord> meas;
+    void FillProjectionFromEvent(
+      Projection& proj, const HepMC3::GenEvent& ev){
+        meas->FillProjectionFromEvent(proj, ev);
+      }
+
+
+
+    // ProjectionsFunc GetProjectionFunction() {
+    //     auto proj = meas->proj_funcs;
+
+    //     return [proj](HepMC3::GenEvent const & ev) -> std::vector<double> {
+    //         std::vector<double> vals;
+    //         for (size_t i = 0; i < proj.size(); i++) {
+    //             vals.emplace_back(proj[i](ev));
+    //         }
+    //         return vals;
+    //     };
+    // }
+
+    // ProjectFunc GetProjectionFunction() {
+    //     return meas->proj_funcs[0]; // Only working for 1D for now....
+    // }
+
+    // FilterFunc GetFilterFunction() {
+    //     auto filter = meas->filter_func;
+
+    //     return [filter](HepMC3::GenEvent const & ev) -> int {
+    //         return filter(ev);
+    //     };
+    // }
+
+    // This needs rethinking, we can edit filter and projections 
+    // python side which is what we want, but need to figure
+    // out a clean way to transmit between python->c++ side.
+    // Can we just remove the original measurement?
+
+    FilterFunc filter;
+    std::vector<ProjectFunc> projections;
+    std::shared_ptr<IRecord> meas;
 };
 
 }  // namespace measurement
@@ -191,6 +248,10 @@ public:
 void init_measurement(py::module &m) {
     
     m.doc() = "NUISANCE Measurement implementation in python";
+    using ProjectFunc =
+        std::function<double(HepMC3::GenEvent const &)>;
+
+    py::bind_vector<std::vector<ProjectFunc>>(m, "Vector_project");
 
     py::bind_vector<std::vector<std::vector<bool>>>\
         (m, "vector_vector_bool");
@@ -204,81 +265,38 @@ void init_measurement(py::module &m) {
     py::bind_vector<std::vector<std::vector<uint32_t>>>\
         (m, "vector_vector_uint32_t");
 
+    // py::bind_map<std::map<int, Band>>(m, "map_band");
+
     py::bind_map<std::map<std::string, double>>(m, "map_string_double");
 
-    // py::class_<nuis::measurement::Projection>(m, "Projection")
-    //     .def(py::init<>())
-    //     .def(py::init<YAML::Node>())
-    //     .def("Reset",
-    //         &nuis::measurement::Projection::Reset)
-    //     .def("GetBin",
-    //         &nuis::measurement::Projection::GetBin)
-    //     .def("ResetBins",
-    //         &nuis::measurement::Projection::ResetBins)
-    //     .def("GetMCCount",
-    //         &nuis::measurement::Projection::GetMCCounts)
-    //     .def("GetMCWeight",
-    //         &nuis::measurement::Projection::GetMCWeight)
-    //     .def("GetMCError",
-    //         &nuis::measurement::Projection::GetMCError)
-    //     .def("GetMCError",
-    //         &nuis::measurement::Projection::GetMCError)
-    //     .def("FillBinFromIndex",
-    //         &nuis::measurement::Projection::FillBinFromIndex)
-    //     .def("FillBinFromProjection",
-    //         &nuis::measurement::Projection::FillBinFromProjection)
-    //     .def_readwrite("label",
-    //         &nuis::measurement::Projection::label)
-    //     .def_readwrite("name",
-    //         &nuis::measurement::Projection::name)
-    //     .def_readwrite("title",
-    //         &nuis::measurement::Projection::title)
-    //     .def_readwrite("bin_extent_low",
-    //         &nuis::measurement::Projection::bin_extent_low)
-    //     .def_readwrite("bin_extent_high",
-    //         &nuis::measurement::Projection::bin_extent_high)
-    //     .def_readwrite("bin_index",
-    //         &nuis::measurement::Projection::bin_index)
-    //     .def_readwrite("bin_width",
-    //         &nuis::measurement::Projection::bin_width)
-    //     .def_readwrite("bin_center",
-    //         &nuis::measurement::Projection::bin_center)
-    //     .def_readwrite("bin_mask",
-    //         &nuis::measurement::Projection::bin_mask)
-    //     .def_readwrite("data_value",
-    //         &nuis::measurement::Projection::data_value)
-    //     .def_readwrite("data_covariance",
-    //         &nuis::measurement::Projection::data_covariance)
-    //     .def_readwrite("data_error",
-    //         &nuis::measurement::Projection::data_error)
-    //     .def_readwrite("mc_counts",
-    //         &nuis::measurement::Projection::mc_counts)
-    //     .def_readwrite("mc_weights",
-    //         &nuis::measurement::Projection::mc_weights)
-    //     .def_readwrite("mc_errors",
-    //         &nuis::measurement::Projection::mc_errors)
-    //     .def_readwrite("total_mc_counts",
-    //         &nuis::measurement::Projection::total_mc_counts)
-    //     .def_readwrite("total_mc_weights",
-    //         &nuis::measurement::Projection::total_mc_weights)
-    //     .def_readwrite("total_mc_tally",
-    //         &nuis::measurement::Projection::total_mc_tally)
-    //     .def("x",
-    //         &nuis::measurement::Projection::GetXCenter)
-    //     .def("y",
-    //         &nuis::measurement::Projection::GetYCenter)
-    //     .def("z",
-    //         &nuis::measurement::Projection::GetZCenter)
-    //     .def("mc",
-    //         &nuis::measurement::Projection::GetMC)
-    //     .def("xerr",
-    //         &nuis::measurement::Projection::GetXErr)
-    //     .def("yerr",
-    //         &nuis::measurement::Projection::GetYErr)
-    //     .def("zerr",
-    //         &nuis::measurement::Projection::GetZErr)
-    //     .def("mcerr",
-    //         &nuis::measurement::Projection::GetMCErr);
+    py::class_<nuis::measurement::Band>(m, "Band")
+        .def(py::init<>())
+        .def(py::init<int, std::string, int>())
+        .def_readwrite("label", &nuis::measurement::Band::label)
+        .def_readwrite("band_id", &nuis::measurement::Band::band_id)
+        .def_readwrite("value", &nuis::measurement::Band::value)
+        .def_readwrite("count", &nuis::measurement::Band::count)
+        .def_readwrite("error", &nuis::measurement::Band::error);
+
+    // Don't love band as a name for each data or MC row...
+    py::class_<nuis::measurement::Projection>(m, "Projection")
+        .def(py::init<>())
+        .def("Fill", &nuis::measurement::Projection::Fill)
+        .def("Scale", &nuis::measurement::Projection::Scale)
+        .def("Reset", &nuis::measurement::Projection::Reset)
+        .def("AddBand", &nuis::measurement::Projection::AddBand)
+        .def("CreateBand", &nuis::measurement::Projection::CreateBand)
+        .def("__getitem__", &nuis::measurement::Projection::GetBandFromString)
+        .def_readwrite("axis_label", &nuis::measurement::Projection::axis_label)
+        .def_readwrite("bin_index", &nuis::measurement::Projection::bin_index)
+        .def_readwrite("bin_mask", &nuis::measurement::Projection::bin_mask)
+        .def_readwrite("bin_extent_low",
+            &nuis::measurement::Projection::bin_extent_low)
+        .def_readwrite("bin_extent_high",
+            &nuis::measurement::Projection::bin_extent_high)
+        .def("bin_center", &nuis::measurement::Projection::GetBinCenter )
+        .def("bin_width", &nuis::measurement::Projection::GetBinWidth )
+        .def("bin_halfwidth", &nuis::measurement::Projection::GetBinHalfWidth );
 
     py::class_<nuis::measurement::Variables>(m, "variables")
         .def(py::init<>())
@@ -296,6 +314,8 @@ void init_measurement(py::module &m) {
         .def(py::init<YAML::Node>())
         .def("CreateProjection",
             &nuis::measurement::MeasurementPyWrapper::CreateProjection)
+        .def("FillProjectionFromEvent",
+            &nuis::measurement::MeasurementPyWrapper::FillProjectionFromEvent)
         .def("FinalizeProjection",
             &nuis::measurement::MeasurementPyWrapper::FinalizeProjection)
         .def("ProjectEvent",
@@ -303,7 +323,13 @@ void init_measurement(py::module &m) {
         .def("WeightEvent",
             &nuis::measurement::MeasurementPyWrapper::WeightEvent)
         .def("FilterEvent",
-            &nuis::measurement::MeasurementPyWrapper::FilterEvent);
+            &nuis::measurement::MeasurementPyWrapper::FilterEvent)
+        .def("Reconfigure",
+            &nuis::measurement::MeasurementPyWrapper::Reconfigure)
+        .def_readwrite("projections",
+            &nuis::measurement::MeasurementPyWrapper::projections)
+        .def_readwrite("filter",
+            &nuis::measurement::MeasurementPyWrapper::filter);
 
     m.def("CalculateProjectionLikelihood",
             &nuis::measurement::CalculateProjectionLikelihood);

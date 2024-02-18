@@ -85,6 +85,8 @@
         "queue": "cpp",
         "span": "cpp",
         "stack": "cpp",
-        "complex": "cpp"
+        "complex": "cpp",
+        "__memory": "cpp",
+        "format": "cpp"
     }
 }

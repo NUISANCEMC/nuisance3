@@ -132,10 +132,10 @@ HEPDataRecord::HEPDataRecord(YAML::Node config) {
   // Now get individual table info
   std::cout << "[INFO]: Parsing YAML Table for " << table << std::endl;
   measurement_document = hepdata_docs[table];
+  
   std::string datafile = measurement_document.data_file;
   std::string dataname = measurement_document.name;
 
-  std::cout << "Loading YAML Data : " << release + "/" + datafile << std::endl;
   YAML::Node doc = YAML::LoadFile(release + "/" + datafile);
   YAML::Node indep_var_node = doc["independent_variables"];
   for (size_t i = 0; i < indep_var_node.size(); i++) {
@@ -147,7 +147,6 @@ HEPDataRecord::HEPDataRecord(YAML::Node config) {
     dependent_variables.emplace_back(dep_var_node[i].as<Variables>());
   }
 
-  
   // YAML::Node covariance_doc = YAML::LoadFile(release + "/covar-costhetamupmu_analysisi.yaml");
   // YAML::Node dep_cov_node = covariance_doc["dependent_variables"];
   // for (int i = 0; i < dep_cov_node.size(); i++) {
@@ -214,83 +213,125 @@ double HEPDataRecord::WeightEvent(const HepMC3::GenEvent& /*event*/) {
   return 1.0;
 }
 
-Projection HEPDataRecord::CreateProjection(const std::string label) { 
-  // return Projection(measurement_name + "_" + label,
-  //   measurement_document,
-  //   independent_variables,
-  //   dependent_variables,
-  //   independent_covariances,
-  //   dependent_covariances);
-  std::cout << label << std::endl;
-    auto project = Projection();
-    return project;
-
-    // int nbins  = (dependent_variables)[0].n;
-
-    // std::vector<double> bini;
-    // std::vector<double> binj;
-
-    // for (int i = 0; i < in_independent_covariances.size(); i++) {
-    //     std::cout << in_independent_covariances[i].name << std::endl;
-    //     if (in_independent_covariances[i].name  == "Bini") {
-    //         bini = in_independent_covariances[i].values;
-    //     }
-    //     if (in_independent_covariances[i].name  == "Binj") {
-    //         binj = in_independent_covariances[i].values;
-    //     }
-    // }
-
-    // std::vector<double> covariance_ravel;
-    // for (int i = 0; i < in_dependent_covariances.size(); i++) {
-    //     std::cout << in_dependent_covariances[i].name << std::endl;
-    //     if (in_dependent_covariances[i].name  == "TotalCovariance") {
-    //         covariance_ravel = in_dependent_covariances[i].values;
-    //     }
-    // }
-
-    // std::vector<std::vector<double>> covariance;
-    // for (int i = 0; i < bini.size(); i++) {
-    //     covariance.push_back( std::vector<double>(bini.size(), 0));
-    // }
-    // for (int i = 0; i < bini.size(); i++) {
-    //     int bi = int(bini[i]);
-    //     int bj = int(binj[i]);
-    //     covariance[bi][bj] = covariance_ravel[i];
-    // }
-
-    // data_value = (dependent_variables)[0].values;
-    // if (covariance.size() > 0) {
-    //     data_error = std::vector<double>(data_value.size(), 0.0);
-    //     for (int i = 0; i < data_value.size(); i++) {
-    //         data_error[i] = sqrt(data_covariance[i][i]);
-    //     }
-    // } else {
-    //     data_error = (dependent_variables)[0].errors;
-    // }
-
-    // mc_counts = std::vector<uint32_t>(nbins, 0);
-    // mc_weights = std::vector<double>(nbins, 0.0);
-    // mc_errors = std::vector<double>(nbins, 0.0);
-
-    // for (size_t i = 0; i < nbins; i++) {
-    //     bin_index.push_back(i);
-    //     bin_mask.push_back(false);
-
-    //     bin_extent_low.push_back(std::vector<double>());
-    //     bin_extent_high.push_back(std::vector<double>());
-    //     bin_center.push_back(std::vector<double>());
-    //     bin_width.push_back(std::vector<double>());
-
-    //     for (int j = 0; j < independent_variables.size(); j++) {
-    //         double low  = (independent_variables)[j].low[i];
-    //         double high = (independent_variables)[j].high[i];
-    //         bin_extent_low[i].push_back(low);
-    //         bin_extent_high[i].push_back(high);
-    //         bin_center[i].push_back((high+low));
-    //         bin_width[i].push_back((high-low));
-    //     }
-    // }
+Eigen::ArrayXd ConvertToEigenArray(std::vector<std::vector<double>> data)
+{
+    Eigen::ArrayXd eMatrix(data.size(), data[0].size());
+    for (size_t i = 0; i < data.size(); ++i) {
+      for (size_t j = 0; j < data[i].size(); ++j) {
+        eMatrix(i, j) = data[i][j];
+      }
+    }
+    return eMatrix;
 }
+
+Projection HEPDataRecord::CreateProjection(const std::string label) {
+
+    auto project = Projection();
+
+    int nbins  = (dependent_variables)[0].n;
+
+    std::vector<double> bini;
+    std::vector<double> binj;
+
+    for (size_t i = 0; i < independent_covariances.size(); i++) {
+        std::cout << independent_covariances[i].name << std::endl;
+        if (independent_covariances[i].name  == "Bini") {
+            bini = independent_covariances[i].values;
+        }
+        if (independent_covariances[i].name  == "Binj") {
+            binj = independent_covariances[i].values;
+        }
+    }
+
+    std::vector<double> covariance_ravel;
+    for (size_t i = 0; i < dependent_covariances.size(); i++) {
+        std::cout << dependent_covariances[i].name << std::endl;
+        if (dependent_covariances[i].name  == "TotalCovariance") {
+            covariance_ravel = dependent_covariances[i].values;
+        }
+    }
+
+    std::vector<std::vector<double>> covariance;
+    for (size_t i = 0; i < bini.size(); i++) {
+        covariance.push_back(std::vector<double>(bini.size(), 0));
+    }
+    for (size_t i = 0; i < bini.size(); i++) {
+        int bi = static_cast<int>(bini[i]);
+        int bj = static_cast<int>(binj[i]);
+        covariance[bi][bj] = covariance_ravel[i];
+    }
+
+    auto data_values = (dependent_variables)[0].values;
+    auto data_counts = std::vector<int>(nbins, 1);
+    auto data_errors = std::vector<double>(nbins, 0.0);
+    if (covariance.size() > 0) {
+        data_errors = std::vector<double>(data_values.size(), 0.0);
+        for (size_t i = 0; i < data_values.size(); i++) {
+            data_errors[i] = sqrt(covariance[i][i]);
+        }
+    } else {
+        data_errors = (dependent_variables)[0].errors;
+    }
+
+    auto bin_index       = std::vector<int>(nbins, 0);
+    auto bin_mask        = std::vector<int>(nbins, 0);
+    auto bin_extent_low  = std::vector<std::vector<double>>();
+    auto bin_extent_high = std::vector<std::vector<double>>();
+
+    for (int i = 0; i < nbins; i++) {
+        bin_index.push_back(i);
+        bin_mask.push_back(false);
+
+        bin_extent_low.push_back(std::vector<double>());
+        bin_extent_high.push_back(std::vector<double>());
+
+        for (size_t j = 0; j < independent_variables.size(); j++) {
+            double low  = (independent_variables)[j].low[i];
+            double high = (independent_variables)[j].high[i];
+            bin_extent_low[i].emplace_back(low);
+            bin_extent_high[i].emplace_back(high);
+        }
+    }
+
+    auto mc_counts = std::vector<int>(nbins, 0);
+    auto mc_values = std::vector<double>(nbins, 0.0);
+    auto mc_errors = std::vector<double>(nbins, 0.0);
+
+    // Now fill project, most of the code above due to prior structure
+    project.title = label;
+    for (size_t i = 0; i < independent_variables.size(); i++) {
+      project.axis_label.emplace_back(independent_variables[i].title);
+    }
+
+    project.nbins = nbins;
+    project.bin_index = Eigen::Map<Eigen::ArrayXi>(bin_index.data(), bin_index.size());
+    project.bin_mask  = Eigen::Map<Eigen::ArrayXi>(bin_mask.data(), bin_mask.size());
+    project.bin_extent_low  = ConvertToEigenArray(bin_extent_low);
+    project.bin_extent_high = ConvertToEigenArray(bin_extent_high);
+
+    project.AddBand("data", 0, &data_values, &data_errors, &data_counts);
+    project.AddBand("mc", 1, &mc_values, &mc_errors, &mc_counts);
+
+    project.likelihood_type = "FullCovariance";
+
+    // project.SetCovariance()
+
+    // project.covariance = Eigen::ArrayXd(data_covariance.data(),
+    //   data_covariance.size());
+
+    return project;
+}
+
+// Temporary function for testing c++ side calls of projections
+void HEPDataRecord::FillProjectionFromEvent(Projection& proj,
+  const HepMC3::GenEvent& ev) {
+  std::vector<double> proj_vars;
+  for (size_t i = 0; i < proj_funcs.size(); i++) {
+    proj_vars.emplace_back(proj_funcs[i](ev));
+  }
+  proj.Fill(filter_func(ev), proj_vars, 1.0);
+}
+
 
 void HEPDataRecord::FinalizeProjection(ProjectionPtr /*h*/, double /*scaling*/) {
 }

@@ -14,6 +14,8 @@
 #include "nuis/python/pyMeasurement.h"
 #include "nuis/python/pyEventInput.h"
 #include "nuis/python/pyFrame.h"
+#include "nuis/python/pyExternal.h"
+
 
 std::vector<std::string> include_paths;
 std::string ProSelecta_env_dir;
@@ -80,6 +82,7 @@ PYBIND11_MODULE(pyNUISANCE, m) {
     py::bind_vector<std::vector<double>>(m, "Vector_double");
     py::bind_vector<std::vector<uint32_t>>(m, "Vector_uint32_t");
 
+    init_external(m);
     init_eventinput(m);
     init_measurement(m);
     init_frame(m);

@@ -46,6 +46,7 @@ namespace nuis{
 namespace measurement{
 
 Projection::Projection() {
+    nbins = 0;
 };
 
 Projection::~Projection() {
@@ -54,32 +55,98 @@ Projection::~Projection() {
 void Projection::Fill(int signal,
     const std::vector<double>& indep_vals, double w) {
 
-    auto input = Eigen::Map<const Eigen::ArrayXd>\
-        (indep_vals.data(), indep_vals.size());
+    if (signal == 0) return; 
 
-    auto low_result = bin_extent_low.transpose() > input;
-    auto high_result = bin_extent_high.transpose() < input;
+    // auto input = Eigen::Map<const Eigen::ArrayXd>
+        // (indep_vals.data(), indep_vals.size());
 
-    // This creates a copy of mc_value, so should avoid for now.
-    mc_value = (low_result * high_result).select(mc_value + w, mc_value);
-    mc_count = (low_result * high_result).select(mc_value + 1.0, mc_value);
+    // auto input = indep_vals[0];
+    // auto islow = (bin_extent_low.array() < input);
+    // auto ishigh = (bin_extent_high.array() > input);
 
-    mc_error = mc_count.sqrt() * mc_value / mc_count;
+    for (size_t irow = 0; irow < bin_extent_low.rows(); irow++) {
+        bool valid = true;
+        for (size_t j = 0; j < indep_vals.size(); j++) {
+            // std::cout << "COMPARING : " << indep_vals[j] << " vs " << bin_extent_low(irow, j) << " " << bin_extent_high(irow, j) << std::endl;
+            if (indep_vals[j] < bin_extent_low(irow, j)) {
+                valid = false;
+                break;
+            }
+            if (indep_vals[j] > bin_extent_high(irow, j)) {
+                valid = false;
+                break;
+            }
+        }
+
+        if (valid) {
+            // std::cout << "FOUND and filling " << signal << " " << w << std::endl;
+            bands[signal].value(irow) += w;
+            bands[signal].count(irow) += 1;
+        }
+
+    }
+    
+
+
+    // std::cout << "COMPARISON" << std::endl;
+    // std::cout << input << std::endl;
+    // std::cout << "-low" << std::endl;
+    // std::cout << bin_extent_low << std::endl;
+    // std::cout << "-high" << std::endl;
+    // std::cout << bin_extent_high << std::endl;
+    // std::cout << "-islow" << std::endl;
+    // std::cout << islow << std::endl;
+
+    // std::cout << "DONE COMPARISON" << std::endl;
+
+    // auto value_add = (bin_extent_low > input).select((bin_extent_high < input).select(w, 0), 0);
+    
+    // auto count_add = (bin_extent_low > input).select((bin_extent_high < input).select(1, 0), 0);
+
+    // // auto high_result = bin_extent_high < input;
+    // // auto comb_result = low_result;
+    // // comb_result *= high_result;
+
+    // std::cout << "COMPARISON" << std::endl;
+    // std::cout << value_add << std::endl;
+
+
+    // // if (value.find(signal) == value.end()) {
+    // //     value[signal] = value[0];
+    // //     value[signal] = count[0];
+    // // }
+
+    // auto b = bands[signal];
+
+    // std::cout << "END OF BOOOL COMP" << std::endl;
+    // // Not the most efficient select...
+    // // b.value = (comb_result).select(b.value + w,   b.value);
+    // // b.count = (comb_result).select(b.count + 1,   b.count);
+
+    // std::cout << "VALUE:" << b.value;
+    // bands[signal].value += (islow*ishigh).cast<double>()*w;
+    // bands[signal].count += (islow*ishigh).cast<int>();
+    // std::cout << "VALUE AFTTER :" << b.value;
+
     return;
 }
 
-void Projection::Scale(double s) {
-    mc_value.array() *= s;
-    mc_error.array() *= s;
+void Projection::Scale(double s, int band) {
+    auto b = bands[band];
+    b.value.array() *= s;
+    b.error.array() *= s;
 }
 
-void Projection::Reset() {
-    mc_count.array() = 0.0;
-    mc_value.array() = 0.0;
-    mc_error.array() = 0.0;
+void Projection::Reset(int /*band*/) {
+    // auto b = bands[band];
+    // if (band == kExceptData) {
+    //     for (int i = 0; i < count.size(); i++) {
+    //         b.value.array() = 0.0;
+    //         b.count.array() = 0.0;
+    //         b.error.array() = 0.0;
+    //     }
+    // }
 }
-
-
 
 }  // namespace measurement
 }  // namespace nuis
