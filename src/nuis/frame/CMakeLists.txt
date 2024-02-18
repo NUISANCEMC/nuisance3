@@ -1,4 +1,4 @@
-add_library(frame SHARED FrameGen.cxx)
+add_library(frame SHARED FrameGen.cxx Frame.cxx)
 
 target_link_libraries(frame PUBLIC nuis_options eventinput)
 

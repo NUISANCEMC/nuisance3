@@ -1,5 +1,7 @@
 #include "nuis/eventinput/EventSourceFactory.h"
 
+#include "nuis/weightcalc/WeightCalcFactory.h"
+
 #include "nuis/frame/FrameGen.h"
 
 #include "NuHepMC/EventUtils.hxx"
@@ -26,16 +28,14 @@ std::vector<double> enu_nupid(HepMC3::GenEvent const &ev) {
 struct single_procid_selector {
   int proc_id;
   single_procid_selector(int pid) : proc_id(pid) {}
-  bool operator()(HepMC3::GenEvent const &ev){
+  bool operator()(HepMC3::GenEvent const &ev) {
     return (NuHepMC::ER3::ReadProcessID(ev) == proc_id);
   }
 };
 
-
 int main(int argc, char const *argv[]) {
 
   EventSourceFactory fact;
-
   auto [gri, evs] = fact.Make(argv[1]);
 
   if (!evs) {
@@ -43,15 +43,22 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  auto frame = FrameGen(evs)
-                   .Limit(50)
-                   .AddColumn("procid",NuHepMC::ER3::ReadProcessID)
-                   .AddColumns({"enu", "nupid"}, enu_nupid)
-                   .Filter(single_procid_selector(500))
-                   .Evaluate();
-  std::cout << frame.Table << std::endl;
-  std::cout << "NEvents Read:" <<  frame.norm_info.nevents << std::endl;
-  std::cout << "NRows selected:" <<  frame.Table.rows() << std::endl;
+  nuis::WeightCalcFactory wfact;
+  auto wgt = wfact.Make(evs);
+
+  if (!wgt) {
+    spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
+    return 1;
+  }
+
+  wgt->SetParameters({
+      {"ZExpA1CCQE", +2},
+  });
+
+  auto frame = FrameGen(evs).Limit(1000).Evaluate();
+  std::cout << FramePrinter(frame,10,false) << std::endl;
+  std::cout << "NEvents Read:" << frame.norm_info.nevents << std::endl;
+  std::cout << "NRows selected:" << frame.Table.rows() << std::endl;
 
   // auto fg =
   //     FrameGen(evs)

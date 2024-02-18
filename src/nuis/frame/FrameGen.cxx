@@ -34,7 +34,7 @@ FrameGen FrameGen::Limit(size_t nmax) {
 Frame FrameGen::Evaluate() {
   auto column_names =
       std::accumulate(projections.begin(), projections.end(),
-                      std::vector<std::string>{"evt_number", "cvw"},
+                      std::vector<std::string>{"evt#", "cvw"},
                       [](auto cols, auto const &hcp) {
                         for (auto h : hcp.Head) {
                           cols.push_back(h);
