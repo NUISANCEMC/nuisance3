@@ -17,8 +17,8 @@ local_func = pn.ps.project.ANL_CCQE_182176_Project_Q2
 nuwro_source = pn.EventSource("NUWRO-D2-ANL_77-numu/NUWRO.numu.numu_flux.ANL_1977_2horn_rescan.8652.evts.root")
 if not nuwro_source: sys.exit()
 
-# neut_source = pn.EventSource("NEUT-D2-ANL_77-numu/NEUT.numu.numu_flux.ANL_1977_2horn_rescan.23500.evts.root")
-# if not neut_source: sys.exit()
+neut_source = pn.EventSource("NEUT-D2-ANL_77-numu/NEUT.numu.numu_flux.ANL_1977_2horn_rescan.23500.evts.root")
+if not neut_source: sys.exit()
 
 # CUSTOM EVENT LOOP
 anlsetup = { "measurement": "ANL_Analysis_mycustomtag",

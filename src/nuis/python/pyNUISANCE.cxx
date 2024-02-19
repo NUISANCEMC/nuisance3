@@ -13,6 +13,7 @@
 #include "ProSelecta/ProSelecta.h"
 #include "nuis/python/pyMeasurement.h"
 #include "nuis/python/pyEventInput.h"
+#include "nuis/python/pyWeightCalc.h"
 #include "nuis/python/pyFrame.h"
 #include "nuis/python/pyExternal.h"
 
@@ -84,6 +85,7 @@ PYBIND11_MODULE(pyNUISANCE, m) {
 
     init_external(m);
     init_eventinput(m);
+    init_weightcalc(m);
     init_measurement(m);
     init_frame(m);
 }
