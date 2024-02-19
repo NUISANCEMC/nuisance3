@@ -17,6 +17,9 @@ local_func = pn.ps.project.ANL_CCQE_182176_Project_Q2
 nuwro_source = pn.EventSource("NUWRO-D2-ANL_77-numu/NUWRO.numu.numu_flux.ANL_1977_2horn_rescan.8652.evts.root")
 if not nuwro_source: sys.exit()
 
+neut_source = pn.EventSource("NEUT-D2-ANL_77-numu/NEUT.numu.numu_flux.ANL_1977_2horn_rescan.23500.evts.root")
+if not neut_source: sys.exit()
+
 # CUSTOM EVENT LOOP
 anlsetup = { "measurement": "ANL_Analysis_mycustomtag",
             "release": "ANL/CCQE/182176/",
@@ -102,8 +105,19 @@ def hm_neutron(evt):
   return part.momentum().length() * pn.ps.units.GeV
 
 def q0(evt):
-    part = pn.ps.parts.q0(evt)
+    mu = pn.ps.sel.OutPartHM(evt, pn.ps.pdg.kMuon)
+    nu = pn.ps.sel.Beam(evt, pn.ps.pdg.kNuMu)
+    part = pn.ps.proj.parts.q0(nu,mu)
+    if not mu or not nu: return 0
     return part
+
+def q3(evt):
+    mu = pn.ps.sel.OutPartHM(evt, pn.ps.pdg.kMuon)
+    nu = pn.ps.sel.Beam(evt, pn.ps.pdg.kNuMu)
+    part = pn.ps.proj.parts.q3(nu,mu)
+    if not mu or not nu: return 0
+    return part
+
 
 
 print("FRAME Evaluation")
@@ -116,7 +130,7 @@ fr.AddColumn("hm_muon", hm_muon)
 fr.AddColumn("hm_proton", hm_proton)
 fr.AddColumn("hm_neutron", hm_neutron)
 fr.AddColumn("q0", q0)
-
+fr.AddColumn("q3", q3)
 
 fr.Limit(99000)
 df = fr.Evaluate()
@@ -131,9 +145,49 @@ plt.scatter(df.hm_muon[df.original_filter > 0], df.hm_proton[df.original_filter 
 plt.savefig("muon_vs_proton.png")
 plt.clf()
 
+plt.scatter(df.q3, df.q0, s=2)
+plt.scatter(df.q3[df.original_filter > 0], df.q0[df.original_filter > 0], s=2)
+plt.savefig("q0_vs_q3.png")
+plt.clf()
 
 plt.hist(df.Table[:,2], bins=np.linspace(0.0,2.0,200))
 plt.savefig("hist_fromframe.png")
+plt.clf()
+
+
+
+print("FRAME Evaluation")
+fr = pn.FrameGen(neut_source, 100000)
+fr.AddColumn("Q2", pn.ps.project.ANL_CCQE_182176_Project_Q2)
+fr.AddColumn("MeasQ2", anl_handler.projections[0])
+fr.AddColumn("custom_filter", pn.ps.filter.CUSTOM_FILTER)
+fr.AddColumn("original_filter", pn.ps.filter.ANL_CCQE_182176_Filter)
+fr.AddColumn("hm_muon", hm_muon)
+fr.AddColumn("hm_proton", hm_proton)
+fr.AddColumn("hm_neutron", hm_neutron)
+fr.AddColumn("q0", q0)
+fr.AddColumn("q3", q3)
+
+fr.Limit(99000)
+df = fr.Evaluate()
+
+print(df.hm_muon)
+
+plt.hist(df.hm_muon, bins=np.linspace(0.0,2.0,200))
+plt.savefig("hist_hmmuon_neut.png")
+plt.clf()
+
+plt.scatter(df.hm_muon[df.original_filter > 0], df.hm_proton[df.original_filter > 0], s=2)
+plt.savefig("muon_vs_proton_neut.png")
+plt.clf()
+
+plt.scatter(df.q3, df.q0, s=2)
+plt.scatter(df.q3[df.original_filter > 0], df.q0[df.original_filter > 0], s=2)
+plt.savefig("q0_vs_q3_neut_neut.png")
+plt.clf()
+
+plt.hist(df.Table[:,2], bins=np.linspace(0.0,2.0,200))
+plt.savefig("hist_fromframe_neut.png")
 plt.clf()
 
 
