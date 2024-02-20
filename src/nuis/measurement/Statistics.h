@@ -18,51 +18,13 @@
  *******************************************************************************/
 #pragma once
 #include <string>
-
-#include "yaml-cpp/yaml.h"
-
-using namespace YAML;
+#include "nuis/measurement/Projection.h"
 
 namespace nuis {
 namespace measurement {
 
-struct Document {
-  std::string name;
-  std::string data_file;
-  std::string description;
+    double CalculateProjectionLikelihood(const nuis::measurement::Projection& record);
+    // double CalculateDialLikelihood(const WeightManager& manager);
 
-  inline Document() {}
-
-  inline explicit Document(YAML::Node node) {
-    this->name.clear();
-    this->data_file.clear();
-    this->description.clear();
-
-    // Return empty if no node
-    if (!node) {
-      return;
-    }
-
-    if (!node["name"]) return;
-
-    if (node["name"]) this->name = node["name"].as<std::string>();
-    if (node["data_file"]) {
-      this->data_file = node["data_file"].as<std::string>();
-    }
-  }
-};
-
-}  // namespace measurement
+}  // namespace statistical
 }  // namespace nuis
-
-
-// Allows node.as<Document>();
-namespace YAML {
-template <> struct convert<nuis::measurement::Document> {
-  static bool decode(const Node &node, nuis::measurement::Document &rhs) {  // NOLINT
-    rhs = nuis::measurement::Document(node);
-    return true;
-  }
-};
-
-};  // namespace YAML

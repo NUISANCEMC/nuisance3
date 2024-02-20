@@ -81,10 +81,23 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 export NUISANCE_ROOT=$(dirname -- ${SCRIPT_DIR})
 export NUISANCE_VERSION=@NUISANCE_VERSION@
 
+# lib64 needed in some containers
 add_to_PATH ${NUISANCE_ROOT}/bin
+add_to_LD_LIBRARY_PATH ${NUISANCE_ROOT}/lib64
 add_to_LD_LIBRARY_PATH ${NUISANCE_ROOT}/lib
+
+# lib64 and python needed in some containers
 add_to_PYTHONPATH ${NUISANCE_ROOT}/lib
+add_to_PYTHONPATH ${NUISANCE_ROOT}/lib64
+add_to_PYTHONPATH ${NUISANCE_ROOT}/python
+
+# PS For the dev box put this as default but should be moved eventually
+add_to_PYTHONPATH ${NUISANCE_ROOT}/python/3.9/
 
 export NUISANCEDB=@CMAKE_SOURCE_DIR@/data/
 
+export NUISANCE_PROSELECTA_INCLUDES=${NUISANCE_ROOT}/include/
+
+# PS For the dev box put this as default but should be moved eventually
+export PROSELECTA_DIR=${NUISANCE_ROOT}/include/
 unset SETUPDIR

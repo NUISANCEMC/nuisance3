@@ -1,0 +1,6 @@
+[submodule "data/neutrino_data"]
+	path = data/neutrino_data
+	url = git@github.com:NUISANCEMC/neutrino_data.git
+[submodule "data/proton_data"]
+	path = data/proton_data
+	url = https://github.com/NUISANCEMC/proton_data.git

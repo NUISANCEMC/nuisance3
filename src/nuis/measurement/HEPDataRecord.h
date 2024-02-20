@@ -17,52 +17,44 @@
  *    along with NUISANCE.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
 #pragma once
+#include <vector>
 #include <string>
+#include <memory>
 
 #include "yaml-cpp/yaml.h"
+#include "HepMC3/GenEvent.h"
+#include "ProSelecta/ProSelecta.h"
 
-using namespace YAML;
+#include "nuis/measurement/Projection.h"
+#include "nuis/measurement/Variables.h"
+#include "nuis/measurement/Document.h"
+#include "nuis/measurement/IRecord.h"
 
 namespace nuis {
 namespace measurement {
 
-struct Document {
-  std::string name;
-  std::string data_file;
-  std::string description;
+using ProjectionPtr = std::shared_ptr<nuis::measurement::Projection>;
 
-  inline Document() {}
+class HEPDataRecord : public IRecord {
+public:
+  HEPDataRecord() {}
 
-  inline explicit Document(YAML::Node node) {
-    this->name.clear();
-    this->data_file.clear();
-    this->description.clear();
+  explicit HEPDataRecord(YAML::Node config);
 
-    // Return empty if no node
-    if (!node) {
-      return;
-    }
+  virtual ~HEPDataRecord() {}
 
-    if (!node["name"]) return;
+  std::vector<double> ProjectEvent(const HepMC3::GenEvent& event);
 
-    if (node["name"]) this->name = node["name"].as<std::string>();
-    if (node["data_file"]) {
-      this->data_file = node["data_file"].as<std::string>();
-    }
-  }
+  bool FilterEvent(const HepMC3::GenEvent& event);
+
+  double WeightEvent(const HepMC3::GenEvent& event);
+
+  Projection CreateProjection(const std::string label = "MC");
+
+  void FillProjectionFromEvent(Projection& proj, const HepMC3::GenEvent& ev);
+
+  void FinalizeProjection(ProjectionPtr h, double scaling);
 };
 
 }  // namespace measurement
 }  // namespace nuis
-
-
-// Allows node.as<Document>();
-namespace YAML {
-template <> struct convert<nuis::measurement::Document> {
-  static bool decode(const Node &node, nuis::measurement::Document &rhs) {  // NOLINT
-    rhs = nuis::measurement::Document(node);
-    return true;
-  }
-};
-
-};  // namespace YAML
