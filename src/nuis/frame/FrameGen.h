@@ -39,7 +39,7 @@ private:
   std::vector<HeadedColumnProjectors> projections;
 
   size_t chunk_size;
-  std::vector<Eigen::MatrixXd> chunks;
+  std::vector<Eigen::ArrayXXd> chunks;
 
   size_t max_events_to_loop;
 

@@ -43,22 +43,22 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  nuis::WeightCalcFactory wfact;
-  auto wgt = wfact.Make(evs);
+  // nuis::WeightCalcFactory wfact;
+  // auto wgt = wfact.Make(evs);
 
-  if (!wgt) {
-    spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
-    return 1;
-  }
+  // if (!wgt) {
+  //   spdlog::critical("Failed to find WeightCalc for input file {}", argv[1]);
+  //   return 1;
+  // }
 
-  wgt->SetParameters({
-      {"ZExpA1CCQE", +2},
-  });
+  // wgt->SetParameters({
+  //     {"ZExpA1CCQE", +2},
+  // });
 
   auto frame = FrameGen(evs).Limit(1000).Evaluate();
-  std::cout << FramePrinter(frame,10,false) << std::endl;
+  std::cout << FramePrinter(frame, 10, false) << std::endl;
   std::cout << "NEvents Read:" << frame.norm_info.nevents << std::endl;
-  std::cout << "NRows selected:" << frame.Table.rows() << std::endl;
+  std::cout << "NRows selected:" << frame.content.rows() << std::endl;
 
   // auto fg =
   //     FrameGen(evs)

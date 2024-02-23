@@ -42,7 +42,7 @@ find_package(GENIE3 QUIET)
 if(GENIE3_FOUND)
 
 add_library(GHEP3_eventinput_plugin SHARED GHEP3EventSource.cxx)
-target_link_libraries(GHEP3_eventinput_plugin PUBLIC GENIE3::All NuHepMC::CPPUtils nuis_options ROOT::Geom)
+target_link_libraries(GHEP3_eventinput_plugin PUBLIC GENIE3::All NuHepMC::CPPUtils nuis_options ROOT::Geom ROOT::Tree)
 
 target_compile_definitions(GHEP3_eventinput_plugin PRIVATE 
   GENIE_VERSION_STR="${GENIE_VERSION}")

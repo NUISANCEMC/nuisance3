@@ -32,15 +32,14 @@ FrameGen FrameGen::Limit(size_t nmax) {
 }
 
 Frame FrameGen::Evaluate() {
-  auto column_names =
-      std::accumulate(projections.begin(), projections.end(),
-                      std::vector<std::string>{"evt#", "cvw"},
-                      [](auto cols, auto const &hcp) {
-                        for (auto h : hcp.Head) {
-                          cols.push_back(h);
-                        }
-                        return cols;
-                      });
+  auto column_names = std::accumulate(projections.begin(), projections.end(),
+                                      std::vector<std::string>{"evt#", "cvw"},
+                                      [](auto cols, auto const &hcp) {
+                                        for (auto h : hcp.Head) {
+                                          cols.push_back(h);
+                                        }
+                                        return cols;
+                                      });
 
   chunks.emplace_back(chunk_size, column_names.size());
 
@@ -98,7 +97,7 @@ Frame FrameGen::Evaluate() {
   }
 
   // big allocation
-  Frame out{column_names, Eigen::MatrixXd(row, column_names.size()),
+  Frame out{column_names, Eigen::ArrayXXd(row, column_names.size()),
             source->norm_info()};
 
   size_t rows_copied = 0;
@@ -111,7 +110,7 @@ Frame FrameGen::Evaluate() {
 
     size_t end_row = rows_copied + nrows_in_chunk;
 
-    out.Table.middleRows(start_row, end_row) =
+    out.content.middleRows(start_row, end_row) =
         chunk.middleRows(0, nrows_in_chunk);
 
     rows_copied += nrows_in_chunk;

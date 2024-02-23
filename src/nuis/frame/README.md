@@ -4,8 +4,8 @@ A `nuis::Frame` is an `Eigen::MatrixXd` holding selected and projected event dat
 
 ```c++
 struct Frame {
-  std::vector<std::string> ColumnNames;
-  Eigen::MatrixXd Table;
+  std::vector<std::string> column_names;
+  Eigen::MatrixXd content;
   NormInfo norm_info; 
 };
 ```
@@ -159,7 +159,7 @@ which might output:
 
 ### Preselecting the Predictions
 
-Preselections can also be made with callables. If an event fails the selection, a corresponding row will not be inserted into the table, but because the normalization information to accumulator when the event is retrieved from the `nuis::INormalizedEventSource`, the normalization information is correctly tallyed, we can check this with an example below:
+Preselections can also be made with callables. If an event fails the selection, a corresponding row will not be inserted into the content, but because the normalization information to accumulator when the event is retrieved from the `nuis::INormalizedEventSource`, the normalization information is correctly tallyed, we can check this with an example below:
 
 ```c++
 struct single_procid_selector {
@@ -180,7 +180,7 @@ struct single_procid_selector {
                    .Evaluate();
   std::cout << frame << std::endl;
   std::cout << "NEvents Read: " <<  frame.norm_info.nevents << std::endl;
-  std::cout << "NRows selected: " <<  frame.Table.rows() << std::endl;
+  std::cout << "NRows selected: " <<  frame.content.rows() << std::endl;
 ```
 
 might output:
@@ -285,7 +285,7 @@ our reweighting results!*
 
 ## Pretty Printing Options
 
-By default, the pretty printer will only print the first 20 rows of the table and will signal that there are more rows in the table by printing a row of ellipses. To print more rows you can manually use the `nuis::FramePrinter` wrapper class to select the number of rows to print
+By default, the pretty printer will only print the first 20 rows of the content and will signal that there are more rows in the content by printing a row of ellipses. To print more rows you can manually use the `nuis::FramePrinter` wrapper class to select the number of rows to print
 
 ```c++
   auto frame = FrameGen(evs).Limit(1000).Evaluate();
@@ -354,8 +354,8 @@ resulting in:
 9 1
 ```
 
-You could also have just printed the `Table` member directly:
+You could also have just printed the `content` member directly:
 
 ```c++
-  std::cout << frame.Table.topRows(10) << std::endl;
+  std::cout << frame.content.topRows(10) << std::endl;
 ```
