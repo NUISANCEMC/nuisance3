@@ -2,11 +2,7 @@
 
 #include "nuis/eventinput/plugins/ROOTUtils.h"
 
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "nuwroconv.h"
-#pragma GCC diagnostic pop
 
 #include "HepMC3/GenRunInfo.h"
 

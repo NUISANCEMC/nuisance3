@@ -25,10 +25,10 @@ Eigen::ArrayXd Frame::col(std::string const &cn) {
         cn);
     abort();
   }
-  return content.col(cid);
+  return table.col(cid);
 }
 Eigen::ArrayXXd Frame::cols(std::vector<std::string> const &cns) {
-  Eigen::ArrayXXd rtn(content.rows(), cns.size());
+  Eigen::ArrayXXd rtn(table.rows(), cns.size());
   for (size_t i = 0; i < cns.size(); ++i) {
     auto cid = getColumnId(cns[i], *this);
     if (cid == std::string::npos) {
@@ -37,7 +37,7 @@ Eigen::ArrayXXd Frame::cols(std::vector<std::string> const &cns) {
                        cns[i]);
       abort();
     }
-    rtn.col(i) = content.col(cid);
+    rtn.col(i) = table.col(cid);
   }
   return rtn;
 }
@@ -50,15 +50,15 @@ std::ostream &operator<<(std::ostream &os, nuis::FramePrinter fp) {
   auto const &f = fp.fr.get();
 
   if (!fp.prettyprint) {
-    return os << f.content.topRows(fp.max_rows);
+    return os << f.table.topRows(fp.max_rows);
   }
 
-  std::vector<size_t> col_widths(f.content.cols(), 0);
+  std::vector<size_t> col_widths(f.table.cols(), 0);
 
   // check up to the first 20 rows to guess how wide we need each column
-  for (int ri = 0; ri < f.content.rows(); ++ri) {
-    for (int ci = 0; ci < f.content.cols(); ++ci) {
-      std::string test = fmt::format("{:>.4}", f.content(ri, ci));
+  for (int ri = 0; ri < f.table.rows(); ++ri) {
+    for (int ci = 0; ci < f.table.cols(); ++ci) {
+      std::string test = fmt::format("{:>.4}", f.table(ri, ci));
       size_t len = test.size() - test.find_first_not_of(" ");
       col_widths[ci] = std::min(std::max(col_widths[ci], len), abs_max_width);
     }
@@ -90,15 +90,15 @@ std::ostream &operator<<(std::ostream &os, nuis::FramePrinter fp) {
   os << hdrs << std::endl;
   os << " " << line.data() << std::endl;
 
-  for (int ri = 0; ri < f.content.rows(); ++ri) {
+  for (int ri = 0; ri < f.table.rows(); ++ri) {
     os << " |";
-    for (int ci = 0; ci < f.content.cols(); ++ci) {
-      os << fmt::format(fmtstrs[ci], f.content(ri, ci));
+    for (int ci = 0; ci < f.table.cols(); ++ci) {
+      os << fmt::format(fmtstrs[ci], f.table(ri, ci));
     }
     os << std::endl;
     if (ri >= fp.max_rows) {
       os << " |";
-      for (int ci = 0; ci < f.content.cols(); ++ci) {
+      for (int ci = 0; ci < f.table.cols(); ++ci) {
         os << fmt::format(fmtstrs[ci], "...");
       }
       os << std::endl;

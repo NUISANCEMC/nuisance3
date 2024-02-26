@@ -94,8 +94,19 @@ EventSourceFactory::EventSourceFactory() : resolv() {
   }
 }
 
+void EventSourceFactory::add_event_path(std::filesystem::path path) {
+  if (std::filesystem::exists(path) &&
+      (std::find(resolv.nuisance_event_paths.begin(),
+                 resolv.nuisance_event_paths.end(),
+                 path) == resolv.nuisance_event_paths.end())) {
+    spdlog::info("EventSourceFactory: PathResolver -- adding search path: {}",
+                 path.native());
+    resolv.nuisance_event_paths.emplace_back(std::move(path));
+  }
+}
+
 std::pair<std::shared_ptr<HepMC3::GenRunInfo>, IEventSourcePtr>
-EventSourceFactory::MakeUnNormalized(YAML::Node cfg) {
+EventSourceFactory::make_unnormalized(YAML::Node cfg) {
 
   if (cfg["filepath"]) {
     auto path = resolv.resolve(cfg["filepath"].as<std::string>());
@@ -131,15 +142,15 @@ EventSourceFactory::MakeUnNormalized(YAML::Node cfg) {
 }
 
 std::pair<std::shared_ptr<HepMC3::GenRunInfo>, IEventSourcePtr>
-EventSourceFactory::MakeUnNormalized(std::string const &filepath) {
-  return MakeUnNormalized(YAML::Load(fmt::format(R"(
+EventSourceFactory::make_unnormalized(std::string const &filepath) {
+  return make_unnormalized(YAML::Load(fmt::format(R"(
     filepath: {}
     )",
-                                                 filepath)));
+                                                  filepath)));
 }
 std::pair<std::shared_ptr<HepMC3::GenRunInfo>, INormalizedEventSourcePtr>
-EventSourceFactory::Make(YAML::Node const &cfg) {
-  auto [gri, es] = MakeUnNormalized(cfg);
+EventSourceFactory::make(YAML::Node const &cfg) {
+  auto [gri, es] = make_unnormalized(cfg);
   auto nes = std::make_shared<INormalizedEventSource>(es);
   if (nes->first()) {
     return {gri, nes};
@@ -147,8 +158,8 @@ EventSourceFactory::Make(YAML::Node const &cfg) {
   return {nullptr, nullptr};
 }
 std::pair<std::shared_ptr<HepMC3::GenRunInfo>, INormalizedEventSourcePtr>
-EventSourceFactory::Make(std::string const &filepath) {
-  return Make(YAML::Load(fmt::format(R"(
+EventSourceFactory::make(std::string const &filepath) {
+  return make(YAML::Load(fmt::format(R"(
     filepath: {}
     )",
                                      filepath)));

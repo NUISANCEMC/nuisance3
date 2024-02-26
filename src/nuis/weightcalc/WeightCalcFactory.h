@@ -47,7 +47,7 @@ public:
     }
   }
 
-  IWeightCalcHM3MapPtr MakeAll(IEventSourcePtr evs,
+  IWeightCalcHM3MapPtr make_all(IEventSourcePtr evs,
                                YAML::Node const &cfg = {}) {
     if (!evs) {
       return nullptr;
@@ -68,12 +68,12 @@ public:
     return matching_plugins;
   }
 
-  IWeightCalcHM3MapPtr MakeAll(IWrappedEventSourcePtr evs,
+  IWeightCalcHM3MapPtr make_all(IWrappedEventSourcePtr evs,
                                YAML::Node const &cfg = {}) {
-    return MakeAll(evs->unwrap(), cfg);
+    return make_all(evs->unwrap(), cfg);
   }
 
-  IWeightCalcHM3MapPtr Make(IEventSourcePtr evs, YAML::Node const &cfg = {}) {
+  IWeightCalcHM3MapPtr make(IEventSourcePtr evs, YAML::Node const &cfg = {}) {
     if (!evs) {
       return nullptr;
     }
@@ -91,9 +91,9 @@ public:
     return nullptr;
   }
 
-  IWeightCalcHM3MapPtr Make(IWrappedEventSourcePtr evs,
+  IWeightCalcHM3MapPtr make(IWrappedEventSourcePtr evs,
                             YAML::Node const &cfg = {}) {
-    return Make(evs->unwrap(), cfg);
+    return make(evs->unwrap(), cfg);
   }
 };
 } // namespace nuis

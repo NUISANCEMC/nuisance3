@@ -20,11 +20,11 @@ class NReWeightCalc : public IWeightCalcPlugin {
   std::shared_ptr<neutvectEventSource> nevs;
 
 public:
-  double CalcWeight(HepMC3::GenEvent const &ev) {
+  double calc_weight(HepMC3::GenEvent const &ev) {
     neut::CommonBlockIFace::ReadVect(nevs->neutvect(ev));
     return fNEUTRW->CalcWeight();
   };
-  void SetParameters(std::map<std::string, double> const &params) {
+  void set_parameters(std::map<std::string, double> const &params) {
     for (auto &[p, v] : params) {
       fNEUTRW->SetDial_To_Value(fNEUTRW->DialFromString(p), v);
     }

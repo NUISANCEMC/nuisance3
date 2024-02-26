@@ -2,6 +2,8 @@
 
 #include "yaml-cpp/yaml.h"
 
+#include "Eigen/Dense"
+
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -33,6 +35,13 @@ struct BinningInfo {
   };
   // BinExtents[i] are the N extents of bin i.
   std::vector<std::vector<extent>> extents;
+
+  // Get the size for each bin.
+  // The size will depend on the dimensionality of the binning: for 1D binning
+  // it will correspond to the bin width, for 2D, the bin area, for 3D the bin
+  // volume, etc...
+  Eigen::ArrayXd bin_sizes() const;
+
 };
 
 struct BinOp {
@@ -40,10 +49,10 @@ struct BinOp {
   BinningF bin_func;
 };
 
-BinOp LinSpace(size_t nbins, double min, double max,
-               std::string const &label = "");
-BinOp LinSpaceND(std::vector<std::tuple<size_t, double, double>>,
-                 std::vector<std::string> = {});
+BinOp lin_space(size_t nbins, double min, double max,
+                std::string const &label = "");
+BinOp lin_spaceND(std::vector<std::tuple<size_t, double, double>>,
+                  std::vector<std::string> = {});
 
 } // namespace Bins
 } // namespace nuis

@@ -42,10 +42,12 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
-  set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
 elseif(NOT DEFINED CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RELWITHDEBINFO)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
+
+option(BUILTIN_NuWro "Whether to use build our own version of NuWro" ON)
 
 LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
 
@@ -154,6 +156,10 @@ CPMFindPackage(
     GITHUB_REPOSITORY pybind/pybind11
     GIT_TAG "v2.9.2"
 )
+# PYTHON PATHS
+set(NUISANCE_PYSITEARCH "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
+set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+
 
 add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
@@ -161,15 +167,12 @@ target_include_directories(nuis_options INTERFACE
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter Boost::boost Boost::filesystem yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen)
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
-
-# PYTHON PATHS
-set(NUISANCE_PYSITEARCH "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
-set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+target_link_options(nuis_options INTERFACE)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/frame)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/histframe)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
+# add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
 # add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/python)
 

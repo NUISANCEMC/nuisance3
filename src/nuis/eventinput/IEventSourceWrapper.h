@@ -5,10 +5,8 @@
 namespace nuis {
 
 // ABC for EventSource wrappers that want to give access to the underlying
-// low level event source
-//  e.g. You want to apply a preselection and a caching layer between the
-//  ananlysis and the IO via conposition, but need to give callers the ability
-//  to check the type of the lowest level event source.
+// lowest level event source
+// See INormalizedEventSource for example usage
 class IEventSourceWrapper {
 protected:
   std::shared_ptr<IEventSource> wrapped_ev_source;

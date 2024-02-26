@@ -72,41 +72,51 @@ int isCC(HepMC3::GenEvent const &ev) {
 int main(int argc, char const *argv[]) {
 
   EventSourceFactory fact;
-  auto [gri, evs] = fact.Make(argv[1]);
+  auto [gri, evs] = fact.make(argv[1]);
 
   if (!evs) {
     spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
     return 1;
   }
-  nuis::HistFrame q0(Bins::LinSpace(100, 0, 10, "q_0 [GeV]"));
-  auto ccqe_col = q0.AddColumn("CCQE");
-  auto MEC_col = q0.AddColumn("MEC");
-  auto RES_col = q0.AddColumn("RES");
+  nuis::HistFrame q0(Bins::lin_space(100, 0, 10, "q_0 [GeV]"));
+  auto ccqe_col = q0.add_column("CCQE");
+  auto MEC_col = q0.add_column("MEC");
+  auto RES_col = q0.add_column("RES");
 
   size_t i = 0;
   for (auto const &[ev, cvw] : evs) {
     if (!isCC(ev)) {
       continue;
     }
-    q0.Fill(q0_GeV(ev), cvw);
+    auto ev_q0 = q0_GeV(ev);
+    auto q0_bin = q0.find_bin(ev_q0);
+    std::cout << "ev_q0: " << ev_q0 << ", -> bin: " << q0_bin << std::endl;
+    q0.fill_bin(q0_bin, cvw);
     auto proc_id = NuHepMC::ER3::ReadProcessID(ev);
     if ((proc_id >= 200) && (proc_id < 250)) {
-      q0.Fill(q0_GeV(ev), cvw, ccqe_col);
+      q0.fill_bin(q0_bin, cvw, ccqe_col);
     } else if ((proc_id >= 300) && (proc_id < 350)) {
-      q0.Fill(q0_GeV(ev), cvw, MEC_col);
+      q0.fill_bin(q0_bin, cvw, MEC_col);
     } else if ((proc_id >= 400) && (proc_id < 450)) {
-      q0.Fill(q0_GeV(ev), cvw, RES_col);
+      q0.fill_bin(q0_bin, cvw, RES_col);
+    }
+    if (i++ > 1E4) {
+      break;
     }
   }
 
   auto norm_info = evs->norm_info();
 
-  ScaleAllMC(q0, norm_info.fatx / norm_info.sumweights, true);
+  for (int i = 0; i < q0.contents.cols(); ++i) {
+    q0.contents.col(i) * (norm_info.fatx / norm_info.sumweights);
+  }
 
-  auto h1 = ToTH1(q0, "q0hist");
-  auto h1_CCQE = ToTH1(q0, "q0hist_CCQE", ccqe_col);
-  auto h1_MEC = ToTH1(q0, "q0hist_MEC", MEC_col);
-  auto h1_RES = ToTH1(q0, "q0hist_RES", RES_col);
+  std::cout << q0.binning.bin_info.bin_sizes() << std::endl;
+
+  auto h1 = ToTH1(q0, "q0hist", true);
+  auto h1_CCQE = ToTH1(q0, "q0hist_CCQE", true, ccqe_col);
+  auto h1_MEC = ToTH1(q0, "q0hist_MEC", true, MEC_col);
+  auto h1_RES = ToTH1(q0, "q0hist_RES", true, RES_col);
 
   TCanvas c1("c1", "");
   h1->Draw();

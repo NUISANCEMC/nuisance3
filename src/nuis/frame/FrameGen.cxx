@@ -5,17 +5,17 @@ namespace nuis {
 FrameGen::FrameGen(INormalizedEventSourcePtr evs, size_t block_size)
     : source(evs), chunk_size{block_size} {}
 
-FrameGen FrameGen::Filter(FilterFunc filt) {
+FrameGen FrameGen::filter(FilterFunc filt) {
   filters.push_back(filt);
   return *this;
 }
-FrameGen FrameGen::AddColumns(std::vector<std::string> col_names,
-                              ProjectionsFunc proj) {
+FrameGen FrameGen::add_columns(std::vector<std::string> col_names,
+                               ProjectionsFunc proj) {
   projections.push_back(HeadedColumnProjectors{col_names, proj});
   return *this;
 }
-FrameGen FrameGen::AddColumn(std::string col_name, ProjectionFunc proj) {
-  AddColumns(
+FrameGen FrameGen::add_column(std::string col_name, ProjectionFunc proj) {
+  add_columns(
       {
           col_name,
       },
@@ -26,12 +26,12 @@ FrameGen FrameGen::AddColumn(std::string col_name, ProjectionFunc proj) {
       });
   return *this;
 }
-FrameGen FrameGen::Limit(size_t nmax) {
+FrameGen FrameGen::limit(size_t nmax) {
   max_events_to_loop = nmax;
   return *this;
 }
 
-Frame FrameGen::Evaluate() {
+Frame FrameGen::evaluate() {
   auto column_names = std::accumulate(projections.begin(), projections.end(),
                                       std::vector<std::string>{"evt#", "cvw"},
                                       [](auto cols, auto const &hcp) {
@@ -80,7 +80,7 @@ Frame FrameGen::Evaluate() {
         if (i < projs.size()) {
           chunks[chunk_id](chunk_row, col_id) = projs[i];
         } else {
-          chunks[chunk_id](chunk_row, col_id) = 0xdeadbeef;
+          chunks[chunk_id](chunk_row, col_id) = Frame::missing_datum;
         }
 
         col_id++;
@@ -110,7 +110,7 @@ Frame FrameGen::Evaluate() {
 
     size_t end_row = rows_copied + nrows_in_chunk;
 
-    out.content.middleRows(start_row, end_row) =
+    out.table.middleRows(start_row, end_row) =
         chunk.middleRows(0, nrows_in_chunk);
 
     rows_copied += nrows_in_chunk;

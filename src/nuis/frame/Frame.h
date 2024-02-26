@@ -12,8 +12,10 @@ namespace nuis {
 
 struct Frame {
   std::vector<std::string> column_names;
-  Eigen::ArrayXXd content;
+  Eigen::ArrayXXd table;
   NormInfo norm_info;
+
+  constexpr static double const missing_datum = 0xdeadbeef;
 
   Eigen::ArrayXd col(std::string const &cn);
   Eigen::ArrayXXd cols(std::vector<std::string> const &cns);

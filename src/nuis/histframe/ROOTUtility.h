@@ -52,15 +52,22 @@ std::vector<double> GetBinEdges(nuis::HistFrame const &hf, size_t dim) {
 }
 
 std::unique_ptr<TH1> ToTH1(nuis::HistFrame const &hf, std::string const &name,
+                           bool divide_by_bin_width,
                            HistFrame::column_t col = 1) {
   auto bins = GetBinEdges(hf, 0);
 
   auto root_hist =
       std::make_unique<TH1D>(name.c_str(), "", bins.size() - 1, bins.data());
 
-  for (int bi = 0; bi < hf.content.rows(); ++bi) {
-    root_hist->SetBinContent(bi + 1, hf.content(bi, col));
-    root_hist->SetBinError(bi + 1, std::sqrt(hf.variance(bi, col)));
+  Eigen::ArrayXd bin_scales = Eigen::ArrayXd::Constant(hf.contents.rows(),1);
+  if (divide_by_bin_width) {
+    bin_scales = hf.binning.bin_info.bin_sizes();
+  }
+
+  for (int bi = 0; bi < hf.contents.rows(); ++bi) {
+    root_hist->SetBinContent(bi + 1, hf.contents(bi, col) / bin_scales(bi));
+    root_hist->SetBinError(bi + 1,
+                           std::sqrt(hf.variance(bi, col) / bin_scales(bi)));
   }
 
   return root_hist;

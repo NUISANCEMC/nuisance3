@@ -16,15 +16,16 @@ public:
       std::function<std::vector<double>(HepMC3::GenEvent const &)>;
 
 // PS An option to input a vector of functions is also needed (instead of requiring a lambda to build it)
+// LP Is add_column("name", func).add_column("name", func).add_column("name", func) not okay?
 
   FrameGen(INormalizedEventSourcePtr evs, size_t block_size = 50000);
 
-  FrameGen Filter(FilterFunc filt);
-  FrameGen AddColumns(std::vector<std::string> col_names, ProjectionsFunc proj);
-  FrameGen AddColumn(std::string col_name, ProjectionFunc proj);
-  FrameGen Limit(size_t nmax);
+  FrameGen filter(FilterFunc filt);
+  FrameGen add_columns(std::vector<std::string> col_names, ProjectionsFunc proj);
+  FrameGen add_column(std::string col_name, ProjectionFunc proj);
+  FrameGen limit(size_t nmax);
 
-  Frame Evaluate();
+  Frame evaluate();
 
 private:
   INormalizedEventSourcePtr source;

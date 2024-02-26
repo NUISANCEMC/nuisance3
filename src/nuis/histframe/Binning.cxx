@@ -7,7 +7,21 @@
 namespace nuis {
 namespace Bins {
 
-BinOp LinSpace(size_t nbins, double min, double max, std::string const &label) {
+Eigen::ArrayXd BinningInfo::bin_sizes() const {
+  Eigen::ArrayXd bin_sizes = Eigen::ArrayXd::Zero(extents.size());
+  size_t i = 0;
+  for (auto const &bin : extents) {
+    bin_sizes[i] = 1;
+    for (auto const &ext : bin) {
+      bin_sizes[i] *= ext.width();
+    }
+    i++;
+  }
+  return bin_sizes;
+}
+
+BinOp lin_space(size_t nbins, double min, double max,
+                std::string const &label) {
   double step = (max - min) / double(nbins);
 
   BinningInfo bin_info;
@@ -19,15 +33,18 @@ BinOp LinSpace(size_t nbins, double min, double max, std::string const &label) {
         BinningInfo::extent{min + (i * step), min + ((i + 1) * step)});
   }
 
-  return {bin_info, [=](std::vector<double> const &x) {
+  return {bin_info, [=](std::vector<double> const &x) -> BinId {
+            if (x.size() != 1) {
+              return npos;
+            }
             return (x[0] > max)   ? npos
                    : (x[0] < min) ? npos
                                   : std::floor((x[0] - min) / step);
           }};
 }
 
-BinOp LinSpaceND(std::vector<std::tuple<size_t, double, double>> axes,
-                 std::vector<std::string> labels) {
+BinOp lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
+                  std::vector<std::string> labels) {
 
   size_t nax = axes.size();
   std::vector<size_t> nbins_in_slice = {1};
@@ -63,7 +80,11 @@ BinOp LinSpaceND(std::vector<std::tuple<size_t, double, double>> axes,
     }
   }
 
-  return {bin_info, [=](std::vector<double> const &x) {
+  return {bin_info, [=](std::vector<double> const &x) -> BinId {
+            if (x.size() != nax) {
+              return npos;
+            }
+
             // spdlog::info("Finding gbin for {}", x);
 
             BinId gbin = 0;

@@ -15,8 +15,8 @@ public:
   using EvtType = ET;
   using ParamType = PT;
 
-  virtual double CalcWeight(EvtType const &) = 0;
-  virtual void SetParameters(ParamType const &) = 0;
+  virtual double calc_weight(EvtType const &) = 0;
+  virtual void set_parameters(ParamType const &) = 0;
 };
 
 using IWeightCalcHM3Map =

@@ -17,7 +17,7 @@ struct NormInfo {
 /// how to normalize it, this is considered a resource acquisition failure
 class INormalizedEventSource : public IEventSourceWrapper {
 
-  std::unique_ptr<NuHepMC::FATX::Accumulator> xs_acc;
+  std::shared_ptr<NuHepMC::FATX::Accumulator> xs_acc;
 
   std::optional<EventCVWeightPair> process(std::optional<HepMC3::GenEvent> ev) {
     if (!ev) {

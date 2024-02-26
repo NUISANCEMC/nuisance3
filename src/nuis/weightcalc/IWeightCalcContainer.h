@@ -31,10 +31,10 @@ public:
   // enum Policy { Skip, Zero, Unity, Include };
 
   // template <Policy NotNormalPolicy = Policy::Skip>
-  double CalcWeight(EvtType const &ev) {
+  double calc_weight(EvtType const &ev) {
     double w = 1;
     for (auto &wc : wcs) {
-      double wc_w = wc->CalcWeight(ev);
+      double wc_w = wc->calc_weight(ev);
       // bool isnorm = std::isnormal(wc_w);
       // if constexpr (NotNormalPolicy == Policy::Skip) {
       //   w *= isnorm ? wc_w : 1;
@@ -48,9 +48,9 @@ public:
     }
     return w;
   }
-  void SetParameters(ParamType const &p) {
+  void set_parameters(ParamType const &p) {
     for (auto &wc : wcs) {
-      wc->SetParameters(p);
+      wc->set_parameters(p);
     }
   }
 };

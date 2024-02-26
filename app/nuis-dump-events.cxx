@@ -18,7 +18,7 @@ int main(int argc, char const *argv[]) {
 
   EventSourceFactory fact;
 
-  auto [gri, evs] = fact.Make(argv[1]);
+  auto [gri, evs] = fact.make(argv[1]);
 
   if (!evs) {
     spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
@@ -37,8 +37,8 @@ int main(int argc, char const *argv[]) {
     neut_cardname: "neut.card"
     )");
 
-  auto weighters = wfact.Make(evs, neut_reweight_node);
-  weighters->SetParameters({
+  auto weighters = wfact.make(evs, neut_reweight_node);
+  weighters->set_parameters({
       {"MaCCQE", -2},
   });
 
