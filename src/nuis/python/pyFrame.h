@@ -4,6 +4,7 @@
 #include "nuis/Frame/FrameGen.h"
 
 #include "pybind11/eigen.h"
+#include "pybind11/functional.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
@@ -41,6 +42,11 @@ struct pyFrameGen {
     return *this;
   }
 
+  pyFrameGen progress(size_t nmax) {
+    *gen = gen->progress(nmax);
+    return *this;
+  }
+
   Frame evaluate() { return gen->evaluate(); }
 
   std::shared_ptr<FrameGen> gen;
@@ -72,13 +78,20 @@ void init_frame(py::module &m) {
       .def("__getattr__", &frame_gettattr)
       .def("__setattr__", &frame_settattr)
       .def("__getitem__", &frame_gettattr)
-      .def("__setitem__", &frame_settattr);
+      .def("__setitem__", &frame_settattr)
+      .def("__str__", [](Frame const &s) {
+        std::stringstream ss("");
+        ss << FramePrinter(s);
+        return ss.str();
+      });
 
   py::class_<pyFrameGen>(m, "FrameGen")
-      .def(py::init<pyNormalizedEventSource, size_t>())
+      .def(py::init<pyNormalizedEventSource, size_t>(), py::arg("event_source"),
+           py::arg("block_size") = 50000)
       .def("filter", &pyFrameGen::filter)
       .def("add_column", &pyFrameGen::add_column)
       .def("add_columns", &pyFrameGen::add_columns)
       .def("limit", &pyFrameGen::limit)
+      .def("progress", &pyFrameGen::progress, py::arg("every") = 100000)
       .def("evaluate", &pyFrameGen::evaluate);
 }

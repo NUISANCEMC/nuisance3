@@ -65,23 +65,20 @@ void HistFrame::fill_bin(Bins::BinId i, double weight,
   if (i == Bins::npos) {
     spdlog::critical(
         "Tried to Fill histogram with out of range nuis::Bins::npos.");
-    abort();
     return;
   }
   if (i >= contents.rows()) {
     spdlog::critical("Tried to Fill histogram with out of range bin {}.", i);
-    abort();
     return;
   }
   if ((weight != 0) && (!std::isnormal(weight))) {
     spdlog::critical("Tried to Fill histogram with a non-normal weight: {}.",
                      weight);
-    abort();
     return;
   }
 #endif
 
-  if ((i >= contents.rows()) || (weight == 0)) {
+  if ((i >= contents.rows()) || !std::isnormal(weight)) {
     return;
   }
 

@@ -4,6 +4,7 @@
 #include "nuis/HistFrame/HistFrame.h"
 
 #include "pybind11/eigen.h"
+#include "pybind11/functional.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
@@ -24,7 +25,9 @@ histframe_gettattr(HistFrame &s, std::string const &column) {
 
 void init_histframe(py::module &m) {
 
-  py::class_<Bins::BinningInfo::extent>(m, "extent")
+  auto pyBinningInfo = py::class_<Bins::BinningInfo>(m, "BinningInfo");
+
+  py::class_<Bins::BinningInfo::extent>(pyBinningInfo, "extent")
       .def_readwrite("min", &Bins::BinningInfo::extent::min)
       .def_readwrite("max", &Bins::BinningInfo::extent::max)
       .def("width", &Bins::BinningInfo::extent::width)
@@ -32,7 +35,7 @@ void init_histframe(py::module &m) {
         return fmt::format("[{} -- {}]", self.min, self.max);
       });
 
-  py::class_<Bins::BinningInfo>(m, "BinningInfo")
+  pyBinningInfo
       .def_readonly("extents", &Bins::BinningInfo::extents,
                     py::return_value_policy::reference_internal)
       .def_readonly("axis_labels", &Bins::BinningInfo::axis_labels,
@@ -69,6 +72,8 @@ void init_histframe(py::module &m) {
                      py::return_value_policy::reference_internal)
       .def_readwrite("nfills", &HistFrame::nfills,
                      py::return_value_policy::reference_internal)
+      .def_readwrite("binning", &HistFrame::binning,
+                     py::return_value_policy::reference_internal)
       .def("add_column", &HistFrame::add_column, py::arg("name"),
            py::arg("label") = "")
       .def("find_bin", py::overload_cast<std::vector<double> const &>(
@@ -88,5 +93,10 @@ void init_histframe(py::module &m) {
       .def("reset", &HistFrame::reset)
       // Pandas style data access
       .def("__getattr__", &histframe_gettattr)
-      .def("__getitem__", &histframe_gettattr);
+      .def("__getitem__", &histframe_gettattr)
+      .def("__str__", [](HistFrame const &s) {
+        std::stringstream ss("");
+        ss << HistFramePrinter(s);
+        return ss.str();
+      });
 }

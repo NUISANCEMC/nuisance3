@@ -1,9 +1,22 @@
 #include "nuis/frame/FrameGen.h"
 
+#include "NuHepMC/ReaderUtils.hxx"
+
+#include "fmt/chrono.h"
+
+#include "spdlog/spdlog.h"
+
 namespace nuis {
 
 FrameGen::FrameGen(INormalizedEventSourcePtr evs, size_t block_size)
-    : source(evs), chunk_size{block_size} {}
+    : source(evs), chunk_size{block_size},
+      counter{std::numeric_limits<size_t>::max()},
+      nevents{std::numeric_limits<size_t>::max()} {
+  auto run_info = evs->first().value().evt.run_info();
+  if (run_info && NuHepMC::GC1::SignalsConvention(run_info, "G.C.2")) {
+    nevents = NuHepMC::GC2::ReadExposureNEvents(run_info);
+  }
+}
 
 FrameGen FrameGen::filter(FilterFunc filt) {
   filters.push_back(filt);
@@ -30,6 +43,10 @@ FrameGen FrameGen::limit(size_t nmax) {
   max_events_to_loop = nmax;
   return *this;
 }
+FrameGen FrameGen::progress(size_t every) {
+  counter = every;
+  return *this;
+}
 
 Frame FrameGen::evaluate() {
   auto column_names = std::accumulate(projections.begin(), projections.end(),
@@ -43,9 +60,25 @@ Frame FrameGen::evaluate() {
 
   chunks.emplace_back(chunk_size, column_names.size());
 
-  size_t row = 0;
+  size_t n_total_rows = 0;
   size_t neventsprocessed = 0;
+  auto start{std::chrono::steady_clock::now()};
+
   for (auto const &[ev, cvw] : source) {
+
+    if (neventsprocessed && !(neventsprocessed % counter)) {
+      std::chrono::duration<double> dur{std::chrono::steady_clock::now() -
+                                        start};
+      auto nmaxloop = std::min(max_events_to_loop, nevents);
+      spdlog::info("GenFrame has selected {}{} processed "
+                   "events in {}, ({:.2f} ev/s)",
+                   n_total_rows,
+                   ((nmaxloop != std::numeric_limits<size_t>::max())
+                        ? fmt::format("/{}", nmaxloop)
+                        : ""),
+                   dur, double(neventsprocessed) / dur.count());
+    }
+
     bool cut = false;
     for (auto &filt : filters) {
       if (!filt(ev)) {
@@ -62,8 +95,8 @@ Frame FrameGen::evaluate() {
       continue;
     }
 
-    size_t chunk_id = row / chunk_size;
-    size_t chunk_row = row % chunk_size;
+    size_t chunk_id = n_total_rows / chunk_size;
+    size_t chunk_row = n_total_rows % chunk_size;
 
     if (chunk_id >= chunks.size()) {
       chunks.emplace_back(chunk_size, column_names.size());
@@ -87,7 +120,7 @@ Frame FrameGen::evaluate() {
       }
     }
 
-    row++;
+    n_total_rows++;
 
     // have to do this before the next loop otherwise we read one too many
     // events
@@ -97,7 +130,7 @@ Frame FrameGen::evaluate() {
   }
 
   // big allocation
-  Frame out{column_names, Eigen::ArrayXXd(row, column_names.size()),
+  Frame out{column_names, Eigen::ArrayXXd(n_total_rows, column_names.size()),
             source->norm_info()};
 
   size_t rows_copied = 0;
@@ -105,12 +138,11 @@ Frame FrameGen::evaluate() {
 
     size_t start_row = rows_copied;
 
-    size_t nrows_in_chunk =
-        (rows_copied + chunk_size) > row ? (row % chunk_size) : chunk_size;
+    size_t nrows_in_chunk = (rows_copied + chunk_size) > n_total_rows
+                                ? (n_total_rows % chunk_size)
+                                : chunk_size;
 
-    size_t end_row = rows_copied + nrows_in_chunk;
-
-    out.table.middleRows(start_row, end_row) =
+    out.table.middleRows(start_row, nrows_in_chunk) =
         chunk.middleRows(0, nrows_in_chunk);
 
     rows_copied += nrows_in_chunk;

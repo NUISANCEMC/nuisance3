@@ -1,8 +1,6 @@
-
-#include <functional>
-#include <iostream>
-#include <string>
-#include <vector>
+#include "nuis/python/pyEventInput.h"
+#include "nuis/python/pyFrame.h"
+#include "nuis/python/pyHistFrame.h"
 
 #include "yaml-cpp/yaml.h"
 
@@ -10,11 +8,12 @@
 #include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
 
-#include "nuis/python/pyEventInput.h"
-#include "nuis/python/pyFrame.h"
-#include "nuis/python/pyHistFrame.h"
-
 #include "spdlog/spdlog.h"
+
+#include <functional>
+#include <iostream>
+#include <string>
+#include <vector>
 
 namespace py = pybind11;
 
