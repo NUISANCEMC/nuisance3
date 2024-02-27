@@ -7,40 +7,42 @@
 #include <sstream>
 
 namespace nuis {
-size_t getColumnId(std::string const &cn, Frame const &fr) {
-  auto pos = std::find(fr.column_names.begin(), fr.column_names.end(), cn);
-
-  if (pos == fr.column_names.end()) {
-    return std::string::npos;
-  }
-
-  return pos - fr.column_names.begin();
-}
-
-Eigen::ArrayXd Frame::col(std::string const &cn) {
-  auto cid = getColumnId(cn, *this);
-  if (cid == std::string::npos) {
-    spdlog::critical(
+Frame::column_t Frame::find_column_index(std::string const &cn) const {
+  auto pos = std::find(column_names.begin(), column_names.end(), cn);
+  if (pos == column_names.end()) {
+    spdlog::warn(
         "Tried to get column, named {} from frame. But no such column exists.",
         cn);
-    abort();
+    return Frame::npos;
+  }
+  return pos - column_names.begin();
+}
+
+Eigen::ArrayXd Frame::col(std::string const &cn) const {
+  auto cid = find_column_index(cn);
+  if (cid == Frame::npos) {
+    spdlog::warn(
+        "Tried to get column, named {} from frame. But no such column exists.",
+        cn);
+    return Eigen::ArrayXd::Zero(0);
   }
   return table.col(cid);
 }
-Eigen::ArrayXXd Frame::cols(std::vector<std::string> const &cns) {
+Eigen::ArrayXXd Frame::cols(std::vector<std::string> const &cns) const {
   Eigen::ArrayXXd rtn(table.rows(), cns.size());
   for (size_t i = 0; i < cns.size(); ++i) {
-    auto cid = getColumnId(cns[i], *this);
-    if (cid == std::string::npos) {
-      spdlog::critical("Tried to get column, named {} from frame. But no such "
-                       "column exists.",
-                       cns[i]);
-      abort();
+    auto cid = find_column_index(cns[i]);
+    if (cid == Frame::npos) {
+      spdlog::warn("Tried to get column, named {} from frame. But no such "
+                   "column exists.",
+                   cns[i]);
+      return Eigen::ArrayXd::Zero(0);
     }
     rtn.col(i) = table.col(cid);
   }
   return rtn;
 }
+
 } // namespace nuis
 
 std::ostream &operator<<(std::ostream &os, nuis::FramePrinter fp) {

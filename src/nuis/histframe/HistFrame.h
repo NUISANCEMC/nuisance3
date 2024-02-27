@@ -26,6 +26,7 @@ struct HistFrame {
             std::string const &def_col_label = "");
 
   using column_t = uint32_t;
+  constexpr static column_t const npos = std::numeric_limits<column_t>::max();
 
   column_t add_column(std::string const &name, std::string const &label = "");
   column_t find_column_index(std::string const &name) const;
@@ -38,7 +39,7 @@ struct HistFrame {
   Bins::BinId find_bin(std::vector<double> const &projections) const;
   // convenience for 1D histograms
   Bins::BinId find_bin(double proj) const;
-  
+
   void fill_bin(Bins::BinId bini, double weight, column_t col = 0);
 
   void fill(std::vector<double> const &projections, double weight,

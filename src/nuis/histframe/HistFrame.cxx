@@ -33,10 +33,7 @@ HistFrame::find_column_index(std::string const &name) const {
       return HistFrame::column_t(i);
     }
   }
-  spdlog::critical("Tried to get column, named {} from HistFrame. But no such "
-                   "column exists.",
-                   name);
-  abort();
+  return HistFrame::npos;
 }
 Eigen::ArrayXd HistFrame::get_content(HistFrame::column_t col,
                                       bool divide_by_bin_sizes) const {

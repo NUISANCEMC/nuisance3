@@ -174,7 +174,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/frame)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/histframe)
 # add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
-# add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/python)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/python)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
 

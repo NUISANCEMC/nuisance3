@@ -6,86 +6,44 @@
 
 #include "yaml-cpp/yaml.h"
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
 
-#include "ProSelecta/ProSelecta.h"
-#include "nuis/python/pyMeasurement.h"
 #include "nuis/python/pyEventInput.h"
-#include "nuis/python/pyWeightCalc.h"
 #include "nuis/python/pyFrame.h"
-#include "nuis/python/pyExternal.h"
+#include "nuis/python/pyHistFrame.h"
 
-
-std::vector<std::string> include_paths;
-std::string ProSelecta_env_dir;
+#include "spdlog/spdlog.h"
 
 namespace py = pybind11;
 
-void configure_environment() {
-
-    char *ProSelecta_env = getenv("PROSELECTA_DIR");
-    if (!ProSelecta_env && !ProSelecta_env_dir.length()) {
-        std::cout <<
-            "[ERROR]: Cannot find ProSelecta environment headers. Either "
-            "define PROSELECTA_DIR in the calling environment or add "
-            "--env command line argument."
-            << std::endl;
-
-        return;
-    }
-
-    if (!ProSelecta_env_dir.length()) {
-        ProSelecta_env_dir = ProSelecta_env;
-        if (ProSelecta_env_dir.back() != '/') {
-        ProSelecta_env_dir += '/';
-        }
-        ProSelecta_env_dir += "ProSelecta/env/";
-    }
-
-    ProSelecta::Get().AddIncludePath(ProSelecta_env_dir);
-
-    auto PROSELECTA_EXTRA = getenv("NUISANCE_PROSELECTA_INCLUDES");
-    if (PROSELECTA_EXTRA) {
-        ProSelecta::Get().AddIncludePath(PROSELECTA_EXTRA);
-    }
-
-    bool read_env = ProSelecta::Get().LoadText("#include \"env.h\"",
-                        ProSelecta::Interpreter::kCling);
-
-    if (!read_env) {
-        std::cout
-            << "[ERROR]: Cling failed to interpret the processor environment, if "
-            "you passed the right path to find these header files and this "
-            "still occures then it is a bug in ProSelectaCPP itself."
-            << std::endl;
-        abort();
-    }
-
-    // Should also check it exists
-    auto DATABASE = getenv("NUISANCEDB");
-    if (!DATABASE) {
-        std::cout
-            << "[ERROR]: NUISANCEDB NOT SET!" << std::endl;
-        abort();
-    }
-}
-
-
+PYBIND11_MAKE_OPAQUE(std::vector<bool>);
+PYBIND11_MAKE_OPAQUE(std::vector<int>);
+PYBIND11_MAKE_OPAQUE(std::vector<double>);
+PYBIND11_MAKE_OPAQUE(std::vector<uint32_t>);
 
 PYBIND11_MODULE(pyNUISANCE, m) {
-    m.doc() = "NUISANCE implementation in python";
-    m.def("configure", &configure_environment);
+  m.doc() = "NUISANCE implementation in python";
 
-    py::bind_vector<std::vector<bool>>(m, "Vector_bool");
-    py::bind_vector<std::vector<int>>(m, "Vector_int");
-    py::bind_vector<std::vector<double>>(m, "Vector_double");
-    py::bind_vector<std::vector<uint32_t>>(m, "Vector_uint32_t");
+  // Check that the NUISANCEDB exists
+  auto DATABASE = std::getenv("NUISANCEDB");
+  if (!DATABASE) {
+    spdlog::critical("NUISANCEDB environment variable is not set");
+    abort();
+  }
 
-    init_external(m);
-    init_eventinput(m);
-    init_weightcalc(m);
-    init_measurement(m);
-    init_frame(m);
+  m.add_object("hm", py::module::import("pyHepMC3"));
+  auto pps = py::module::import("pyProSelecta");
+  m.add_object("pps", pps);
+  m.add_object("pyProSelecta", pps);
+
+  py::bind_vector<std::vector<bool>>(m, "Vector_bool");
+  py::bind_vector<std::vector<int>>(m, "Vector_int");
+  py::bind_vector<std::vector<double>>(m, "Vector_double");
+  py::bind_vector<std::vector<uint32_t>>(m, "Vector_uint32_t");
+
+  init_eventinput(m);
+  init_frame(m);
+  init_histframe(m);
 }

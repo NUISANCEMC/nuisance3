@@ -43,16 +43,16 @@ struct pyWeightCalc {
     calc = p;
   }
   
-  double CalcWeight(HepMC3::GenEvent const & ev) {
-    return calc->CalcWeight(ev);
+  double calc_weight(HepMC3::GenEvent const & ev) {
+    return calc->calc_weight(ev);
   }
 
-  void SetParameters(std::map<std::string, double> const & par) {
-    calc->SetParameters(par);
+  void set_parameters(std::map<std::string, double> const & par) {
+    calc->set_parameters(par);
   }
 
   double operator()(HepMC3::GenEvent const & ev){
-    return CalcWeight(ev);
+    return calc_weight(ev);
   }
 
   IWeightCalcHM3MapPtr calc;
@@ -62,8 +62,8 @@ struct pyWeightCalcFactory {
   
   pyWeightCalcFactory() {}
 
-  pyWeightCalc Make(pyNormalizedEventSource& evs, YAML::Node const &cfg = {}) {
-    auto calcs = wfact.Make(evs.evs, cfg);
+  pyWeightCalc make(pyNormalizedEventSource& evs, YAML::Node const &cfg = {}) {
+    auto calcs = wfact.make(evs.evs, cfg);
     return pyWeightCalc(calcs);
   }
 
@@ -77,14 +77,14 @@ void init_weightcalc(py::module &m) {
 
   py::class_<pyWeightCalc>(m, "WeightCalc")
       .def(py::init<>())
-      .def("CalcWeight", &nuis::pyWeightCalc::CalcWeight)
-      .def("SetParameters", &nuis::pyWeightCalc::SetParameters)
+      .def("calc_weight", &nuis::pyWeightCalc::calc_weight)
+      .def("set_parameters", &nuis::pyWeightCalc::set_parameters)
       .def("__call__", &nuis::pyWeightCalc::operator());
 
 
   py::class_<pyWeightCalcFactory>(m, "WeightCalcFactory")
       .def(py::init<>())
-      .def("Make", &nuis::pyWeightCalcFactory::Make);
+      .def("make", &nuis::pyWeightCalcFactory::make);
 
 }
 
