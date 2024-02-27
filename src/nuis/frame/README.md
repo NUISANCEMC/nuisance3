@@ -26,7 +26,7 @@ where `NormInfo` is defined [here](../eventinput/INormalizedEventSource.h) and c
 ```c++
   EventSourceFactory fact;
   auto [gri, evs] = fact.Make("input.hepmc3");
-  auto frame = FrameGen(evs).evaluate();
+  auto frame = FrameGen(evs).all();
   std::cout << frame << std::endl;
 ```
 
@@ -68,7 +68,7 @@ We can limit the number of events to process with the `limit` function:
 ```c++
   EventSourceFactory fact;
   auto [gri, evs] = fact.Make("input.hepmc3");
-  auto frame = FrameGen(evs).limit(10).evaluate();
+  auto frame = FrameGen(evs).limit(10).all();
   std::cout << frame << std::endl;
 ```
 
@@ -105,7 +105,7 @@ double enu(HepMC3::GenEvent const &ev){
 
   EventSourceFactory fact;
   auto [gri, evs] = fact.Make("input.hepmc3");
-  auto frame = FrameGen(evs).limit(10).add_column("enu",enu).evaluate();
+  auto frame = FrameGen(evs).limit(10).add_column("enu",enu).all();
   std::cout << frame << std::endl;
 ```
 
@@ -141,7 +141,7 @@ std::vector<double> enu_nupid(HepMC3::GenEvent const &ev) {
   auto frame = FrameGen(evs)
                    .limit(10)
                    .add_columns({"enu", "nupid"}, enu_nupid)
-                   .evaluate();
+                   .all();
   std::cout << frame << std::endl;
 ```
 
@@ -195,7 +195,7 @@ struct single_procid_selector {
                    .add_column("procid",NuHepMC::ER3::ReadProcessID)
                    .add_columns({"enu", "nupid"}, enu_nupid)
                    .filter(single_procid_selector(500))
-                   .evaluate();
+                   .all();
   std::cout << frame << std::endl;
   std::cout << "NEvents Read: " <<  frame.norm_info.nevents << std::endl;
   std::cout << "NRows selected: " <<  frame.data.rows() << std::endl;
@@ -243,7 +243,7 @@ You can also add cross section reweights to a Frame using a wrapping lambda, as 
           .add_column("Zexp1Wght",
                      [=](auto const &ev) { return wgt->CalcWeight(ev); })
           .filter(single_procid_selector(200))
-          .evaluate();
+          .all();
   std::cout << frame << std::endl;
 ```
 
@@ -293,7 +293,7 @@ nuis::WeightCalcFactory wfact;
           .add_column({"Zexp1Wght_up","Zexp1Wght_down"},
                      [=](auto const &ev) { return {wgt1->CalcWeight(ev), wgt2->CalcWeight(ev)}; })
           .filter(single_procid_selector(200))
-          .evaluate();
+          .all();
   std::cout << frame << std::endl;
 ```
 
@@ -306,7 +306,7 @@ our reweighting results!*
 By default, the pretty printer will only print the first 20 rows of the data and will signal that there are more rows in the data by printing a row of ellipses. To print more rows you can manually use the `nuis::FramePrinter` wrapper class to select the number of rows to print
 
 ```c++
-  auto frame = FrameGen(evs).limit(1000).evaluate();
+  auto frame = FrameGen(evs).limit(1000).all();
   std::cout << FramePrinter(frame,30) << std::endl;
 ```
 

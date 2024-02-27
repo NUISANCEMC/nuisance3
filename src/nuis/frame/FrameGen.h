@@ -28,7 +28,9 @@ public:
   FrameGen limit(size_t nmax);
   FrameGen progress(size_t every = 100000);
 
-  Frame evaluate();
+  Frame first();
+  Frame next();
+  Frame all();
 
 private:
   INormalizedEventSourcePtr source;
@@ -43,13 +45,19 @@ private:
   std::vector<HeadedColumnProjectors> projections;
 
   size_t chunk_size;
-  std::vector<Eigen::ArrayXXd> chunks;
 
   size_t max_events_to_loop;
-  size_t counter;
+  size_t progress_report_every;
   size_t nevents;
 
   size_t GetNCols();
+
+  // first/next state
+  std::vector<std::string> column_names;
+  size_t n_total_rows;
+  size_t neventsprocessed;
+  INormalizedEventSource_looper ev_it;
+  NormInfo norm_info;
 };
 
 } // namespace nuis

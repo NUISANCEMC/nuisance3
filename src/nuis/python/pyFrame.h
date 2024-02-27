@@ -47,7 +47,9 @@ struct pyFrameGen {
     return *this;
   }
 
-  Frame evaluate() { return gen->evaluate(); }
+  Frame first() { return gen->first(); }
+  Frame next() { return gen->next(); }
+  Frame all() { return gen->all(); }
 
   std::shared_ptr<FrameGen> gen;
 };
@@ -93,5 +95,7 @@ void init_frame(py::module &m) {
       .def("add_columns", &pyFrameGen::add_columns)
       .def("limit", &pyFrameGen::limit)
       .def("progress", &pyFrameGen::progress, py::arg("every") = 100000)
-      .def("evaluate", &pyFrameGen::evaluate);
+      .def("first", &pyFrameGen::first)
+      .def("next", &pyFrameGen::next)
+      .def("all", &pyFrameGen::all);
 }

@@ -55,7 +55,7 @@ int main(int argc, char const *argv[]) {
   //     {"ZExpA1CCQE", +2},
   // });
 
-  auto frame = FrameGen(evs).progress(2.5E4).limit(1E6).evaluate();
+  auto frame = FrameGen(evs,1E3).progress(1E3).limit(1E4).all();
   std::cout << FramePrinter(frame, 10, false) << std::endl;
   std::cout << "NEvents Read:" << frame.norm_info.nevents << std::endl;
   std::cout << "NRows selected:" << frame.table.rows() << std::endl;

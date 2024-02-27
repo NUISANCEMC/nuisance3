@@ -5,7 +5,9 @@ namespace nuis {
 
 IEventSource_looper::IEventSource_looper(std::shared_ptr<IEventSource> evs)
     : source(evs) {
-  curr_event = source->first();
+  if (source) {
+    curr_event = source->first();
+  }
 }
 void IEventSource_looper::operator++() { curr_event = source->next(); }
 HepMC3::GenEvent const &IEventSource_looper::operator*() {
@@ -28,7 +30,9 @@ IEventSource_sentinel end(IEventSourcePtr) { return IEventSource_sentinel(); }
 INormalizedEventSource_looper::INormalizedEventSource_looper(
     std::shared_ptr<INormalizedEventSource> evs)
     : source(evs) {
-  curr_event = source->first();
+  if (source) {
+    curr_event = source->first();
+  }
 }
 void INormalizedEventSource_looper::operator++() {
   curr_event = source->next();
