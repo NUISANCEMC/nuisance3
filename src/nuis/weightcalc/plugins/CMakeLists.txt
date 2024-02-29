@@ -29,3 +29,18 @@ set_target_properties(GENIEReWeight_eventinput_plugin PROPERTIES OUTPUT_NAME "GE
 install(TARGETS GENIEReWeight_eventinput_plugin DESTINATION lib/plugins)
 
 endif()
+
+CPMFindPackage(
+    NAME Prob3plusplus
+    VERSION 3.10.4
+    GITHUB_REPOSITORY rogerwendell/Prob3plusplus
+    GIT_TAG main
+)
+
+add_library(Prob3plusplus_eventinput_plugin SHARED Prob3plusplusWeightCalc.cxx)
+target_link_libraries(Prob3plusplus_eventinput_plugin PUBLIC eventinput Prob3plusplus::Prob3plusplus nuis_options)
+
+set_target_properties(Prob3plusplus_eventinput_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
+set_target_properties(Prob3plusplus_eventinput_plugin PROPERTIES OUTPUT_NAME "Prob3plusplus")
+
+install(TARGETS Prob3plusplus_eventinput_plugin DESTINATION lib/plugins)

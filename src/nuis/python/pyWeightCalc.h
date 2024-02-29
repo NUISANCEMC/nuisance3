@@ -73,14 +73,11 @@ struct pyWeightCalcFactory {
 
 void init_weightcalc(py::module &m) {
 
-  m.doc() = "NUISANCE implementation in python";
-
   py::class_<pyWeightCalc>(m, "WeightCalc")
       .def(py::init<>())
       .def("calc_weight", &nuis::pyWeightCalc::calc_weight)
       .def("set_parameters", &nuis::pyWeightCalc::set_parameters)
       .def("__call__", &nuis::pyWeightCalc::operator());
-
 
   py::class_<pyWeightCalcFactory>(m, "WeightCalcFactory")
       .def(py::init<>())

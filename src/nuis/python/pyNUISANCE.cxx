@@ -1,6 +1,9 @@
+#include "nuis/python/pyYAML.h"
+
 #include "nuis/python/pyEventInput.h"
 #include "nuis/python/pyFrame.h"
 #include "nuis/python/pyHistFrame.h"
+#include "nuis/python/pyWeightCalc.h"
 
 #include "yaml-cpp/yaml.h"
 
@@ -45,4 +48,5 @@ PYBIND11_MODULE(pyNUISANCE, m) {
   init_eventinput(m);
   init_frame(m);
   init_histframe(m);
+  init_weightcalc(m);
 }
