@@ -5,32 +5,33 @@
 #include <string>
 #include <vector>
 
+#include "pybind11/stl_bind.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "pybind11/stl_bind.h"
 
 #include "yaml-cpp/yaml.h"
 
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/functional.h>
-#include <pybind11/stl.h>
 #include <pybind11/eigen.h>
+#include <pybind11/functional.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "spdlog/spdlog.h"
 
-#include "nuis/frame/FrameGen.h"
 #include "nuis/frame/Frame.h"
+#include "nuis/frame/FrameGen.h"
 
 #include "nuis/weightcalc/IWeightCalc.h"
 #include "nuis/weightcalc/WeightCalcFactory.h"
 
+#include "nuis/weightcalc/plugins/plugins.h"
+
 #include "nuis/python/pyEventInput.h"
 
 namespace py = pybind11;
-
 
 namespace nuis {
 
@@ -39,37 +40,33 @@ struct pyWeightCalc {
 
   pyWeightCalc(){};
 
-  explicit pyWeightCalc(IWeightCalcHM3MapPtr p){
-    calc = p;
-  }
-  
-  double calc_weight(HepMC3::GenEvent const & ev) {
+  explicit pyWeightCalc(IWeightCalcHM3MapPtr p) { calc = p; }
+
+  double calc_weight(HepMC3::GenEvent const &ev) {
     return calc->calc_weight(ev);
   }
 
-  void set_parameters(std::map<std::string, double> const & par) {
+  void set_parameters(std::map<std::string, double> const &par) {
     calc->set_parameters(par);
   }
 
-  double operator()(HepMC3::GenEvent const & ev){
-    return calc_weight(ev);
-  }
+  double operator()(HepMC3::GenEvent const &ev) { return calc_weight(ev); }
 
   IWeightCalcHM3MapPtr calc;
 };
 
 struct pyWeightCalcFactory {
-  
+
   pyWeightCalcFactory() {}
 
-  pyWeightCalc make(pyNormalizedEventSource& evs, YAML::Node const &cfg = {}) {
+  pyWeightCalc make(pyNormalizedEventSource &evs, YAML::Node const &cfg = {}) {
     auto calcs = wfact.make(evs.evs, cfg);
     return pyWeightCalc(calcs);
   }
 
   nuis::WeightCalcFactory wfact;
 };
-}
+} // namespace nuis
 
 void init_weightcalc(py::module &m) {
 
@@ -83,5 +80,10 @@ void init_weightcalc(py::module &m) {
       .def(py::init<>())
       .def("make", &nuis::pyWeightCalcFactory::make);
 
+  py::class_<Prob3plusplusWeightCalc, std::shared_ptr<Prob3plusplusWeightCalc>>(
+      m, "Prob3plusplusWeightCalc")
+      .def(py::init<YAML::Node const &>(), py::arg("config") = YAML::Node{})
+      .def("calc_weight", &nuis::Prob3plusplusWeightCalc::calc_weight)
+      .def("prob", &nuis::Prob3plusplusWeightCalc::prob)
+      .def("set_parameters", &nuis::Prob3plusplusWeightCalc::set_parameters);
 }
-

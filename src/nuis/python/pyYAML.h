@@ -121,8 +121,8 @@ public:
   static handle cast(YAML::Node /*src*/, return_value_policy /* policy */,
                      handle /* parent */) {
 
-    std::cout << "Cannot convert YAML to python yet! "
-              << " See pyNUISANCE!" << std::endl;
+    // std::cout << "Cannot convert YAML to python yet! "
+    //           << " See pyNUISANCE!" << std::endl;
 
     return PyLong_FromLong(0.0);
   }

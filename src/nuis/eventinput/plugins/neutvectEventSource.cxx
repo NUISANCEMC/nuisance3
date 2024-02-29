@@ -90,6 +90,7 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
   ient = 0;
   auto ge = nvconv::ToGenEvent(nv, gri);
   ge.set_event_number(ient);
+  ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
   return ge;
 }
 
@@ -108,6 +109,8 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::next() {
 
   auto ge = nvconv::ToGenEvent(nv, gri);
   ge.set_event_number(ient);
+  ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+
   return ge;
 }
 

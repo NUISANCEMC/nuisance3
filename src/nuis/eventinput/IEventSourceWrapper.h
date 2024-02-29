@@ -20,6 +20,8 @@ public:
   }
 
   std::shared_ptr<IEventSource> unwrap() { return wrapped_ev_source; }
+
+  virtual ~IEventSourceWrapper() {}
 };
 
 using IWrappedEventSourcePtr = std::shared_ptr<IEventSourceWrapper>;

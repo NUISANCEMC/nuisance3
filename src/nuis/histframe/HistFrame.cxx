@@ -87,17 +87,30 @@ void HistFrame::fill_bin(Bins::BinId i, double weight,
   nfills++;
 }
 
-void HistFrame::fill(std::vector<double> const &projections, double weight,
-                     HistFrame::column_t col) {
+void HistFrame::fill(int sel_int, std::vector<double> const &projections,
+                     double weight, column_t col) {
+  static std::vector<double> local_projections(10);
+  local_projections.clear();
+  local_projections.push_back(sel_int);
+  std::copy(local_projections.begin(), local_projections.end(),
+            std::back_inserter(local_projections));
+
   fill_bin(find_bin(projections), weight, col);
 }
 
-void HistFrame::fill(double proj, double weight, HistFrame::column_t col) {
-  fill(
-      std::vector<double>{
-          proj,
-      },
-      weight, col);
+void HistFrame::fill(int sel_int, double projection, double weight,
+                     column_t col) {
+  fill(sel_int, std::vector<double>{projection}, weight, col);
+}
+
+void HistFrame::fill(std::vector<double> const &projections, double weight,
+                     HistFrame::column_t col) {
+  fill(1, projections, weight, col);
+}
+
+void HistFrame::fill(double projection, double weight,
+                     HistFrame::column_t col) {
+  fill(1, projection, weight, col);
 }
 
 void HistFrame::reset() {

@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -41,13 +42,19 @@ struct BinningInfo {
   // it will correspond to the bin width, for 2D, the bin area, for 3D the bin
   // volume, etc...
   Eigen::ArrayXd bin_sizes() const;
-
 };
 
 struct BinOp {
   BinningInfo bin_info;
   BinningF bin_func;
 };
+
+BinOp combine(std::vector<BinOp> const &ops);
+
+BinOp log_space(size_t nbins, double min, double max,
+                std::string const &label = "");
+BinOp log10_space(size_t nbins, double min, double max,
+                  std::string const &label = "");
 
 BinOp lin_space(size_t nbins, double min, double max,
                 std::string const &label = "");
@@ -56,3 +63,7 @@ BinOp lin_spaceND(std::vector<std::tuple<size_t, double, double>>,
 
 } // namespace Bins
 } // namespace nuis
+
+std::ostream &operator<<(std::ostream &os,
+                         nuis::Bins::BinningInfo::extent const &);
+std::ostream &operator<<(std::ostream &os, nuis::Bins::BinningInfo const &);

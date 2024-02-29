@@ -160,7 +160,6 @@ CPMFindPackage(
 set(NUISANCE_PYSITEARCH "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
 set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
 
-
 add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
@@ -168,6 +167,10 @@ target_include_directories(nuis_options INTERFACE
 target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter Boost::boost Boost::filesystem yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen)
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 target_link_options(nuis_options INTERFACE)
+
+if(CMAKE_BUILD_TYPE STREQUAL Release)
+  target_compile_definitions(nuis_options INTERFACE NUIS_NDEBUG)
+endif()
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/frame)

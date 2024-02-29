@@ -32,7 +32,9 @@ void init_histframe(py::module &m) {
       .def_readwrite("max", &Bins::BinningInfo::extent::max)
       .def("width", &Bins::BinningInfo::extent::width)
       .def("__repr__", [](Bins::BinningInfo::extent const &self) {
-        return fmt::format("[{} -- {}]", self.min, self.max);
+        std::stringstream ss;
+        ss << self;
+        return ss.str();
       });
 
   pyBinningInfo
@@ -40,15 +42,24 @@ void init_histframe(py::module &m) {
                     py::return_value_policy::reference_internal)
       .def_readonly("axis_labels", &Bins::BinningInfo::axis_labels,
                     py::return_value_policy::reference_internal)
-      .def("bin_sizes", &Bins::BinningInfo::bin_sizes);
+      .def("bin_sizes", &Bins::BinningInfo::bin_sizes)
+      .def("__repr__", [](Bins::BinningInfo const &self) {
+        std::stringstream ss;
+        ss << self;
+        return ss.str();
+      });
 
   py::class_<Bins::BinOp>(m, "BinOp")
       .def_readwrite("bin_info", &Bins::BinOp::bin_info)
       .def_readwrite("bin_func", &Bins::BinOp::bin_func);
 
   py::module binning = m.def_submodule("binning", "HistFrame binning bindings");
-  binning
+  binning.def("combine", &Bins::combine)
       .def("lin_space", &Bins::lin_space, py::arg("nbins"), py::arg("min"),
+           py::arg("max"), py::arg("label") = "")
+      .def("log_space", &Bins::log_space, py::arg("nbins"), py::arg("min"),
+           py::arg("max"), py::arg("label") = "")
+      .def("log10_space", &Bins::log10_space, py::arg("nbins"), py::arg("min"),
            py::arg("max"), py::arg("label") = "")
       .def("lin_spaceND", &Bins::lin_spaceND, py::arg("binnings"),
            py::arg("labels") = std::vector<std::string>{});

@@ -1,3 +1,5 @@
+add_library(weightcalc_plugins INTERFACE)
+
 find_package(NEUT 5.8.0 QUIET)
 if(NEUT_FOUND)
   add_library(NReWeight_weightcalc_plugin SHARED NReWeightCalc.cxx)
@@ -7,6 +9,8 @@ if(NEUT_FOUND)
   set_target_properties(NReWeight_weightcalc_plugin PROPERTIES OUTPUT_NAME "NReWeight")
 
   install(TARGETS NReWeight_weightcalc_plugin DESTINATION lib/plugins)
+  target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_NReWeight_Enabled)
+
 endif()
 
 CPMFindPackage(
@@ -19,15 +23,15 @@ include(${CMakeModules_SOURCE_DIR}/NuHepMCModules.cmake)
 
 find_package(GENIE3 QUIET)
 if(GENIE3_FOUND AND GENIEReWeight_ENABLED)
+  add_library(GENIEReWeight_weightcalc_plugin SHARED GENIEReWeightCalc.cxx)
+  target_link_libraries(GENIEReWeight_weightcalc_plugin PUBLIC GHEP3_eventinput_plugin)
 
-add_library(GENIEReWeight_eventinput_plugin SHARED GENIEReWeightCalc.cxx)
-target_link_libraries(GENIEReWeight_eventinput_plugin PUBLIC GHEP3_eventinput_plugin)
+  set_target_properties(GENIEReWeight_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
+  set_target_properties(GENIEReWeight_weightcalc_plugin PROPERTIES OUTPUT_NAME "GENIEReWeight")
 
-set_target_properties(GENIEReWeight_eventinput_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
-set_target_properties(GENIEReWeight_eventinput_plugin PROPERTIES OUTPUT_NAME "GENIEReWeight")
+  install(TARGETS GENIEReWeight_weightcalc_plugin DESTINATION lib/plugins)
 
-install(TARGETS GENIEReWeight_eventinput_plugin DESTINATION lib/plugins)
-
+  target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_GENIEReWeight_Enabled)
 endif()
 
 CPMFindPackage(
@@ -37,10 +41,15 @@ CPMFindPackage(
     GIT_TAG main
 )
 
-add_library(Prob3plusplus_eventinput_plugin SHARED Prob3plusplusWeightCalc.cxx)
-target_link_libraries(Prob3plusplus_eventinput_plugin PUBLIC eventinput Prob3plusplus::Prob3plusplus nuis_options)
+add_library(Prob3plusplus_weightcalc_plugin SHARED Prob3plusplusWeightCalc.cxx)
+target_link_libraries(Prob3plusplus_weightcalc_plugin PUBLIC eventinput Prob3plusplus::Prob3plusplus nuis_options)
 
-set_target_properties(Prob3plusplus_eventinput_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
-set_target_properties(Prob3plusplus_eventinput_plugin PROPERTIES OUTPUT_NAME "Prob3plusplus")
+set_target_properties(Prob3plusplus_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
+set_target_properties(Prob3plusplus_weightcalc_plugin PROPERTIES OUTPUT_NAME "Prob3plusplus")
 
-install(TARGETS Prob3plusplus_eventinput_plugin DESTINATION lib/plugins)
+install(TARGETS Prob3plusplus_weightcalc_plugin DESTINATION lib/plugins)
+
+target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_Prob3plusplus_Enabled)
+
+target_link_libraries(weightcalc_plugins INTERFACE Prob3plusplus_weightcalc_plugin)
+install(TARGETS weightcalc_plugins DESTINATION lib/plugins)
