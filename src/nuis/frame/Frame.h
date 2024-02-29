@@ -11,9 +11,12 @@
 namespace nuis {
 
 struct Frame {
-  std::vector<std::string> ColumnNames;
-  Eigen::MatrixXd Table;
+  std::vector<std::string> column_names;
+  Eigen::ArrayXXd content;
   NormInfo norm_info;
+
+  Eigen::ArrayXd col(std::string const &cn);
+  Eigen::ArrayXXd cols(std::vector<std::string> const &cns);
 };
 
 struct FramePrinter {
