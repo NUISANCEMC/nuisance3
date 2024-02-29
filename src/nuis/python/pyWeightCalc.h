@@ -17,12 +17,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
-#include <pybind11/eigen.h>
 
-#include "spdlog/spdlog.h"
-
-#include "nuis/frame/FrameGen.h"
-#include "nuis/frame/Frame.h"
+// #include "spdlog/spdlog.h"
 
 #include "nuis/weightcalc/IWeightCalc.h"
 #include "nuis/weightcalc/WeightCalcFactory.h"

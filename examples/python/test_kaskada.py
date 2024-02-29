@@ -40,6 +40,12 @@ def q3(evt):
     if not mu or not nu: return 0
     return part
 
+for evt, cw in nuwro_source:
+  for vertex in evt.vertices():
+      if vertex.id() == -3:
+        print("VERT POS", vertex.position().x())
+
+  break
 
 # Do some testing to grab what we want
 for evt, cw in nuwro_source:

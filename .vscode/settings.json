@@ -88,6 +88,8 @@
         "complex": "cpp",
         "__memory": "cpp",
         "format": "cpp",
-        "source_location": "cpp"
+        "source_location": "cpp",
+        "test.C": "cpp",
+        "test3.C": "cpp"
     }
 }
