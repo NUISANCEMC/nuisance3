@@ -66,6 +66,11 @@ struct HistFrame {
   Eigen::ArrayXd get_error(column_t col = 0,
                            bool divide_by_bin_sizes = false) const;
 
+  HistColumn_View operator[](std::string const &name) const;
+  HistColumn_View operator[](column_t const& colid) const;
+
+  
+
   Bins::BinId find_bin(std::vector<double> const &projections) const;
   void fill(std::vector<double> const &projections, double weight,
             column_t col = 0);
