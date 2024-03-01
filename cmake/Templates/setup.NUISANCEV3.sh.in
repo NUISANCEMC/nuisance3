@@ -85,6 +85,7 @@ export NUISANCE_VERSION=@NUISANCE_VERSION@
 add_to_PATH ${NUISANCE_ROOT}/bin
 add_to_LD_LIBRARY_PATH ${NUISANCE_ROOT}/lib64
 add_to_LD_LIBRARY_PATH ${NUISANCE_ROOT}/lib
+add_to_LD_LIBRARY_PATH ${NUISANCE_ROOT}/lib/plugins
 
 # lib64 and python needed in some containers
 add_to_PYTHONPATH ${NUISANCE_ROOT}/lib

@@ -4,7 +4,7 @@
 
 Some deps:
 ```bash
-dnf install -y yaml-cpp-devel boost-devel fmt-devel spdlog-devel eigen3-devel
+dnf install -y yaml-cpp-devel boost-devel fmt-devel spdlog-devel eigen3-devel python3-devel
 ```
 
 build like:
@@ -25,11 +25,15 @@ printenv | grep -i nuisance
 
 ### python
 
-For python bindings documentation see [here](src/nuis/python/README.md).
+For python bindings quick-start examples and documentation see [here](src/nuis/python/README.md).
 
-### `nuis::Frame`
+### eventinput
 
-For documentation on the minimal dataframe that NUISANCE provides, see [here](src/nuis/frame/README.md).
+NUISANCE provides ergonomic features for looping on events read from a variety of sources. Internally all events are `HepMC3::GenEvent`s but there are a number of optional plugins included that can convert other event formats on the fly. See [here](src/nuis/eventinput/README.md) for the main documentation and [here](src/nuis/eventinput/plugins/README.md) for the plugin documentation.
+
+### `nuis::Frame` and `nuis::HistFrame`
+
+NUISANCE provides two types of 'dateframe'. A `nuis::Frame` is intended to be used with event-level data where each row corresponds to a single event; see [`nuis::Frame`](src/nuis/frame/README.md). A `nuis::HistFrame` is a minimal histogram-like frame where each row corresponds to a bin with N-dimensional extent; see [`nuis::HistFrame`](src/nuis/histframe/README.md).
 
 ### C++
 

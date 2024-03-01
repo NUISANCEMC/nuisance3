@@ -17,7 +17,7 @@ struct pyNormalizedEventSource {
   py::tuple curr_event;
 
   pyNormalizedEventSource(std::string filename) {
-    auto resp = fact.Make(filename);
+    auto resp = fact.make(filename);
     gri = resp.first;
     evs = resp.second;
   }
@@ -77,9 +77,6 @@ IEventSource_sentinel end(pyNormalizedEventSource &) {
 }
 
 void init_eventinput(py::module &m) {
-
-  py::module pyHepMC3 = py::module::import("pyHepMC3");
-  m.doc() = "NUISANCE implementation in python";
   py::class_<pyNormalizedEventSource>(m, "EventSource")
       .def(py::init<std::string>())
       .def("first", &pyNormalizedEventSource::first)

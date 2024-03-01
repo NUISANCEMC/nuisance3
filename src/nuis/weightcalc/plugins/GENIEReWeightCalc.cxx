@@ -40,10 +40,10 @@ class GENIEReWeightCalc : public IWeightCalcPlugin {
   std::shared_ptr<GHEP3EventSource> nevs;
 
 public:
-  double CalcWeight(HepMC3::GenEvent const &ev) {
+  double calc_weight(HepMC3::GenEvent const &ev) {
     return fGENIE3RW->CalcWeight(*nevs->EventRecord(ev));
   };
-  void SetParameters(std::map<std::string, double> const &params) {
+  void set_parameters(std::map<std::string, double> const &params) {
     for (auto &[p, v] : params) {
       spdlog::info("GENIEReWeightCalc: Setting parameter {} to {}", p, v);
       fGENIE3RW->Systematics().Set(GSyst::FromString(p), v);

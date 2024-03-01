@@ -2,24 +2,65 @@
 
 #include "fmt/core.h"
 
+#include "spdlog/spdlog.h"
+
 #include <sstream>
+
+namespace nuis {
+Frame::column_t Frame::find_column_index(std::string const &cn) const {
+  auto pos = std::find(column_names.begin(), column_names.end(), cn);
+  if (pos == column_names.end()) {
+    spdlog::warn(
+        "Tried to get column, named {} from frame. But no such column exists.",
+        cn);
+    return Frame::npos;
+  }
+  return pos - column_names.begin();
+}
+
+Eigen::ArrayXd Frame::col(std::string const &cn) const {
+  auto cid = find_column_index(cn);
+  if (cid == Frame::npos) {
+    spdlog::warn(
+        "Tried to get column, named {} from frame. But no such column exists.",
+        cn);
+    return Eigen::ArrayXd::Zero(0);
+  }
+  return table.col(cid);
+}
+Eigen::ArrayXXd Frame::cols(std::vector<std::string> const &cns) const {
+  Eigen::ArrayXXd rtn(table.rows(), cns.size());
+  for (size_t i = 0; i < cns.size(); ++i) {
+    auto cid = find_column_index(cns[i]);
+    if (cid == Frame::npos) {
+      spdlog::warn("Tried to get column, named {} from frame. But no such "
+                   "column exists.",
+                   cns[i]);
+      return Eigen::ArrayXd::Zero(0);
+    }
+    rtn.col(i) = table.col(cid);
+  }
+  return rtn;
+}
+
+} // namespace nuis
 
 std::ostream &operator<<(std::ostream &os, nuis::FramePrinter fp) {
 
   size_t abs_max_width = fp.max_col_width;
 
-  auto f = fp.fr.get();
+  auto const &f = fp.fr.get();
 
   if (!fp.prettyprint) {
-    return os << f.Table.topRows(fp.max_rows);
+    return os << f.table.topRows(fp.max_rows);
   }
 
-  std::vector<size_t> col_widths(f.Table.cols(), 0);
+  std::vector<size_t> col_widths(f.table.cols(), 0);
 
   // check up to the first 20 rows to guess how wide we need each column
-  for (int ri = 0; ri < f.Table.rows(); ++ri) {
-    for (int ci = 0; ci < f.Table.cols(); ++ci) {
-      std::string test = fmt::format("{:>.4}", f.Table(ri, ci));
+  for (int ri = 0; ri < f.table.rows(); ++ri) {
+    for (int ci = 0; ci < f.table.cols(); ++ci) {
+      std::string test = fmt::format("{:>.4}", f.table(ri, ci));
       size_t len = test.size() - test.find_first_not_of(" ");
       col_widths[ci] = std::min(std::max(col_widths[ci], len), abs_max_width);
     }
@@ -32,10 +73,10 @@ std::ostream &operator<<(std::ostream &os, nuis::FramePrinter fp) {
   std::vector<std::string> fmtstrs;
   hdr << " |";
 
-  for (size_t ci = 0; ci < f.ColumnNames.size(); ++ci) {
-    std::string cn = (f.ColumnNames[ci].size() > abs_max_width)
-                         ? f.ColumnNames[ci].substr(0, abs_max_width - 1) + "$"
-                         : f.ColumnNames[ci];
+  for (size_t ci = 0; ci < f.column_names.size(); ++ci) {
+    std::string cn = (f.column_names[ci].size() > abs_max_width)
+                         ? f.column_names[ci].substr(0, abs_max_width - 1) + "$"
+                         : f.column_names[ci];
 
     col_widths[ci] = std::max(col_widths[ci], cn.size());
 
@@ -51,15 +92,15 @@ std::ostream &operator<<(std::ostream &os, nuis::FramePrinter fp) {
   os << hdrs << std::endl;
   os << " " << line.data() << std::endl;
 
-  for (int ri = 0; ri < f.Table.rows(); ++ri) {
+  for (int ri = 0; ri < f.table.rows(); ++ri) {
     os << " |";
-    for (int ci = 0; ci < f.Table.cols(); ++ci) {
-      os << fmt::format(fmtstrs[ci], f.Table(ri, ci));
+    for (int ci = 0; ci < f.table.cols(); ++ci) {
+      os << fmt::format(fmtstrs[ci], f.table(ri, ci));
     }
     os << std::endl;
     if (ri >= fp.max_rows) {
       os << " |";
-      for (int ci = 0; ci < f.Table.cols(); ++ci) {
+      for (int ci = 0; ci < f.table.cols(); ++ci) {
         os << fmt::format(fmtstrs[ci], "...");
       }
       os << std::endl;

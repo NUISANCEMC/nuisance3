@@ -17,8 +17,8 @@ class WeightCalcFunc : public IWeightCalc<EvtType, ParamType> {
 public:
   WeightCalcFunc(std::function<FuncType> f) : func(f) {}
 
-  double CalcWeight(EvtType const &evt) { return func(evt, params); }
-  void SetParameters(ParamType const &p) { params = p; }
+  double calc_weight(EvtType const &evt) { return func(evt, params); }
+  void set_parameters(ParamType const &p) { params = p; }
 };
 
 using WeightCalcFuncHM3 = WeightCalcFunc<HepMC3::GenEvent, std::vector<double>>;

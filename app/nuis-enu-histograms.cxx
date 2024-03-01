@@ -23,7 +23,7 @@ int main(int argc, char const *argv[]) {
 
   EventSourceFactory fact;
 
-  auto [gri, evs] = fact.Make(argv[1]);
+  auto [gri, evs] = fact.make(argv[1]);
 
   if (!evs) {
     spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
