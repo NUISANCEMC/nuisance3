@@ -6,8 +6,38 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 namespace nuis {
+
+struct HistColumn_View {
+  Eigen::ArrayXd content;
+  Eigen::ArrayXd variance;
+  Eigen::ArrayXd binwidth;
+
+  // Need bin width options (don't love this)
+  // Can we have some change with a visitor/reduction?
+  Eigen::ArrayXd getcv(bool get_by_bin_width = false) {
+    if (get_by_bin_width) return content / binwidth;
+    return content;
+  }
+
+  void setcv(const Eigen::ArrayXd& incol, bool is_by_bin_width = false) {
+    if (is_by_bin_width) content = incol * binwidth;
+    content = incol;
+  }
+
+  Eigen::ArrayXd geter(bool get_by_bin_width = false) {
+    if (get_by_bin_width) return variance / binwidth;
+    return variance;
+  }
+
+  void seter(const Eigen::ArrayXd& incol, bool is_by_bin_width = false) {
+    if (is_by_bin_width) variance = incol * binwidth;
+    variance = incol;
+  }
+};
+
 struct HistFrame {
 
   Bins::BinOp binning;
@@ -19,6 +49,8 @@ struct HistFrame {
 
   std::vector<ColumnInfo> column_info;
 
+  
+
   Eigen::ArrayXXd content, variance;
   size_t nfills;
 
@@ -29,6 +61,10 @@ struct HistFrame {
   column_t AddColumn(std::string const &name, std::string const &label = "");
   column_t GetColumnIndex(std::string const &name) const;
 
+  HistColumn_View operator[](std::string const &name) const;
+
+  HistColumn_View operator[](column_t const &colid) const;
+  
   Bins::BinId FindBin(std::vector<double> const &projections) const;
   void Fill(std::vector<double> const &projections, double weight,
             column_t col = 1);

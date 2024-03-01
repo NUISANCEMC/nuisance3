@@ -105,6 +105,39 @@ void HistFrame::Reset() {
                                    column_info.size());
   nfills = 0;
 }
+
+
+// One failing of this is if someone does hist["mc". true] = VAL it won't work.
+HistColumn_View HistFrame::operator[](std::string const &name) const {
+  
+  Eigen::ArrayXd binsize = Eigen::ArrayXd::Zero(binning.bin_info.extents.size());
+  for (int ri = 0; ri < content.rows(); ++ri) {
+    double area = 1;
+    for (auto const &binrange : binning.bin_info.extents[ri]) {
+      area *= binrange.width();
+    }
+    binsize(ri) = area;
+  }
+
+  column_t colid = this->GetColumnIndex(name);
+  return {content.col( colid ), variance.col( colid ), binsize};
+}
+
+HistColumn_View HistFrame::operator[](column_t const &colid) const {
+
+  Eigen::ArrayXd binsize = Eigen::ArrayXd::Zero(binning.bin_info.extents.size());
+  for (int ri = 0; ri < content.rows(); ++ri) {
+    double area = 1;
+    for (auto const &binrange : binning.bin_info.extents[ri]) {
+      area *= binrange.width();
+    }
+    binsize[ri] = area;
+  }
+
+  return {content.col( colid ), variance.col( colid ), binsize};
+}
+
+
 } // namespace nuis
 
 std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
@@ -186,3 +219,4 @@ std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
 std::ostream &operator<<(std::ostream &os, nuis::HistFrame const &f) {
   return os << nuis::HistFramePrinter(f);
 }
+

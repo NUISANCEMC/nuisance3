@@ -8,6 +8,6 @@ add_executable(nuis-frame-test nuis-frame-test.cxx)
 target_link_libraries(nuis-frame-test eventinput frame NuHepMC::CPPUtils)
 
 add_executable(nuis-histframe-test nuis-histframe-test.cxx)
-target_link_libraries(nuis-histframe-test eventinput histframe NuHepMC::CPPUtils profiler ROOT::Hist ROOT::Gui)
+target_link_libraries(nuis-histframe-test eventinput histframe NuHepMC::CPPUtils ROOT::Hist ROOT::Gui)
 
 install(TARGETS nuis-dump-events nuis-enu-histograms nuis-frame-test nuis-histframe-test DESTINATION bin)

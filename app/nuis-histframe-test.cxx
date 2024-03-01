@@ -78,10 +78,13 @@ int main(int argc, char const *argv[]) {
     spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
     return 1;
   }
-  nuis::HistFrame q0(Bins::LinSpace(100, 0, 10, "q_0 [GeV]"));
+  nuis::HistFrame q0(Bins::LinSpace(20, 0, 10, "q_0 [GeV]"));
   auto ccqe_col = q0.AddColumn("CCQE");
   auto MEC_col = q0.AddColumn("MEC");
   auto RES_col = q0.AddColumn("RES");
+
+  // std::cout << (comp["data"].content - comp["mc"].content)/comp["data"].variance << std::endl;
+
 
   size_t i = 0;
   for (auto const &[ev, cvw] : evs) {
@@ -114,4 +117,9 @@ int main(int argc, char const *argv[]) {
   h1_MEC->Draw("HIST SAME");
   h1_RES->Draw("HIST SAME");
   c1.Print("mycanv.pdf");
+
+  std::cout<<"CCQE" << std::endl;
+  std::cout << q0["CCQE"].getcv(false) << std::endl;
+  std::cout<<"CCQE2" << std::endl;
+  std::cout << q0["CCQE"].getcv(true) << std::endl;
 }
