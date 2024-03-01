@@ -2,11 +2,7 @@
 
 #include "nuis/eventinput/plugins/ROOTUtils.h"
 
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wsign-compare"
 #include "nuwroconv.h"
-#pragma GCC diagnostic pop
 
 #include "HepMC3/GenRunInfo.h"
 
@@ -88,6 +84,8 @@ public:
     ient = 0;
     auto ge = nuwroconv::ToGenEvent(*ev, gri);
     ge.set_event_number(ient);
+    ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+
     return ge;
   }
 
@@ -106,6 +104,8 @@ public:
 
     auto ge = nuwroconv::ToGenEvent(*ev, gri);
     ge.set_event_number(ient);
+    ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+
     return ge;
   }
 

@@ -2,16 +2,16 @@
 
 ## EventInput
 
-The `pyEventInput` modules wraps the NUISANCE event reading functionality.
+The `pyNUISANCE.EventSource` interface wraps the NUISANCE event reading functionality.
 
-We generally don't recommend writing event loops directly in python because python looping is very slow, however, it can be useful for prototyping plots or selections.
+We generally don't recommend writing event loops directly in python because python looping is very slow, however, it can be useful for prototyping plots or selections. For a faster loop, see [Frame](#frame).
 
 A simple, unweighted event loop might look like below:
 
 ```python
-import pyEventInput as ei
+from pyNUISANCE import EventSource
 
-evs = ei.EventSource("path/to/my/inputfile")
+evs = EventSource("path/to/my/inputfile")
 
 if not evs:
   print("Failed to open input file")
@@ -21,7 +21,7 @@ for ev, _ in evs:
   # Do something with each event, ev, which are HepMC3::GenEvents
 ```
 
-`pyEventInput.EventSource` is an interface to [`nuis::EventSourceFactory`](../eventinput/EventSourceFactory.h), which is able to use a number of plugins to try and read an input file and present it as a HepMC3 event vector adhereing to the [NuHepMC](https://github.com/NuHepMC/Spec) specification.
+`pyNUISANCE.EventSource` is an interface to [`nuis::EventSourceFactory`](../eventinput/EventSourceFactory.h), which is able to use a number of plugins to try and read an input file and present it as a HepMC3 event vector adhereing to the [NuHepMC](https://github.com/NuHepMC/Spec) specification.
 
 Iterating on an event source returns a tuple of an event and its Central Value (CV) weight (as defined in [NuHepMC G.R.7](https://github.com/NuHepMC/Spec?tab=readme-ov-file#gr7-event-weights)). In the above example, the CV weight is ignored in the loop variables. All correctly normalised cross-section predictions must weight each event's properties by the CV weight. After looping through all of the events, the best-estimate of the flux-averaged total cross section (FATX) and the sum of CV weights can be queries. N.B. the internal accumulation of these properties are reset for each loop for consistency, so they should only be used after looping.
 

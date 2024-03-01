@@ -10,13 +10,19 @@ class GenEvent;
 
 namespace nuis {
 
-template <typename ET, typename PT> class IWeightCalc {
+template <typename ET, typename PT>
+class IWeightCalc : public std::enable_shared_from_this<IWeightCalc<ET, PT>> {
 public:
   using EvtType = ET;
   using ParamType = PT;
 
-  virtual double CalcWeight(EvtType const &) = 0;
-  virtual void SetParameters(ParamType const &) = 0;
+  virtual double calc_weight(EvtType const &) = 0;
+  virtual void set_parameters(ParamType const &) = 0;
+
+  // use to cast to known type
+  template <typename T> std::shared_ptr<T> as() {
+    return std::dynamic_pointer_cast<T>(this->shared_from_this());
+  }
 };
 
 using IWeightCalcHM3Map =

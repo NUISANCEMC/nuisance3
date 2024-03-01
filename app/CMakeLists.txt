@@ -7,6 +7,8 @@ target_link_libraries(nuis-enu-histograms eventinput NuHepMC::CPPUtils)
 add_executable(nuis-frame-test nuis-frame-test.cxx)
 target_link_libraries(nuis-frame-test eventinput frame NuHepMC::CPPUtils)
 
+
+find_package(ROOT 6 REQUIRED)
 add_executable(nuis-histframe-test nuis-histframe-test.cxx)
 target_link_libraries(nuis-histframe-test eventinput histframe NuHepMC::CPPUtils ROOT::Hist ROOT::Gui)
 

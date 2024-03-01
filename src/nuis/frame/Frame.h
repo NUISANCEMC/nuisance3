@@ -12,11 +12,20 @@ namespace nuis {
 
 struct Frame {
   std::vector<std::string> column_names;
-  Eigen::ArrayXXd content;
+  Eigen::ArrayXXd table;
   NormInfo norm_info;
 
-  Eigen::ArrayXd col(std::string const &cn);
-  Eigen::ArrayXXd cols(std::vector<std::string> const &cns);
+  constexpr static double const missing_datum = 0xdeadbeef;
+
+  using column_t = uint32_t;
+  constexpr static column_t const npos = std::numeric_limits<column_t>::max();
+
+  column_t find_column_index(std::string const &name) const;
+
+  // get a copy of a column, if you want to set a column, access the table
+  // directly
+  Eigen::ArrayXd col(std::string const &cn) const;
+  Eigen::ArrayXXd cols(std::vector<std::string> const &cns) const;
 };
 
 struct FramePrinter {

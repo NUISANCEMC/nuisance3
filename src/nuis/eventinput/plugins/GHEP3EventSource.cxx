@@ -561,8 +561,7 @@ genie::Spline const *GHEP3EventSource::GetSpline(int tgtpdg, int nupdg) {
 }
 
 GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
-  if (cfg["filepath"] &&
-      HasTTree(cfg["filepath"].as<std::string>(), "gtree")) {
+  if (cfg["filepath"] && HasTTree(cfg["filepath"].as<std::string>(), "gtree")) {
     filepaths.push_back(cfg["filepath"].as<std::string>());
   } else if (cfg["filepaths"]) {
     for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
@@ -656,7 +655,6 @@ std::optional<HepMC3::GenEvent> GHEP3EventSource::first() {
   ient = 0;
   auto ge = ghepconv::ToGenEvent(
       static_cast<genie::GHepRecord const &>(*ntpl->event));
-  ge.set_event_number(ient);
 
   auto tpart = NuHepMC::Event::GetTargetParticle(ge);
   auto bpart = NuHepMC::Event::GetBeamParticle(ge);
@@ -665,13 +663,16 @@ std::optional<HepMC3::GenEvent> GHEP3EventSource::first() {
 
   gri = ghepconv::BuildRunInfo(chin->GetEntries(), xspline);
 
+  ge.set_event_number(ient);
   ge.set_run_info(gri);
+  ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
 
   if (xspline) {
     NuHepMC::EC2::SetTotalCrossSection(
         ge,
         xspline->Evaluate(bpart->momentum().e()) / genie::units::pb); // in GeV
   }
+
   return ge;
 }
 
@@ -692,6 +693,7 @@ std::optional<HepMC3::GenEvent> GHEP3EventSource::next() {
       static_cast<genie::GHepRecord const &>(*ntpl->event));
   ge.set_event_number(ient);
   ge.set_run_info(gri);
+  ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
   auto tpart = NuHepMC::Event::GetTargetParticle(ge);
   auto bpart = NuHepMC::Event::GetBeamParticle(ge);
 

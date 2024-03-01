@@ -8,99 +8,124 @@
 
 namespace nuis {
 
-HistFrame::HistFrame(Bins::BinOp bindef)
-    : binning(bindef), column_info{{"data", ""}, {"mc", ""}} {
+HistFrame::HistFrame(Bins::BinOp bindef, std::string const &def_col_name,
+                     std::string const &def_col_label)
+    : binning(bindef), column_info{{def_col_name, def_col_label}} {
 
-  Reset();
+  reset();
 }
 
-HistFrame::column_t HistFrame::AddColumn(std::string const &name,
-                                         std::string const &label) {
+HistFrame::column_t HistFrame::add_column(std::string const &name,
+                                          std::string const &label) {
   column_info.emplace_back(ColumnInfo{name, label});
 
-  Eigen::ArrayXXd content_copy = content, variance_copy = variance;
-  Reset();
-  content.leftCols(content_copy.cols()) = content_copy;
+  Eigen::ArrayXXd content_copy = contents, variance_copy = variance;
+  reset();
+  contents.leftCols(content_copy.cols()) = content_copy;
   variance.leftCols(variance_copy.cols()) = variance_copy;
   return HistFrame::column_t(column_info.size() - 1);
 }
 
-HistFrame::column_t HistFrame::GetColumnIndex(std::string const &name) const {
+HistFrame::column_t
+HistFrame::find_column_index(std::string const &name) const {
   for (size_t i = 0; i < column_info.size(); ++i) {
     if (name == column_info[i].name) {
       return HistFrame::column_t(i);
     }
   }
-  spdlog::critical("Tried to get column, named {} from HistFrame. But no such "
-                   "column exists.",
-                   name);
-  abort();
+  return HistFrame::npos;
+}
+Eigen::ArrayXd HistFrame::get_content(HistFrame::column_t col,
+                                      bool divide_by_bin_sizes) const {
+  return divide_by_bin_sizes
+             ? (contents.col(col) / binning.bin_info.bin_sizes()).eval()
+             : contents.col(col);
+}
+Eigen::ArrayXd HistFrame::get_error(HistFrame::column_t col,
+                                    bool divide_by_bin_sizes) const {
+  return (divide_by_bin_sizes
+              ? (contents.col(col) / (binning.bin_info.bin_sizes().square()))
+                    .eval()
+              : contents.col(col))
+      .sqrt();
 }
 
-Bins::BinId HistFrame::FindBin(std::vector<double> const &projections) const {
+Bins::BinId HistFrame::find_bin(std::vector<double> const &projections) const {
+#ifndef NUIS_NDEBUG
+  if (projections.size() != binning.bin_info.extents.front().size()) {
+    spdlog::critical("[HistFrame::find_bin] : Called with {} projections, but "
+                     "the binning has {} axes.",
+                     projections.size(),
+                     binning.bin_info.extents.front().size());
+    abort();
+  }
+#endif
   return binning.bin_func(projections);
 }
-void HistFrame::Fill(std::vector<double> const &projections, double weight,
-                     HistFrame::column_t col) {
-  Bins::BinId i = FindBin(projections);
+Bins::BinId HistFrame::find_bin(double proj) const {
+  return find_bin(std::vector<double>{
+      proj,
+  });
+}
+
+void HistFrame::fill_bin(Bins::BinId i, double weight,
+                         HistFrame::column_t col) {
 #ifndef NDEBUG
   if (i == Bins::npos) {
     spdlog::critical(
         "Tried to Fill histogram with out of range nuis::Bins::npos.");
-    abort();
+    return;
+  }
+  if (i >= contents.rows()) {
+    spdlog::critical("Tried to Fill histogram with out of range bin {}.", i);
+    return;
+  }
+  if ((weight != 0) && (!std::isnormal(weight))) {
+    spdlog::critical("Tried to Fill histogram with a non-normal weight: {}.",
+                     weight);
     return;
   }
 #endif
-  content(i, col) += weight;
+
+  if ((i >= contents.rows()) || !std::isnormal(weight)) {
+    return;
+  }
+
+  contents(i, col) += weight;
   variance(i, col) += weight * weight;
   nfills++;
 }
 
-void HistFrame::Fill(double proj, double weight, HistFrame::column_t col) {
-  Fill(
-      std::vector<double>{
-          proj,
-      },
-      weight, col);
+void HistFrame::fill_with_selection(int sel_int,
+                                    std::vector<double> const &projections,
+                                    double weight, column_t col) {
+  static std::vector<double> local_projections(10);
+  local_projections.clear();
+  local_projections.push_back(sel_int);
+  std::copy(local_projections.begin(), local_projections.end(),
+            std::back_inserter(local_projections));
+
+  fill(projections, weight, col);
 }
 
-void HistFrame::ScaleColumn(double s, HistFrame::column_t col,
-                            bool divide_by_cell_area) {
-  for (int ri = 0; ri < content.rows(); ++ri) {
-    double area = 1;
-    if (divide_by_cell_area) {
-      for (auto const &binrange : binning.bin_info.extents[ri]) {
-        area *= binrange.width();
-      }
-    }
+void HistFrame::fill_with_selection(int sel_int, double projection,
+                                    double weight, column_t col) {
+  fill_with_selection(sel_int, std::vector<double>{projection}, weight, col);
+}
 
-    content(ri, col) *= s / area;
-    variance(ri, col) *= std::pow(s / area, 2);
-  }
+void HistFrame::fill(std::vector<double> const &projections, double weight,
+                     HistFrame::column_t col) {
+  fill_bin(find_bin(projections), weight, col);
 }
-void HistFrame::MultiplyColumn(Eigen::ArrayXd const &other, HistFrame::column_t col) {
-  content.col(col) *= other;
+
+void HistFrame::fill(double projection, double weight,
+                     HistFrame::column_t col) {
+  fill(std::vector<double>{projection}, weight, col);
 }
-void HistFrame::DivideColumn(Eigen::ArrayXd const &other, HistFrame::column_t col) {
-  content.col(col) /= other;
-}
-double HistFrame::ColumnIntegral(HistFrame::column_t col,
-                                 bool multiply_by_cell_area) const {
-  double integral = 0;
-  for (int ri = 0; ri < content.rows(); ++ri) {
-    double area = 1;
-    if (multiply_by_cell_area) {
-      for (auto const &binrange : binning.bin_info.extents[ri]) {
-        area *= binrange.width();
-      }
-    }
-    integral += content(ri, col) * area;
-  }
-  return integral;
-}
-void HistFrame::Reset() {
-  content = Eigen::ArrayXXd::Zero(binning.bin_info.extents.size(),
-                                  column_info.size());
+
+void HistFrame::reset() {
+  contents = Eigen::ArrayXXd::Zero(binning.bin_info.extents.size(),
+                                   column_info.size());
   variance = Eigen::ArrayXXd::Zero(binning.bin_info.extents.size(),
                                    column_info.size());
   nfills = 0;
@@ -148,14 +173,14 @@ std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
 
   if (fp.format == "table") {
 
-    std::vector<size_t> col_widths(f.content.cols() * 2, 0);
+    std::vector<size_t> col_widths(f.contents.cols() * 2, 0);
 
     // check up to the first 20 rows to guess how wide we need each column
-    for (int ri = 0; ri < f.content.rows(); ++ri) {
-      for (int ci = 0; ci < (f.content.cols() * 2); ++ci) {
+    for (int ri = 0; ri < f.contents.rows(); ++ri) {
+      for (int ci = 0; ci < (f.contents.cols() * 2); ++ci) {
 
         double v = (ci & 1) ? std::sqrt(f.variance(ri, ci / 2))
-                            : (f.content(ri, ci / 2));
+                            : (f.contents(ri, ci / 2));
         std::string test = fmt::format("{:>.4}", v);
 
         size_t len = test.size() - test.find_first_not_of(" ");
@@ -168,7 +193,7 @@ std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
 
     std::stringstream hdr;
     std::vector<std::string> fmtstrs;
-    hdr << " |";
+    hdr << " | bin |";
 
     for (size_t ci = 0; ci < (f.column_info.size() * 2); ++ci) {
       std::string cfull =
@@ -191,17 +216,17 @@ std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
     os << hdrs << std::endl;
     os << " " << line.data() << std::endl;
 
-    for (int ri = 0; ri < f.content.rows(); ++ri) {
-      os << " |";
-      for (int ci = 0; ci < (f.content.cols() * 2); ++ci) {
+    for (int ri = 0; ri < f.contents.rows(); ++ri) {
+      os << fmt::format(" | {:>3} |", ri);
+      for (int ci = 0; ci < (f.contents.cols() * 2); ++ci) {
         double v = (ci & 1) ? std::sqrt(f.variance(ri, ci / 2))
-                            : (f.content(ri, ci / 2));
+                            : (f.contents(ri, ci / 2));
         os << fmt::format(fmtstrs[ci], v);
       }
       os << std::endl;
       if (ri >= fp.max_rows) {
         os << " |";
-        for (int ci = 0; ci < (f.content.cols() * 2); ++ci) {
+        for (int ci = 0; ci < (f.contents.cols() * 2); ++ci) {
           os << fmt::format(fmtstrs[ci], "...");
         }
         os << std::endl;
@@ -213,7 +238,7 @@ std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
   } else if (fp.format == "json") {
     return os << boost::json::serialize(boost::json::value_from(f));
   }
-  return os << f.content.topRows(fp.max_rows);
+  return os << f.contents.topRows(fp.max_rows);
 }
 
 std::ostream &operator<<(std::ostream &os, nuis::HistFrame const &f) {

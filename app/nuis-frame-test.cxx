@@ -36,7 +36,7 @@ struct single_procid_selector {
 int main(int argc, char const *argv[]) {
 
   EventSourceFactory fact;
-  auto [gri, evs] = fact.Make(argv[1]);
+  auto [gri, evs] = fact.make(argv[1]);
 
   if (!evs) {
     spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
@@ -55,10 +55,10 @@ int main(int argc, char const *argv[]) {
   //     {"ZExpA1CCQE", +2},
   // });
 
-  auto frame = FrameGen(evs).Limit(1000).Evaluate();
+  auto frame = FrameGen(evs,1E3).progress(1E3).limit(1E4).all();
   std::cout << FramePrinter(frame, 10, false) << std::endl;
   std::cout << "NEvents Read:" << frame.norm_info.nevents << std::endl;
-  std::cout << "NRows selected:" << frame.content.rows() << std::endl;
+  std::cout << "NRows selected:" << frame.table.rows() << std::endl;
 
   // auto fg =
   //     FrameGen(evs)

@@ -47,8 +47,8 @@ public:
     }
   }
 
-  IWeightCalcHM3MapPtr MakeAll(IEventSourcePtr evs,
-                               YAML::Node const &cfg = {}) {
+  IWeightCalcHM3MapPtr make_all(IEventSourcePtr evs,
+                                YAML::Node const &cfg = {}) {
     if (!evs) {
       return nullptr;
     }
@@ -68,14 +68,37 @@ public:
     return matching_plugins;
   }
 
-  IWeightCalcHM3MapPtr MakeAll(IWrappedEventSourcePtr evs,
-                               YAML::Node const &cfg = {}) {
-    return MakeAll(evs->unwrap(), cfg);
+  IWeightCalcHM3MapPtr make_all(IWrappedEventSourcePtr evs,
+                                YAML::Node const &cfg = {}) {
+    return make_all(evs->unwrap(), cfg);
   }
 
-  IWeightCalcHM3MapPtr Make(IEventSourcePtr evs, YAML::Node const &cfg = {}) {
+  IWeightCalcHM3MapPtr make(IEventSourcePtr evs, YAML::Node const &cfg = {}) {
     if (!evs) {
       return nullptr;
+    }
+
+    if (cfg["plugin_name"]) {
+      std::string plugin_name = cfg["plugin_name"].as<std::string>();
+      for (auto &[pluginso, plugin] : pluginfactories) {
+        if (pluginso.filename().native() ==
+            (std::string("nuisplugin-weightcalc-") + plugin_name + ".so")) {
+          auto wc = plugin(evs, cfg);
+          if (wc->good()) {
+            return wc;
+          } else {
+            spdlog::critical(
+                "Explicitly asked for weightcalc plugin: {}, but it failed to "
+                "configure itself with the proferred event source.");
+            abort();
+          }
+        }
+      }
+      spdlog::critical(
+          "Explicitly asked for weightcalc plugin: {}, but do not have {}",
+          plugin_name,
+          (std::string("nuisplugin-weightcalc-.") + plugin_name + ".so"));
+      abort();
     }
 
     for (auto &[pluginso, plugin] : pluginfactories) {
@@ -91,9 +114,9 @@ public:
     return nullptr;
   }
 
-  IWeightCalcHM3MapPtr Make(IWrappedEventSourcePtr evs,
+  IWeightCalcHM3MapPtr make(IWrappedEventSourcePtr evs,
                             YAML::Node const &cfg = {}) {
-    return Make(evs->unwrap(), cfg);
+    return make(evs->unwrap(), cfg);
   }
 };
 } // namespace nuis

@@ -31,14 +31,17 @@ class EventSourceFactory {
 public:
   EventSourceFactory();
 
+  //Add a path to the search path list for input files
+  void add_event_path(std::filesystem::path path);
+
   std::pair<std::shared_ptr<HepMC3::GenRunInfo>, INormalizedEventSourcePtr>
-  Make(YAML::Node const &cfg);
+  make(YAML::Node const &cfg);
   std::pair<std::shared_ptr<HepMC3::GenRunInfo>, INormalizedEventSourcePtr>
-  Make(std::string const &filepath);
+  make(std::string const &filepath);
 
   std::pair<std::shared_ptr<HepMC3::GenRunInfo>, IEventSourcePtr>
-  MakeUnNormalized(YAML::Node cfg);
+  make_unnormalized(YAML::Node cfg);
   std::pair<std::shared_ptr<HepMC3::GenRunInfo>, IEventSourcePtr>
-  MakeUnNormalized(std::string const &filepath);
+  make_unnormalized(std::string const &filepath);
 };
 } // namespace nuis
