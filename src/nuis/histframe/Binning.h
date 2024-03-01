@@ -63,6 +63,8 @@ BinOp lin_spaceND(std::vector<std::tuple<size_t, double, double>>,
 
 BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
                      std::string const &label = "");
+BinOp from_binedges1D(std::vector<double> const &edges,
+                      std::string const &label = "");
 
 } // namespace Bins
 } // namespace nuis

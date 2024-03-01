@@ -99,7 +99,8 @@ BinOp combine(std::vector<BinOp> const &ops) {
             size_t nax_consumed = 0;
             for (size_t op_it = 0; op_it < nax_in_op.size(); ++op_it) {
 
-              // spdlog::info("  op[{}], nax_in_op = {}, being passed: {}", op_it,
+              // spdlog::info("  op[{}], nax_in_op = {}, being passed: {}",
+              // op_it,
               //              nax_in_op[op_it],
               //              std::vector<double>(x.begin() + nax_consumed,
               //                                  x.begin() + nax_consumed +
@@ -264,7 +265,8 @@ BinOp log_space_impl(size_t nbins, double min, double max,
               return npos;
             }
 
-            // spdlog::info("[log_space<base = {}>]: Finding bin for {}", base, x);
+            // spdlog::info("[log_space<base = {}>]: Finding bin for {}", base,
+            // x);
 
             if (x[0] <= 0) {
               spdlog::warn("[log_space<base = {}>]: Attempted to find log bin "
@@ -338,6 +340,14 @@ BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
             // npos.");
             return npos;
           }};
+}
+
+BinOp from_binedges1D(std::vector<double> const &edges, std::string const &label) {
+  std::vector<BinningInfo::extent> extents;
+  for (size_t i = 1; i < edges.size(); ++i) {
+    extents.push_back(BinningInfo::extent{edges[i - 1], edges[i]});
+  }
+  return from_extents1D(extents, label);
 }
 
 } // namespace Bins
