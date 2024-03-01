@@ -37,15 +37,18 @@ struct HistFrame {
                            bool divide_by_bin_sizes = false) const;
 
   Bins::BinId find_bin(std::vector<double> const &projections) const;
-  void fill(int sel_int, std::vector<double> const &projections, double weight,
-            column_t col = 0);
   void fill(std::vector<double> const &projections, double weight,
             column_t col = 0);
+  // A semantically meaningful helper function for passing a selection integer
+  // as the first projection axis
+  void fill_with_selection(int sel_int, std::vector<double> const &projections,
+                           double weight, column_t col = 0);
 
   // convenience for 1D histograms
   Bins::BinId find_bin(double projection) const;
   void fill(double projection, double weight, column_t col = 0);
-  void fill(int sel_int, double projection, double weight, column_t col = 0);
+  void fill_with_selection(int sel_int, double projection, double weight,
+                           column_t col = 0);
 
   void fill_bin(Bins::BinId bini, double weight, column_t col = 0);
 

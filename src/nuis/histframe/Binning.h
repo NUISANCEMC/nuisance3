@@ -29,10 +29,10 @@ struct BinningInfo {
 
     double width() const { return (max - min); }
 
-    bool operator==(extent const &other) {
+    bool operator==(extent const &other) const {
       return (min == other.min) && (max == other.max);
     }
-    bool operator<(extent const &other) { return min < other.min; }
+    bool operator<(extent const &other) const { return min < other.min; }
   };
   // BinExtents[i] are the N extents of bin i.
   std::vector<std::vector<extent>> extents;
@@ -60,6 +60,9 @@ BinOp lin_space(size_t nbins, double min, double max,
                 std::string const &label = "");
 BinOp lin_spaceND(std::vector<std::tuple<size_t, double, double>>,
                   std::vector<std::string> = {});
+
+BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
+                     std::string const &label = "");
 
 } // namespace Bins
 } // namespace nuis

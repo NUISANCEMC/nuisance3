@@ -51,6 +51,15 @@ Eigen::ArrayXd HistFrame::get_error(HistFrame::column_t col,
 }
 
 Bins::BinId HistFrame::find_bin(std::vector<double> const &projections) const {
+#ifndef NUIS_NDEBUG
+  if (projections.size() != binning.bin_info.extents.front().size()) {
+    spdlog::critical("[HistFrame::find_bin] : Called with {} projections, but "
+                     "the binning has {} axes.",
+                     projections.size(),
+                     binning.bin_info.extents.front().size());
+    abort();
+  }
+#endif
   return binning.bin_func(projections);
 }
 Bins::BinId HistFrame::find_bin(double proj) const {
@@ -87,30 +96,31 @@ void HistFrame::fill_bin(Bins::BinId i, double weight,
   nfills++;
 }
 
-void HistFrame::fill(int sel_int, std::vector<double> const &projections,
-                     double weight, column_t col) {
+void HistFrame::fill_with_selection(int sel_int,
+                                    std::vector<double> const &projections,
+                                    double weight, column_t col) {
   static std::vector<double> local_projections(10);
   local_projections.clear();
   local_projections.push_back(sel_int);
   std::copy(local_projections.begin(), local_projections.end(),
             std::back_inserter(local_projections));
 
-  fill_bin(find_bin(projections), weight, col);
+  fill(projections, weight, col);
 }
 
-void HistFrame::fill(int sel_int, double projection, double weight,
-                     column_t col) {
-  fill(sel_int, std::vector<double>{projection}, weight, col);
+void HistFrame::fill_with_selection(int sel_int, double projection,
+                                    double weight, column_t col) {
+  fill_with_selection(sel_int, std::vector<double>{projection}, weight, col);
 }
 
 void HistFrame::fill(std::vector<double> const &projections, double weight,
                      HistFrame::column_t col) {
-  fill(1, projections, weight, col);
+  fill_bin(find_bin(projections), weight, col);
 }
 
 void HistFrame::fill(double projection, double weight,
                      HistFrame::column_t col) {
-  fill(1, projection, weight, col);
+  fill(std::vector<double>{projection}, weight, col);
 }
 
 void HistFrame::reset() {
@@ -150,7 +160,7 @@ std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
 
     std::stringstream hdr;
     std::vector<std::string> fmtstrs;
-    hdr << " |";
+    hdr << " | bin |";
 
     for (size_t ci = 0; ci < (f.column_info.size() * 2); ++ci) {
       std::string cfull =
@@ -174,7 +184,7 @@ std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
     os << " " << line.data() << std::endl;
 
     for (int ri = 0; ri < f.contents.rows(); ++ri) {
-      os << " |";
+      os << fmt::format(" | {:>3} |", ri);
       for (int ci = 0; ci < (f.contents.cols() * 2); ++ci) {
         double v = (ci & 1) ? std::sqrt(f.variance(ri, ci / 2))
                             : (f.contents(ri, ci / 2));

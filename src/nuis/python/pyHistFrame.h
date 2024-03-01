@@ -2,6 +2,7 @@
 
 #include "nuis/HistFrame/Binning.h"
 #include "nuis/HistFrame/HistFrame.h"
+#include "nuis/HistFrame/HistProjector.h"
 
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
@@ -101,6 +102,17 @@ void init_histframe(py::module &m) {
            py::overload_cast<double, double, HistFrame::column_t>(
                &HistFrame::fill),
            py::arg("projection"), py::arg("weight"), py::arg("col") = 0)
+      .def("fill_with_selection",
+           py::overload_cast<int, std::vector<double> const &, double,
+                             HistFrame::column_t>(
+               &HistFrame::fill_with_selection),
+           py::arg("selection"), py::arg("projections"), py::arg("weight"),
+           py::arg("col") = 0)
+      .def("fill_with_selection",
+           py::overload_cast<int, double, double, HistFrame::column_t>(
+               &HistFrame::fill_with_selection),
+           py::arg("selection"), py::arg("projection"), py::arg("weight"),
+           py::arg("col") = 0)
       .def("reset", &HistFrame::reset)
       // Pandas style data access
       .def("__getattr__", &histframe_gettattr)
@@ -110,4 +122,6 @@ void init_histframe(py::module &m) {
         ss << HistFramePrinter(s);
         return ss.str();
       });
+
+  m.def("Project1D", &Project1D);
 }

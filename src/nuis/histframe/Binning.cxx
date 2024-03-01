@@ -65,8 +65,22 @@ std::vector<std::vector<BinningInfo::extent>> build_extents(
 }
 
 BinOp combine(std::vector<BinOp> const &ops) {
+
   BinningInfo bin_info;
+
+  size_t nax = 0;
+  size_t nbins = 1;
+  std::vector<size_t> nbins_in_op_slice = {1};
+  std::vector<size_t> nax_in_op = {};
   for (auto const &op : ops) {
+    auto ndims_in_op = op.bin_info.extents.front().size();
+    nax += ndims_in_op;
+    nax_in_op.push_back(ndims_in_op);
+    auto nbins_in_op = op.bin_info.extents.size();
+    nbins *= nbins_in_op; // nbins in op
+    nbins_in_op_slice.push_back(nbins);
+
+    // combining all op labels
     std::copy(op.bin_info.axis_labels.begin(), op.bin_info.axis_labels.end(),
               std::back_inserter(bin_info.axis_labels));
   }
@@ -74,8 +88,40 @@ BinOp combine(std::vector<BinOp> const &ops) {
       // ops.rbegin(), ops.rend(),
       ops.rbegin(), ops.rend());
 
-  //doesn't work yet, need to copy logic from linspace_ND to work out combined bin
-  return {bin_info, [=](std::vector<double> const &) -> BinId { return npos; }};
+  return {bin_info, [=](std::vector<double> const &x) -> BinId {
+            if (x.size() < nax) {
+              return npos;
+            }
+
+            // spdlog::info("Finding gbin for {}", x);
+
+            BinId gbin = 0;
+            size_t nax_consumed = 0;
+            for (size_t op_it = 0; op_it < nax_in_op.size(); ++op_it) {
+
+              // spdlog::info("  op[{}], nax_in_op = {}, being passed: {}", op_it,
+              //              nax_in_op[op_it],
+              //              std::vector<double>(x.begin() + nax_consumed,
+              //                                  x.begin() + nax_consumed +
+              //                                      nax_in_op[op_it]));
+
+              BinId op_bin = ops[op_it].bin_func(std::vector<double>(
+                  x.begin() + nax_consumed,
+                  x.begin() + nax_consumed + nax_in_op[op_it]));
+
+              gbin += op_bin * nbins_in_op_slice[op_it];
+              nax_consumed += nax_in_op[op_it];
+
+              if (op_bin == npos) {
+                // spdlog::info("  OOR on dim: {}.", ax_i);
+                return npos;
+              }
+            }
+
+            // spdlog::info("gbin = {}", gbin);
+
+            return gbin;
+          }};
 }
 
 BinOp lin_space(size_t nbins, double min, double max,
@@ -92,10 +138,11 @@ BinOp lin_space(size_t nbins, double min, double max,
   }
 
   return {bin_info, [=](std::vector<double> const &x) -> BinId {
-            if (x.size() != 1) {
+            if (x.size() < 1) {
               return npos;
             }
-            return (x[0] > max)   ? npos
+
+            return (x[0] >= max)  ? npos
                    : (x[0] < min) ? npos
                                   : std::floor((x[0] - min) / step);
           }};
@@ -114,8 +161,6 @@ BinOp lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
                     double(std::get<0>(axes[ax_i])));
     nbins *= std::get<0>(axes[ax_i]);
     nbins_in_slice.push_back(nbins);
-    spdlog::info("[lin_spaceND]: ax[{}].nbins_in_slice = {}", ax_i,
-                 nbins_in_slice);
   }
 
   BinningInfo bin_info;
@@ -141,7 +186,7 @@ BinOp lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
   }
 
   return {bin_info, [=](std::vector<double> const &x) -> BinId {
-            if (x.size() != nax) {
+            if (x.size() < nax) {
               return npos;
             }
 
@@ -151,7 +196,7 @@ BinOp lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
             for (size_t ax_i = 0; ax_i < nax; ++ax_i) {
 
               BinId dimbin =
-                  (x[ax_i] > std::get<2>(axes[ax_i])) ? npos
+                  (x[ax_i] >= std::get<2>(axes[ax_i])) ? npos
                   : (x[ax_i] < std::get<1>(axes[ax_i]))
                       ? npos
                       : std::floor((x[ax_i] - std::get<1>(axes[ax_i])) /
@@ -182,7 +227,17 @@ template <int base>
 BinOp log_space_impl(size_t nbins, double min, double max,
                      std::string const &label) {
 
-  double step = (max - min) / double(nbins);
+  auto logbase = [=](double v) -> double {
+    return (base == 0) ? std::log(v) : (std::log(v) / std::log(base));
+  };
+  auto expbase = [=](double v) -> double {
+    return (base == 0) ? std::exp(v) : std::exp(v * std::log(base));
+  };
+
+  auto minl = logbase(min);
+  auto maxl = logbase(max);
+
+  double step = (maxl - minl) / double(nbins);
 
   BinningInfo bin_info;
   bin_info.axis_labels.push_back(label);
@@ -190,18 +245,27 @@ BinOp log_space_impl(size_t nbins, double min, double max,
   for (size_t i = 0; i < nbins; ++i) {
     bin_info.extents.emplace_back();
 
-    auto low = min + (i * step);
-    auto high = min + ((i + 1) * step);
+    auto low = expbase(minl + (i * step));
+    auto high = expbase(minl + ((i + 1) * step));
+    // spdlog::info(
+    //     "[log_space<base = {}>]:\n\tparams: {{ nbins: {}, min: {:.2f}, max: "
+    //     "{:.2f}, minl: {:.2f}, maxl: {:.2f}, step: {:.2f} }}. bin {} = [ "
+    //     "{:.2f} "
+    //     "-- {:.2f} ] "
+    //     "| [ {:.2f} -- {:.2f} ].",
+    //     base, nbins, min, max, minl, maxl, step, i, low, high,
+    //     minl + (i * step), maxl + ((i + 1) * step));
 
-    auto minl = (base == 0) ? std::exp(low) : std::exp(low * std::log(base));
-    auto maxl = (base == 0) ? std::exp(high) : std::exp(high * std::log(base));
-    bin_info.extents.back().emplace_back(BinningInfo::extent{minl, maxl});
+    bin_info.extents.back().emplace_back(BinningInfo::extent{low, high});
   }
 
   return {bin_info, [=](std::vector<double> const &x) -> BinId {
-            if (x.size() != 1) {
+            if (x.size() < 1) {
               return npos;
             }
+
+            // spdlog::info("[log_space<base = {}>]: Finding bin for {}", base, x);
+
             if (x[0] <= 0) {
               spdlog::warn("[log_space<base = {}>]: Attempted to find log bin "
                            "for unloggable number, {} ",
@@ -209,12 +273,11 @@ BinOp log_space_impl(size_t nbins, double min, double max,
               return npos;
             }
 
-            auto xl = (base == 0) ? std::log(x[0])
-                                  : (std::log(x[0]) / std::log(base));
+            auto xl = logbase(x[0]);
 
-            return (xl > max)   ? npos
-                   : (xl < min) ? npos
-                                : std::floor((xl - min) / step);
+            return (xl >= maxl)  ? npos
+                   : (xl < minl) ? npos
+                                 : std::floor((xl - minl) / step);
           }};
 }
 
@@ -226,6 +289,55 @@ BinOp log10_space(size_t nbins, double min, double max,
 BinOp log_space(size_t nbins, double min, double max,
                 std::string const &label) {
   return log_space_impl<0>(nbins, min, max, label);
+}
+
+BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
+                     std::string const &label) {
+
+  std::sort(extents.begin(), extents.end());
+
+  BinningInfo bin_info;
+  bin_info.axis_labels.push_back(label);
+  for (auto ext : extents) {
+
+    bin_info.extents.emplace_back();
+    bin_info.extents.back().emplace_back(ext);
+  }
+
+  return {bin_info, [=](std::vector<double> const &x) -> BinId {
+            size_t L = 0;
+            size_t R = bin_info.extents.size() - 1;
+            // spdlog::info(
+            // "[from_extents]: binary search: {{ x: {}, L: {}, R: {} }}.",
+            // x[0], L, R);
+            while (L <= R) {
+              size_t m = floor((L + R) / 2);
+              // spdlog::info(
+              //     "[from_extents]: checking {{ x: {}, m: {}, min: {}, max: {}
+              //     }}.",
+              // x[0], m, bin_info.extents[m][0].min,
+              // bin_info.extents[m][0].max);
+              if ((bin_info.extents[m][0].min <= x[0]) &&
+                  (bin_info.extents[m][0].max > x[0])) {
+                // spdlog::info("-- in bin: {} < {} < {}",
+                // bin_info.extents[m][0].min,
+                //              bin_info.extents[m][0].max, x[0]);
+                return m;
+              } else if (bin_info.extents[m][0].max <= x[0]) {
+                L = m + 1;
+                // spdlog::info("-- {} < {}: L = {}",
+                // bin_info.extents[m][0].max, x[0], L);
+              } else if (bin_info.extents[m][0].min > x[0]) {
+                R = m - 1;
+                // spdlog::info("-- {} > {}: R = {}",
+                // bin_info.extents[m][0].min, x[0],
+                //              R);
+              }
+            }
+            // spdlog::info("[from_extents]: binary search: failed, returning
+            // npos.");
+            return npos;
+          }};
 }
 
 } // namespace Bins
