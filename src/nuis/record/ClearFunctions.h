@@ -4,7 +4,7 @@
 namespace nuis {
 namespace clear {
 // Fix these for full covariance estimates
-void DefaultClear(const ComparisonFrame& fr) {
+void DefaultClear(ComparisonFrame& fr) {
     return;
 }
 }

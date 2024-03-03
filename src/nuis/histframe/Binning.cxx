@@ -296,7 +296,10 @@ BinOp log_space(size_t nbins, double min, double max,
 BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
                      std::string const &label) {
 
-  std::sort(extents.begin(), extents.end());
+  // PS. Unsure if this is the right way to do this.
+  // Users could make a list and assume bin1 is their original order.
+  // We should assume the order passed in even if the search is inefficient.
+  std::sort(extents.begin(), extents.end()); 
 
   BinningInfo bin_info;
   bin_info.axis_labels.push_back(label);
@@ -307,6 +310,8 @@ BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
   }
 
   return {bin_info, [=](std::vector<double> const &x) -> BinId {
+    std::cout << "TRYING BiN FUNCTION SEARCH " << bin_info.extents.size() << " " << std::endl;
+
             size_t L = 0;
             size_t R = bin_info.extents.size() - 1;
             // spdlog::info(
@@ -314,6 +319,7 @@ BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
             // x[0], L, R);
             while (L <= R) {
               size_t m = floor((L + R) / 2);
+              std::cout << "M " << m << " " << L << " " << R << std::endl;
               // spdlog::info(
               //     "[from_extents]: checking {{ x: {}, m: {}, min: {}, max: {}
               //     }}.",
@@ -349,6 +355,7 @@ BinOp from_binedges1D(std::vector<double> const &edges, std::string const &label
   }
   return from_extents1D(extents, label);
 }
+
 
 } // namespace Bins
 } // namespace nuis

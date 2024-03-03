@@ -1,8 +1,11 @@
 #include "nuis/record/plugins/IRecordPlugin.h"
 #include "nuis/record/Utility.h"
+#include "nuis/histframe/Binning.h"
+
 #include "boost/dll/alias.hpp"
 
-#include "nuis/record/Variables.h"
+#include "nuis/record/plugins/HEPDataVariables.h"
+
 #include "nuis/record/ClearFunctions.h"
 #include "nuis/record/WeightFunctions.h"
 #include "nuis/record/FinalizeFunctions.h"
@@ -14,10 +17,65 @@
 
 #include <filesystem>
 
+using namespace nuis;
+using namespace nuis::Bins;
+
+// The functions for binning are pretty opaque to new users. I think comments need to label
+// these as the efficient implementations and some simple examples. For now to 
+// make sure things are working I'm adding a HEPData brute force search one so we can be 
+// sure its working.
+nuis::Bins::BinOp from_hepdata_extents(std::vector<Variables>& axes) {
+
+    nuis::Bins::BinningInfo bin_info;
+    for (auto const& ax : axes) {
+        bin_info.axis_labels.push_back(ax.name);
+    }
+
+    // Make the containers as its transposed I think
+    for (size_t j = 0; j < axes[0].n; j++) {
+        bin_info.extents.emplace_back();
+    }
+
+    // HEPData format is in vector<x>, vector<y>
+    for (size_t i = 0; i < axes.size(); i++) {
+        for (size_t j = 0; j < axes[i].n; j++) {
+            BinningInfo::extent vp = {axes[i].low[j], axes[i].high[j]};
+            bin_info.extents[j].emplace_back(vp);
+        }
+    }
+
+    return {bin_info, [=](std::vector<double> const &x) -> BinId {
+
+            for (size_t i = 0; i < bin_info.extents.size(); i++) {
+                const std::vector<BinningInfo::extent>& bin_info_slice =
+                    bin_info.extents[i];
+
+                bool goodbin = true;
+                for (size_t j = 0; j < bin_info_slice.size(); j++) {
+                    if (x[j] < bin_info_slice[j].min)   {
+                        goodbin = false;
+                        break;
+                    }
+                    if (x[j] >= bin_info_slice[j].max) {
+                        goodbin = false;
+                        break;
+                    }
+                }
+                if (!goodbin) continue;
+                return i;
+            }
+            return npos;
+        }
+    };
+}
+
+
+
+
 namespace nuis {
 
 using ClearFunc =
-    std::function<void(ComparisonFrame const&)>;
+    std::function<void(ComparisonFrame&)>;
 
 using ProjectFunc =
     std::function<double(HepMC3::GenEvent const &)>;
@@ -29,7 +87,7 @@ using SelectFunc =
     std::function<int(HepMC3::GenEvent const &)>;
 
 using FinalizeFunc =
-    std::function<void(ComparisonFrame const&)>;
+    std::function<void(ComparisonFrame&)>;
 
 using LikelihoodFunc =
     std::function<double(ComparisonFrame const&)>;
@@ -50,15 +108,13 @@ class HEPDataRecord : public IRecordPlugin {
         node = cfg;
     }
 
-    TablePtr table(std::string name) {
-        std::cout << "Getting HEPRECORD " << name << std::endl;
+    TablePtr table(std::string table) {
         YAML::Node cfg = node;
 
         db_path = nuis::database();
 
         auto sc = schema();
         nuis::validate_yaml_map("HEPDATARecord", sc, cfg);
-
 
         std::string release = cfg["release"].as<std::string>();
 
@@ -77,7 +133,7 @@ class HEPDataRecord : public IRecordPlugin {
             // abort();
         // }
 
-        std::string table = cfg["table"].as<std::string>();
+        // std::string table = cfg["table"].as<std::string>();
 
 
         std::vector<YAML::Node> yaml_docs =
@@ -86,13 +142,9 @@ class HEPDataRecord : public IRecordPlugin {
 
         std::string table_file;
         for (auto const &node : yaml_docs) {
-            std::cout << "LOOPING YAML DOCS" << std::endl;
             if (!node["name"]) continue;
-            std::cout << "NAME YAML DOCS " << node["name"].as<std::string>() << std::endl;
-
             if (!node["data_file"]) continue;
 
-            std::cout << "TABLE " << node["name"].as<std::string>() << std::endl;
             if (node["name"].as<std::string>() == table) {
                 table_file = node["data_file"].as<std::string>();
             }
@@ -186,31 +238,39 @@ class HEPDataRecord : public IRecordPlugin {
         }
 
         tab.clear     = nuis::clear::DefaultClear;
-        tab.weighting = nuis::weight::DefaultWeight;
-        tab.finalize  = nuis::finalize::FATXNormalizedByBinWidth;
+
+        tab.project   = [tab](HepMC3::GenEvent const & ev) {
+            std::vector<double> v;
+            for (auto const& p : tab.projections) {
+                v.emplace_back(p(ev));
+            }
+            return v;
+        };
+
+        tab.weight = nuis::weight::DefaultWeight;
+        tab.finalize  = nuis::finalize::EventRateScaleToData;
         tab.likeihood = nuis::likelihood::Chi2;
 
-        std::vector<nuis::Bins::BinOp> binning;
-        for (auto const & iv : variables_indep) {
-            std::vector<nuis::Bins::BinningInfo::extent> extents;
-            for (size_t bini = 0; bini < iv.low.size(); bini++) {
-                extents.push_back({iv.low[bini], iv.high[bini]});
-            }
-            auto bin_axis = from_extents1D(extents, iv.name);
-            binning.emplace_back(bin_axis);
-        }
+        nuis::Bins::BinOp binning = from_hepdata_extents(variables_indep);
 
-        ComparisonFrame hist(binning[0]);
+        ComparisonFrame hist(binning);
+
+        hist.data.contents.col(0) = Eigen::Map<Eigen::VectorXd>(
+            variables_dep[0].values.data(),
+            variables_dep[0].values.size());
+
+        hist.data.variance.col(0) = Eigen::Map<Eigen::VectorXd>(
+            variables_dep[0].errors.data(),
+            variables_dep[0].errors.size());
+
         tab.blueprint = std::make_shared<ComparisonFrame>(hist);
 
-        std::cout << "Returning Table" << std::endl;
         return std::make_shared<Table>(tab);
     }
 
     bool good() const { return true; }
 
     static IRecordPluginPtr Make(YAML::Node const &cfg) {
-        std::cout << "Making shared HEPDATA " << std::endl;
         return std::make_shared<HEPDataRecord>(cfg);
     }
 

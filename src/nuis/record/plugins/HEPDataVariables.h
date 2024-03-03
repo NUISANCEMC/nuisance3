@@ -30,6 +30,9 @@ using namespace YAML;
 
 namespace nuis {
 
+// Keeping old structur for now but should
+// be updated to better match HISTFrame structure
+// when finally agreed on.
 struct Variables {
   std::vector<double> values;
   std::vector<double> low;

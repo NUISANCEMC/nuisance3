@@ -70,6 +70,7 @@ Bins::BinId HistFrame::find_bin(double proj) const {
 
 void HistFrame::fill_bin(Bins::BinId i, double weight,
                          HistFrame::column_t col) {
+  // PS. Shouldn't an npos check search go on even if not in debug?
 #ifndef NDEBUG
   if (i == Bins::npos) {
     spdlog::critical(
@@ -99,6 +100,8 @@ void HistFrame::fill_bin(Bins::BinId i, double weight,
 void HistFrame::fill_with_selection(int sel_int,
                                     std::vector<double> const &projections,
                                     double weight, column_t col) {
+
+  // PS Why is local projections necessary if its not used in fill?
   static std::vector<double> local_projections(10);
   local_projections.clear();
   local_projections.push_back(sel_int);
@@ -115,6 +118,13 @@ void HistFrame::fill_with_selection(int sel_int, double projection,
 
 void HistFrame::fill(std::vector<double> const &projections, double weight,
                      HistFrame::column_t col) {
+  
+  // PS. NULL values should be checked explicitly to avoid min/max checks.
+  if (std::find(projections.begin(),
+    projections.end(),
+    0xdeadbeef) != projections.end())
+    return;
+
   fill_bin(find_bin(projections), weight, col);
 }
 

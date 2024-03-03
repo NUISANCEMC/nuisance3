@@ -8,10 +8,13 @@
 namespace nuis {
 
 using ClearFunc =
-    std::function<void(ComparisonFrame const&)>;
+    std::function<void(ComparisonFrame&)>;
 
 using ProjectFunc =
     std::function<double(HepMC3::GenEvent const &)>;
+
+using FullProjectFunc =
+    std::function<std::vector<double>(HepMC3::GenEvent const &)>;
 
 using WeightFunc =
     std::function<double(HepMC3::GenEvent const &)>;
@@ -20,7 +23,7 @@ using SelectFunc =
     std::function<int(HepMC3::GenEvent const &)>;
 
 using FinalizeFunc =
-    std::function<void(ComparisonFrame const&)>;
+    std::function<void(ComparisonFrame&)>;
 
 using LikelihoodFunc =
     std::function<double(ComparisonFrame const&)>;
@@ -44,8 +47,9 @@ struct Table {
 
     ClearFunc clear;
     SelectFunc select;
-    WeightFunc weighting;
+    WeightFunc weight;
     std::vector<ProjectFunc> projections;
+    FullProjectFunc project;
     FinalizeFunc finalize;
     LikelihoodFunc likeihood;
 };

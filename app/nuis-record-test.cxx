@@ -1,6 +1,7 @@
 #include "nuis/eventinput/EventSourceFactory.h"
 
 #include "nuis/weightcalc/WeightCalcFactory.h"
+#include "indicators.hpp"
 
 #include "nuis/frame/FrameGen.h"
 #include "nuis/histframe/HistFrame.h"
@@ -38,12 +39,34 @@ int main(int argc, char const *argv[]) {
 
   // Full Individual Processing
   auto anl_record        = rfact.make(cfg);
-  auto anl_table         = anl_record->table("EventRate-Q2");
+  auto anl_table         = anl_record->table("EventCounts-Q2");
   auto anl_compare_neut  = anl_table->comparison();
   auto anl_compare_nuwro = anl_table->comparison();
-  std::cout << anl_compare_nuwro["data"].getcv() << std::endl;
 
-  // Inline Individual Processing (doesn't work due to ProSel)
+  int count = 0;
+  for (auto const &[ev, cvw] : evs) {
+
+    anl_compare_neut.fill_with_selection(
+      anl_table->select(ev),
+      anl_table->project(ev),
+      cvw * anl_table->weight(ev));
+
+    count++;
+    if (count % 10000 == 0) std::cout << count << std::endl;
+    if (count > 10000) break;
+  }
+
+  std::cout << "Raw" << std::endl;
+  std::cout << anl_compare_neut["data"].getcv() << std::endl;
+  std::cout << anl_compare_neut["mc"].getcv() << std::endl;
+
+  anl_table->finalize(anl_compare_neut);
+
+  std::cout << "Finalized" << std::endl;
+  std::cout << anl_compare_neut["data"].getcv() << std::endl;
+  std::cout << anl_compare_neut["mc"].getcv() << std::endl;
+
+  // Inline Individual Processing (doesn't work due to ProSel conflict issue)
   // auto compare_neut2  = rfact.make(cfg)->table("EventRate-Q2")->comparison();
   // auto compare_nuwro2 = rfact.make(cfg)->table("EventRate-Q2")->comparison();
   // std::cout << compare_nuwro2["data"].getcv() << std::endl;
