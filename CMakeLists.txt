@@ -182,11 +182,13 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/histframe)
 # add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/python)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/record)
+
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
 
 
-
+# Sorry all this below is a mess, I will tidy.... PS
 
 if(NOT CMAKE_PROPERTY_LIST)
     execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)

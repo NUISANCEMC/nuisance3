@@ -1,4 +1,6 @@
-add_library(record SHARED HEPDataRecordFactory.cxx Table.cxx Comparison.cxx)
+add_subdirectory(plugins)
+
+add_library(record SHARED RecordFactory.cxx)
 
 target_link_libraries(record PUBLIC nuis_options)
 

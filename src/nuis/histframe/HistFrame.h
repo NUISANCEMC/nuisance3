@@ -55,6 +55,8 @@ struct HistFrame {
   HistFrame(Bins::BinOp bindef, std::string const &def_col_name = "mc",
             std::string const &def_col_label = "");
 
+  HistFrame(){};
+
   using column_t = uint32_t;
   constexpr static column_t const npos = std::numeric_limits<column_t>::max();
 

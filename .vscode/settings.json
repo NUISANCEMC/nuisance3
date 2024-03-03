@@ -92,6 +92,8 @@
         "test.C": "cpp",
         "test3.C": "cpp",
         "shared_mutex": "cpp",
-        "numeric": "cpp"
+        "numeric": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp"
     }
 }

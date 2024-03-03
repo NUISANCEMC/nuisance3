@@ -7,6 +7,9 @@
 #include "nuis/histframe/ROOTUtility.h"
 #include "nuis/histframe/Utility.h"
 
+#include "nuis/record/RecordFactory.h"
+
+
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/FATXUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"
@@ -73,6 +76,9 @@ int main(int argc, char const *argv[]) {
 
   EventSourceFactory fact;
   auto [gri, evs] = fact.make(argv[1]);
+
+  RecordFactory rfact;
+  rfact.make( YAML::Load(R"("type":"hepdata")") );
 
   if (!evs) {
     spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
