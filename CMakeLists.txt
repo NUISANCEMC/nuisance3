@@ -98,15 +98,11 @@ include(CPM)
 # Use a package lock
 # CPMUsePackageLock(package-lock.cmake)
 
-find_package(
-  ProSelecta 
+CPMFindPackage(
+    NAME ProSelecta
+    GITHUB_REPOSITORY NUISANCEMC/ProSelecta
+    GIT_TAG main
 )
-
-#CPMFindPackage(
-#    NAME ProSelecta
-#    GITHUB_REPOSITORY NUISANCEMC/ProSelecta
-#    GIT_TAG main
-#)
 
 CPMFindPackage(
     NAME fmt
