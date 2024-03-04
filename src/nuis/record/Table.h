@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <utility>
 
 #include "nuis/record/ComparisonFrame.h"
 
@@ -52,5 +53,16 @@ struct Table {
     FullProjectFunc project;
     FinalizeFunc finalize;
     LikelihoodFunc likeihood;
+
+    // I also want the ability to do table.add_column for direct blueprint updates.
+    template<typename... TS>
+    auto add_column(TS&&... args)
+        {return blueprint->add_column(std::forward<TS>(args)...);};
+
+    template<typename... TS>
+    auto find_column_index(TS&&... args)
+        {return blueprint->
+            find_column_index(std::forward<TS>(args)...);};
+
 };
 }

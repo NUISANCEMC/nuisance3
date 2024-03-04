@@ -10,6 +10,8 @@
 
 #include 
 
+// THIS PLUGIN IS JUST A PLACEHOLDER
+
 namespace nuis {
 
 class NUISANCERecord : public IRecordPlugin {

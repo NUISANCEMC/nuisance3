@@ -25,7 +25,7 @@ std::string database() {
   return std::string(DATABASE);
 }
 
-
+// This should be made more robust using proper schema
 bool validate_yaml_map(std::string source, const YAML::Node& schema, const YAML::Node& data, const std::string& path = "") {
     if (!schema.IsMap() || !data.IsMap()) {
         std::cout << "Error: Both schema and data should be YAML maps." << std::endl;
