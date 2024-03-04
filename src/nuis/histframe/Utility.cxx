@@ -24,17 +24,15 @@ void FillHistFromEventColumns(HistFrame &hf, Eigen::ArrayXd const &weights,
   }
 }
 
-namespace Bins {
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
-                BinningInfo const &bi) {
+                Binning const &bi) {
   boost::json::array bins_arr;
-  bins_arr.resize(bi.extents.size());
-  for (size_t i = 0; i < bi.extents.size(); ++i) {
+  bins_arr.resize(bi.bins.size());
+  for (size_t i = 0; i < bi.bins.size(); ++i) {
     boost::json::array ax_exts;
-    ax_exts.resize(bi.extents[i].size());
-    for (size_t j = 0; j < bi.extents[i].size(); ++j) {
-      ax_exts[j] = {{"min", bi.extents[i][j].min},
-                    {"max", bi.extents[i][j].max}};
+    ax_exts.resize(bi.bins[i].size());
+    for (size_t j = 0; j < bi.bins[i].size(); ++j) {
+      ax_exts[j] = {{"min", bi.bins[i][j].min}, {"max", bi.bins[i][j].max}};
     }
     bins_arr[i] = ax_exts;
   }
@@ -42,12 +40,11 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
   jv = {{"independent_axis_labels", boost::json::value_from(bi.axis_labels)},
         {"bins", bins_arr}};
 }
-} // namespace Bins
 
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
                 HistFrame const &hf) {
   boost::json::object hist_frame;
-  hist_frame["binning"] = boost::json::value_from(hf.binning.bin_info);
+  hist_frame["binning"] = boost::json::value_from(hf.binning);
 
   for (int i = 0; i < hf.contents.cols(); ++i) {
     std::string key_name =

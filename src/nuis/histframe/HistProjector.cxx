@@ -1,32 +1,55 @@
 #include "nuis/histframe/HistProjector.h"
+#include "nuis/histframe/BinningUtility.h"
 
 #include "fmt/ranges.h"
 
 #include "spdlog/spdlog.h"
 
 namespace nuis {
-namespace Bins {
 
 struct ProjectionMap {
   std::vector<size_t> project_to_axes;
-  std::map<BinningInfo::extent, std::vector<BinId>> bin_columns;
+  std::vector<Binning::BinExtents> projected_extents;
+  std::map<Binning::BinExtents, std::vector<Binning::Index>> bin_columns;
 };
 
-ProjectionMap Build1DProjectionMap(BinningInfo const &bin_info,
-                                   size_t proj_to_axis) {
+ProjectionMap BuildProjectionMap(Binning const &bin_info,
+                                 std::vector<size_t> proj_to_axes) {
   ProjectionMap pmap;
-  pmap.project_to_axes.push_back(proj_to_axis);
+  pmap.project_to_axes = proj_to_axes;
+  pmap.projected_extents = project_to_unique_bins(bin_info.bins, proj_to_axes);
 
-  for (BinId bi_it = 0; bi_it < BinId(bin_info.extents.size()); ++bi_it) {
+  for (auto &proj_bin : pmap.projected_extents) {
+    pmap.bin_columns[proj_bin] = std::vector<Binning::Index>{};
+  }
 
-    auto const &bin = bin_info.extents[bi_it];
+  for (Binning::Index bi_it = 0;
+       bi_it < Binning::Index(bin_info.bins.size()); ++bi_it) {
 
-    // get the bin extent along the projection axis
-    for (size_t ax_it = 0; ax_it < bin.size(); ++ax_it) {
-      if (ax_it == proj_to_axis) {
-        pmap.bin_columns[bin[ax_it]].push_back(bi_it);
-      }
+    auto const &bin = bin_info.bins[bi_it];
+
+    Binning::BinExtents proj_bin;
+    for (auto proj_to_axis : proj_to_axes) {
+      proj_bin.push_back(bin[proj_to_axis]);
     }
+
+    if (!pmap.bin_columns.count(proj_bin)) {
+      spdlog::critical(
+          "[BuildProjectionMap]: When scanning bins, built projected bin "
+          "extent that project_to_unique_bins did not find, this is a bug in "
+          "NUISANCE, please report it to the authors.");
+      std::stringstream ss;
+      ss << "REPORT INFO:\n>>>----------------------------\ninput bin_info:\n"
+         << bin_info << "\n";
+      spdlog::critical(ss.str());
+      ss.str("");
+      ss << "projected extents: " << pmap.projected_extents << "\n";
+      spdlog::critical(ss.str());
+      ss.str("");
+      ss << "missed bin: " << proj_bin << "\n----------------------------<<<\n";
+      abort();
+    }
+    pmap.bin_columns.at(proj_bin).push_back(bi_it);
   }
 
   // do heuristics checks
@@ -74,31 +97,9 @@ ProjectionMap Build1DProjectionMap(BinningInfo const &bin_info,
   return pmap;
 }
 
-std::vector<Bins::BinningInfo::extent>
-GetAxisExtents(BinningInfo const &bin_info, size_t proj_to_axis) {
-  std::vector<Bins::BinningInfo::extent> bin_extents;
-
-  for (auto const &bin : bin_info.extents) {
-    if (bin.size() <= proj_to_axis) {
-      spdlog::critical("Tried to get dimension {} extent from binning with "
-                       "only {} dimensions.",
-                       proj_to_axis, bin.size());
-      abort();
-    }
-    bin_extents.push_back(bin[proj_to_axis]);
-  }
-
-  std::stable_sort(bin_extents.begin(), bin_extents.end());
-  bin_extents.erase(std::unique(bin_extents.begin(), bin_extents.end()),
-                    bin_extents.end());
-  return bin_extents;
-}
-
-} // namespace Bins
 } // namespace nuis
 
-std::ostream &operator<<(std::ostream &os,
-                         nuis::Bins::ProjectionMap const &pm) {
+std::ostream &operator<<(std::ostream &os, nuis::ProjectionMap const &pm) {
   os << "{ Project onto axis: " << pm.project_to_axes.front() << "\n";
   int i = 0;
   for (auto const &[proj_extent, bins] : pm.bin_columns) {
@@ -110,32 +111,20 @@ std::ostream &operator<<(std::ostream &os,
 
 namespace nuis {
 
-HistFrame Project1D(HistFrame const &hf, size_t proj_to_axis) {
-  auto const &pm = Build1DProjectionMap(hf.binning.bin_info, proj_to_axis);
-  auto const &extents = GetAxisExtents(hf.binning.bin_info, proj_to_axis);
-  HistFrame projhf(Bins::from_extents1D(
-      extents, hf.binning.bin_info.axis_labels[proj_to_axis]));
+HistFrame Project(HistFrame const &hf, std::vector<size_t> proj_to_axes) {
+  auto const &pm = BuildProjectionMap(hf.binning, proj_to_axes);
 
-  if (pm.bin_columns.size() != extents.size()) {
-    spdlog::critical("[Project1D]: Number of bins in the projection map, {}, "
-                     "is not equal to the number of bins in the axis extents, "
-                     "{}. Is this definitely the right projection map?");
-    std::cout << "BinInfo: " << projhf.binning.bin_info << std::endl;
-    std::cout << "Projection map: " << pm << std::endl;
-    abort();
+  std::vector<std::string> labels;
+  for (auto proj_to_axis : proj_to_axes) {
+    labels.push_back(hf.binning.axis_labels[proj_to_axis]);
   }
 
+  HistFrame projhf(Binning::from_extents(pm.projected_extents, labels));
   projhf.column_info = hf.column_info;
   projhf.reset();
 
-  for (size_t row_i = 0; row_i < extents.size(); ++row_i) {
-    if (!pm.bin_columns.count(extents[row_i])) {
-      spdlog::critical(
-          "[Project1D]; Something has got out of whack here. The two methods "
-          "of finding the projected binning have disagreed. This is a bug.");
-      abort();
-    }
-    for (auto const &bi_it : pm.bin_columns.at(extents[row_i])) {
+  for (size_t row_i = 0; row_i < pm.projected_extents.size(); ++row_i) {
+    for (auto const &bi_it : pm.bin_columns.at(pm.projected_extents[row_i])) {
       for (int col_i = 0; col_i < hf.contents.cols(); ++col_i) {
         projhf.contents(row_i, col_i) += hf.contents(bi_it, col_i);
         projhf.variance(row_i, col_i) += hf.variance(bi_it, col_i);

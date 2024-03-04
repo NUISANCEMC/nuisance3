@@ -12,7 +12,7 @@
 namespace nuis {
 
 std::vector<double> GetBinEdges(nuis::HistFrame const &hf, size_t dim) {
-  std::vector<Bins::BinningInfo::extent> bin_extents;
+  std::vector<Bins::SingleExtent> bin_extents;
 
   for (auto const &bin : hf.binning.bin_info.extents) {
     if (bin.size() <= dim) {

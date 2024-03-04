@@ -28,11 +28,11 @@ void init_histframe(py::module &m) {
 
   auto pyBinningInfo = py::class_<Bins::BinningInfo>(m, "BinningInfo");
 
-  py::class_<Bins::BinningInfo::extent>(pyBinningInfo, "extent")
-      .def_readwrite("min", &Bins::BinningInfo::extent::min)
-      .def_readwrite("max", &Bins::BinningInfo::extent::max)
-      .def("width", &Bins::BinningInfo::extent::width)
-      .def("__repr__", [](Bins::BinningInfo::extent const &self) {
+  py::class_<Bins::SingleExtent>(pyBinningInfo, "extent")
+      .def_readwrite("min", &Bins::SingleExtent::min)
+      .def_readwrite("max", &Bins::SingleExtent::max)
+      .def("width", &Bins::SingleExtent::width)
+      .def("__repr__", [](Bins::SingleExtent const &self) {
         std::stringstream ss;
         ss << self;
         return ss.str();
@@ -123,5 +123,5 @@ void init_histframe(py::module &m) {
         return ss.str();
       });
 
-  m.def("Project1D", &Project1D);
+  m.def("Project", &Project);
 }

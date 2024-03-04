@@ -11,64 +11,77 @@
 #include <vector>
 
 namespace nuis {
-namespace Bins {
+struct Binning {
 
-using BinId = uint32_t;
-constexpr BinId npos = std::numeric_limits<BinId>::max();
+  //--- types
+  using Index = uint32_t;
 
-using BinningF = std::function<BinId(std::vector<double> const &)>;
-
-struct BinningInfo {
-  YAML::Node yaml;
-
-  std::vector<std::string> axis_labels;
-
-  struct extent {
+  struct SingleExtent {
     double min;
     double max;
 
     double width() const { return (max - min); }
 
-    bool operator==(extent const &other) const {
+    bool operator==(SingleExtent const &other) const {
       return (min == other.min) && (max == other.max);
     }
-    bool operator<(extent const &other) const { return min < other.min; }
-  };
-  // BinExtents[i] are the N extents of bin i.
-  std::vector<std::vector<extent>> extents;
+    bool operator<(SingleExtent const &other) const { return min < other.min; }
 
-  // Get the size for each bin.
+    bool overlaps(SingleExtent const &other) const {
+      if (other.min < min) { // overlaps if other.max > min
+        return (other.max > min);
+      }
+      if (other.max > max) { // overlaps if other.max > min
+        return (other.min < max);
+      }
+      return true; // other is completely inside this
+    }
+
+    bool contains(double x) const { return (x >= min) && (x < max); }
+  };
+
+  using BinExtents = std::vector<SingleExtent>;
+
+  //--- constants
+  static constexpr Index npos = std::numeric_limits<Index>::max();
+
+  //--- data members
+  std::vector<std::string> axis_labels;
+
+  // extents[i] are the N SingleExtents of bin i.
+  std::vector<BinExtents> bins;
+
+  std::function<Index(std::vector<double> const &)> func;
+
+  //--- member functions
+
+  // Get the size for every bin.
   // The size will depend on the dimensionality of the binning: for 1D binning
   // it will correspond to the bin width, for 2D, the bin area, for 3D the bin
   // volume, etc...
   Eigen::ArrayXd bin_sizes() const;
+
+  //--- static functions
+
+  static Binning lin_space(size_t nbins, double min, double max,
+                           std::string const &label = "");
+  static Binning lin_spaceND(std::vector<std::tuple<size_t, double, double>>,
+                             std::vector<std::string> = {});
+
+  static Binning log_space(size_t nbins, double min, double max,
+                           std::string const &label = "");
+  static Binning log10_space(size_t nbins, double min, double max,
+                             std::string const &label = "");
+
+  // bin edges must be unique and monotonically increasing
+  static Binning contiguous(std::vector<double> const &edges,
+                            std::string const &label = "");
+
+  // extents must be unique and non-overlapping
+  static Binning from_extents(std::vector<BinExtents> extents,
+                              std::vector<std::string> const &labels = {});
+
+  static Binning product(std::vector<Binning> const &ops);
 };
 
-struct BinOp {
-  BinningInfo bin_info;
-  BinningF bin_func;
-};
-
-BinOp combine(std::vector<BinOp> const &ops);
-
-BinOp log_space(size_t nbins, double min, double max,
-                std::string const &label = "");
-BinOp log10_space(size_t nbins, double min, double max,
-                  std::string const &label = "");
-
-BinOp lin_space(size_t nbins, double min, double max,
-                std::string const &label = "");
-BinOp lin_spaceND(std::vector<std::tuple<size_t, double, double>>,
-                  std::vector<std::string> = {});
-
-BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
-                     std::string const &label = "");
-BinOp from_binedges1D(std::vector<double> const &edges,
-                      std::string const &label = "");
-
-} // namespace Bins
 } // namespace nuis
-
-std::ostream &operator<<(std::ostream &os,
-                         nuis::Bins::BinningInfo::extent const &);
-std::ostream &operator<<(std::ostream &os, nuis::Bins::BinningInfo const &);

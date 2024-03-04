@@ -10,7 +10,7 @@
 namespace nuis {
 struct HistFrame {
 
-  Bins::BinOp binning;
+  Binning binning;
 
   struct ColumnInfo {
     std::string name;
@@ -22,7 +22,7 @@ struct HistFrame {
   Eigen::ArrayXXd contents, variance;
   size_t nfills;
 
-  HistFrame(Bins::BinOp bindef, std::string const &def_col_name = "mc",
+  HistFrame(Binning binop, std::string const &def_col_name = "mc",
             std::string const &def_col_label = "");
 
   using column_t = uint32_t;
@@ -36,7 +36,7 @@ struct HistFrame {
   Eigen::ArrayXd get_error(column_t col = 0,
                            bool divide_by_bin_sizes = false) const;
 
-  Bins::BinId find_bin(std::vector<double> const &projections) const;
+  Binning::Index find_bin(std::vector<double> const &projections) const;
   void fill(std::vector<double> const &projections, double weight,
             column_t col = 0);
   // A semantically meaningful helper function for passing a selection integer
@@ -45,12 +45,12 @@ struct HistFrame {
                            double weight, column_t col = 0);
 
   // convenience for 1D histograms
-  Bins::BinId find_bin(double projection) const;
+  Binning::Index find_bin(double projection) const;
   void fill(double projection, double weight, column_t col = 0);
   void fill_with_selection(int sel_int, double projection, double weight,
                            column_t col = 0);
 
-  void fill_bin(Bins::BinId bini, double weight, column_t col = 0);
+  void fill_bin(Binning::Index bini, double weight, column_t col = 0);
 
   void reset();
 };
