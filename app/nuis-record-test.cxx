@@ -60,7 +60,9 @@ int main(int argc, char const *argv[]) {
   std::cout << anl_compare_neut["data"].getcv() << std::endl;
   std::cout << anl_compare_neut["mc"].getcv() << std::endl;
 
-  anl_table->finalize(anl_compare_neut);
+  auto norm_info = evs->norm_info();
+  anl_table->finalize(anl_compare_neut,
+    (norm_info.fatx / norm_info.sumweights) );
 
   std::cout << "Finalized" << std::endl;
   std::cout << anl_compare_neut["data"].getcv() << std::endl;

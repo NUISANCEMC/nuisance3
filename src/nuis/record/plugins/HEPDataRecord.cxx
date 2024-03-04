@@ -86,8 +86,9 @@ using WeightFunc =
 using SelectFunc =
     std::function<int(HepMC3::GenEvent const &)>;
 
+// Don't love that this needs all at once
 using FinalizeFunc =
-    std::function<void(ComparisonFrame&)>;
+    std::function<void(ComparisonFrame&, const double)>;
 
 using LikelihoodFunc =
     std::function<double(ComparisonFrame const&)>;

@@ -23,7 +23,7 @@ using SelectFunc =
     std::function<int(HepMC3::GenEvent const &)>;
 
 using FinalizeFunc =
-    std::function<void(ComparisonFrame&)>;
+    std::function<void(ComparisonFrame&, const double)>;
 
 using LikelihoodFunc =
     std::function<double(ComparisonFrame const&)>;
