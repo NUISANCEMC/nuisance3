@@ -310,7 +310,6 @@ BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
   }
 
   return {bin_info, [=](std::vector<double> const &x) -> BinId {
-    std::cout << "TRYING BiN FUNCTION SEARCH " << bin_info.extents.size() << " " << std::endl;
 
             size_t L = 0;
             size_t R = bin_info.extents.size() - 1;
@@ -319,7 +318,6 @@ BinOp from_extents1D(std::vector<BinningInfo::extent> extents,
             // x[0], L, R);
             while (L <= R) {
               size_t m = floor((L + R) / 2);
-              std::cout << "M " << m << " " << L << " " << R << std::endl;
               // spdlog::info(
               //     "[from_extents]: checking {{ x: {}, m: {}, min: {}, max: {}
               //     }}.",

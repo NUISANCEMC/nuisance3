@@ -142,7 +142,6 @@ void HistFrame::reset() {
 }
 
 
-// One failing of this is if someone does hist["mc". true] = VAL it won't work.
 HistColumn_View HistFrame::operator[](std::string const &name) const {
   
   Eigen::ArrayXd binsize = Eigen::ArrayXd::Zero

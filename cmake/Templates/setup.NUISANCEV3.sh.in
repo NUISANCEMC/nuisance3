@@ -107,7 +107,8 @@ export NUISANCE_PYBIND_LIBRARIES=${NUISANCE_CXX_LIBRARIES/:/ }
 export NUISANCE_PYBIND_FLAGS=${NUISANCE_CXX_FLAGS/:/ }
 export NUISANCE_PYBIND_PATHS=${NUISANCE_CXX_PATHS/:/ }
 
-export CPLUS_INCLUDE_PATH="$NUISANCE_ROOT/include/:$NUISANCE_CXX_PATHS"
+# PS. Needs rethinking
+# export CPLUS_INCLUDE_PATH="$NUISANCE_ROOT/include/:$NUISANCE_CXX_PATHS"
 
 # PS For the dev box put this as default but should be moved eventually
 export PROSELECTA_DIR=${NUISANCE_ROOT}/include/
