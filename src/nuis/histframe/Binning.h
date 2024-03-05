@@ -1,5 +1,7 @@
 #pragma once
 
+#include "nuis/except.h"
+
 #include "yaml-cpp/yaml.h"
 
 #include "Eigen/Dense"
@@ -11,6 +13,13 @@
 #include <vector>
 
 namespace nuis {
+
+NEW_NUISANCE_EXCEPT(BinningUnsorted);
+NEW_NUISANCE_EXCEPT(BinningHasOverlaps);
+NEW_NUISANCE_EXCEPT(BinningNotUnique);
+NEW_NUISANCE_EXCEPT(MismatchedAxisCount);
+NEW_NUISANCE_EXCEPT(CatastrophicBinSearchFailure);
+
 struct Binning {
 
   //--- types
@@ -21,11 +30,6 @@ struct Binning {
     double max;
 
     double width() const { return (max - min); }
-
-    bool operator==(SingleExtent const &other) const {
-      return (min == other.min) && (max == other.max);
-    }
-    bool operator<(SingleExtent const &other) const { return min < other.min; }
 
     bool overlaps(SingleExtent const &other) const {
       if (other.min < min) { // overlaps if other.max > min
@@ -52,6 +56,10 @@ struct Binning {
   std::vector<BinExtents> bins;
 
   std::function<Index(std::vector<double> const &)> func;
+
+  // convenience functor-like overloads for calling Binning::func
+  Index operator()(std::vector<double> const &) const;
+  Index operator()(double) const;
 
   //--- member functions
 
@@ -83,6 +91,13 @@ struct Binning {
 
   static Binning product(std::vector<Binning> const &ops);
 };
+
+// sort bins based on extent in each dimension in decreasing dimension order
+// so that neighbouring bins are neighbouring in the first axis.
+bool operator<(Binning::BinExtents const &, Binning::BinExtents const &);
+
+bool operator<(Binning::SingleExtent const &, Binning::SingleExtent const &);
+bool operator==(Binning::SingleExtent const &, Binning::SingleExtent const &);
 
 } // namespace nuis
 

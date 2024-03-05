@@ -35,6 +35,15 @@ binning_product_recursive(std::vector<Binning>::const_reverse_iterator from,
   return bins;
 }
 
+Binning::Index Binning::operator()(std::vector<double> const &x) const {
+  return func(x);
+}
+Binning::Index Binning::operator()(double x) const {
+  static std::vector<double> vect(1, 0);
+  vect[0] = x;
+  return func(vect);
+}
+
 Eigen::ArrayXd Binning::bin_sizes() const {
   Eigen::ArrayXd bin_sizes = Eigen::ArrayXd::Zero(bins.size());
   size_t i = 0;
@@ -206,7 +215,7 @@ Binning Binning::contiguous(std::vector<double> const &edges,
           "[contiguous]: Bin edges are not unique and monotonically "
           "increasing. edge[{}] = {}, edge[{}] = {}.",
           i, edges[i], i - 1, edges[i - 1]);
-      abort();
+      throw BinningUnsorted();
     }
     bin_info.bins.emplace_back();
     bin_info.bins.back().push_back(SingleExtent{edges[i - 1], edges[i]});
@@ -216,22 +225,183 @@ Binning Binning::contiguous(std::vector<double> const &edges,
 
   // binary search for bin
   bin_info.func = [=](std::vector<double> const &x) -> Index {
+    if (x[0] < bin_info.bins.front()[0].min) {
+      return npos;
+    }
+    if (x[0] > bin_info.bins.back()[0].max) {
+      return npos;
+    }
+
     size_t L = 0;
     size_t R = bin_info.bins.size() - 1;
+    // spdlog::info("[from_extents]: binary search: {{ x: {}, L: {}, R: {} }}.",
+    //              x[0], L, R);
     while (L <= R) {
-      size_t m = floor((L + R) / 2);
-      if (bin_info.bins[m][0].contains(x[0])) {
+      size_t m = std::floor((L + R) / 2);
+      // spdlog::info(
+      //     "[from_extents]: checking {{ x: {}, m: {}, min: {}, max: {}}}.",
+      //     x[0],
+      // m, bin_info.bins[m][0].min, bin_info.bins[m][0].max);
+      if ((bin_info.bins[m][0].min <= x[0]) &&
+          (bin_info.bins[m][0].max > x[0])) {
+        // spdlog::info("-- in bin: {} < {} < {}", bin_info.bins[m][0].min,
+        //              bin_info.bins[m][0].max, x[0]);
         return m;
       } else if (bin_info.bins[m][0].max <= x[0]) {
         L = m + 1;
+        // spdlog::info("-- {} < {}: L = {}", bin_info.bins[m][0].max, x[0],
+        // L);
       } else if (bin_info.bins[m][0].min > x[0]) {
         R = m - 1;
+        // spdlog::info("-- {} > {}: R = {}", bin_info.bins[m][0].min, x[0],
+        // R);
       }
     }
+    // spdlog::info("[from_extents]: binary search: failed, returning npos.");
     return npos;
   };
   return bin_info;
 }
+
+struct from_extentsHelper {
+
+  std::vector<Binning::BinExtents> bins;
+  std::vector<std::pair<Binning::Index, Binning::BinExtents>> sorted_bins;
+
+  from_extentsHelper(std::vector<Binning::BinExtents> const &bi) : bins(bi) {
+
+    for (Binning::Index bi_it = 0; bi_it < Binning::Index(bins.size());
+         ++bi_it) {
+      sorted_bins.emplace_back(bi_it, bins[bi_it]);
+    }
+    std::stable_sort(
+        sorted_bins.begin(), sorted_bins.end(),
+        [](std::pair<Binning::Index, Binning::BinExtents> const &a,
+           std::pair<Binning::Index, Binning::BinExtents> const &b) {
+          return a.second < b.second;
+        });
+  }
+
+  std::string tostr() const {
+    std::stringstream ss;
+    ss << "bins : " << bins;
+    ss << "sorted_bins: [" << std::endl;
+
+    size_t id = 0;
+    for (auto const &a : sorted_bins) {
+      ss << "  " << id++ << ": { Index: " << a.first << ", extent: " << a.second
+         << " }." << std::endl;
+    }
+
+    ss << "]" << std::endl;
+    return ss.str();
+  }
+
+  std::pair<size_t, size_t> get_axis_bin_range(std::vector<double> const &x,
+                                               size_t from, size_t to,
+                                               size_t ax) const {
+    // spdlog::info("[get_axis_bin_range]: x = {}, from = {}, to "
+    //              "= {}, ax = {}",
+    //              x[ax], from, to, ax);
+
+    if (sorted_bins[from].second[ax].min >
+        x[ax]) { // below any bins in this slice
+      // spdlog::info("[get_axis_bin_range]: x = {} < "
+      //              "bins[from][ax].min = {}",
+      //              x[ax], sorted_bins[from].second[ax].min);
+      return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
+    }
+
+    auto stop = std::min(size_t(sorted_bins.size()), to);
+
+    if (sorted_bins[stop - 1].second[ax].max <=
+        x[ax]) { // above any bins in this slice
+      // spdlog::info("[get_axis_bin_range]: x = {} < bins[stop - "
+      //              "1][ax].max = {}",
+      //              x[ax], sorted_bins[stop - 1].second[ax].max);
+      return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
+    }
+
+    size_t from_this_ax = Binning::npos;
+    size_t to_this_ax = stop;
+    for (size_t bi_it = from; bi_it < stop; ++bi_it) {
+      if (sorted_bins[bi_it].second[ax].contains(x[ax])) {
+        if (from_this_ax == Binning::npos) {
+          // std::stringstream ss;
+          // ss << sorted_bins[bi_it].second;
+          // spdlog::info("[get_axis_bin_range]: first bin in ax[{}]: {} = {}",
+          // ax,
+          //              bi_it, ss.str());
+          from_this_ax = bi_it;
+        }
+        // else {
+        //   std::stringstream ss;
+        //   ss << sorted_bins[bi_it].second;
+        //   spdlog::info("    {} bin in ax[{}]: {} = {}", (bi_it -
+        //   from_this_ax),
+        //                ax, bi_it, ss.str());
+        // }
+      } else if (from_this_ax != Binning::npos) {
+        to_this_ax = bi_it;
+        break;
+      }
+    }
+    // if (to_this_ax < stop) {
+    //   std::stringstream ss;
+    //   ss << sorted_bins[to_this_ax].second;
+    //   spdlog::info("[get_axis_bin_range]: first bin not in ax[{}]: {} = {}",
+    //   ax,
+    //                to_this_ax, ss.str());
+    // } else {
+    //   spdlog::info("[get_axis_bin_range]: end of range for ax[{}] = {} >= {},
+    //   "
+    //                "the size of the binning array.",
+    //                ax, to_this_ax, stop);
+    // }
+
+    return (ax == 0) ? std::pair<size_t, size_t>{from_this_ax, to_this_ax}
+                     : get_axis_bin_range(x, from_this_ax, to_this_ax, ax - 1);
+  }
+
+  Binning::Index operator()(std::vector<double> const &x) const {
+    // spdlog::info("[from_extentsHelper]: x = {}", x);
+    if (x.size() < sorted_bins.front().second.size()) {
+      spdlog::critical("[from_extentsHelper]: projections passed in: {} is "
+                       "smaller than the number of axes in a bin: {}",
+                       x, sorted_bins.front().second.size());
+      throw MismatchedAxisCount();
+    }
+
+    auto contains_range = get_axis_bin_range(
+        x, 0, sorted_bins.size(), sorted_bins.front().second.size() - 1);
+    if ((contains_range.first == Binning::npos) ||
+        (contains_range.second == Binning::npos)) {
+      // spdlog::info(
+      //     "[from_extentsHelper]: Search yielded npos. Returning npos.\n");
+      // spdlog::info(tostr());
+      return Binning::npos;
+    }
+
+    if ((contains_range.second - contains_range.first) != 1) {
+      spdlog::critical(
+          "[from_extentsHelper]: When searching for bin, failed to "
+          "find a unique bin. Either this is a bug in "
+          "NUISANCE or the binning is not unique.");
+      std::stringstream ss;
+      ss << "REPORT INFO:\n>>>----------------------------\ninput "
+            "bins: \n"
+         << bins << "\n";
+      spdlog::critical(ss.str());
+      spdlog::critical("searching for x: {}", x);
+      spdlog::critical("get_axis_bin_range: {}", contains_range);
+      throw CatastrophicBinSearchFailure();
+    }
+    // return the original Index
+    // spdlog::info("[from_extentsHelper]: Found original bin: {}\n",
+    //              sorted_bins[contains_range.first].first);
+    return sorted_bins[contains_range.first].first;
+  }
+};
 
 Binning Binning::from_extents(std::vector<BinExtents> bins,
                               std::vector<std::string> const &labels) {
@@ -252,7 +422,7 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
     std::stringstream ss("");
     ss << bins;
     spdlog::critical("Bins: {}", ss.str());
-    abort();
+    throw BinningNotUnique();
   }
 
   if (binning_has_overlaps(bin_info.bins)) {
@@ -262,102 +432,13 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
     std::stringstream ss("");
     ss << bins;
     spdlog::critical("Bins: {}", ss.str());
-    abort();
+    throw BinningHasOverlaps();
   }
 
-  std::vector<std::pair<Index, BinExtents>> sorted_bins;
-  for (Index bi_it = 0; bi_it < Index(bins.size()); ++bi_it) {
-    sorted_bins.emplace_back(bi_it, bins[bi_it]);
-  }
-  std::stable_sort(sorted_bins.begin(), sorted_bins.end(),
-                   [](std::pair<Index, BinExtents> const &a,
-                      std::pair<Index, BinExtents> const &b) {
-                     auto const &a_exts = a.second;
-                     auto const &b_exts = b.second;
-                     if (a_exts.size() != b_exts.size()) {
-                       spdlog::critical(
-                           "[from_extents/stable_sort]: Tried to sort "
-                           "multi-dimensional binning with "
-                           "bins of unequal dimensionality: {} != {}",
-                           a_exts.size(), b_exts.size());
-                       abort();
-                     }
-                     for (size_t i = a_exts.size(); i > 0; i--) {
-                       if (!(a_exts[i - 1] == b_exts[i - 1])) {
-                         return a_exts[i - 1] < b_exts[i - 1];
-                       }
-                     }
-                     // if we've got here the bin is identical in all dimensions
-                     return false;
-                   });
+  from_extentsHelper bin_finder(bins);
 
-  std::function<std::pair<Index, Index>(std::vector<double> const &, Index,
-                                        Index, size_t)>
-      get_axis_bin_range = [sorted_bins, &get_axis_bin_range](
-                               std::vector<double> const &x, Index from,
-                               Index to, size_t ax) {
-        spdlog::info(
-            "[get_axis_bin_range]: x = {}, from = {}, to = {}, ax = {}", x[ax],
-            from, to, ax);
-
-        if (sorted_bins[from].second[ax].min >
-            x[ax]) { // below any bins in this slice
-          spdlog::info("[get_axis_bin_range]: x = {} < bins[from][ax].min = {}",
-                       x[ax], sorted_bins[from].second[ax].min);
-          return std::pair<Index, Index>{npos, npos};
-        }
-
-        auto stop = std::min(Index(sorted_bins.size()), to);
-
-        if (sorted_bins[stop - 1].second[ax].max <
-            x[ax]) { // above any bins in this slice
-          spdlog::info(
-              "[get_axis_bin_range]: x = {} < bins[stop - 1][ax].max = {}",
-              x[ax], sorted_bins[stop - 1].second[ax].max);
-          return std::pair<Index, Index>{npos, npos};
-        }
-
-        Index from_this_ax = npos;
-        Index to_this_ax = npos;
-        for (Index bi_it = from; bi_it < stop; ++bi_it) {
-          if (sorted_bins[bi_it].second[ax].contains(x[ax])) {
-            if (from_this_ax == npos) {
-              spdlog::info("[get_axis_bin_range]: first bin in ax: {}", bi_it);
-              from_this_ax = bi_it;
-            }
-            to_this_ax = bi_it;
-
-          } else if (to_this_ax != npos) {
-            break;
-          }
-        }
-        spdlog::info("[get_axis_bin_range]: last bin in ax: {}", to_this_ax);
-        return (ax == 0)
-                   ? std::pair<Index, Index>{from_this_ax, to_this_ax}
-                   : get_axis_bin_range(x, from_this_ax, to_this_ax, ax - 1);
-      };
-
-  bin_info.func = [sorted_bins, bins,
-                   get_axis_bin_range](std::vector<double> const &x) -> Index {
-    auto contains_range = get_axis_bin_range(x, 0, sorted_bins.size(), 0);
-    if ((contains_range.first == npos) || (contains_range.second == npos)) {
-      return npos;
-    }
-    if (contains_range.first != contains_range.second) {
-      spdlog::critical("[from_extents]: When searching for bin, failed to "
-                       "find a unique bin. Either this is a bug in "
-                       "NUISANCE or the binning is not unique.");
-      std::stringstream ss;
-      ss << "REPORT INFO:\n>>>----------------------------\ninput "
-            "bins: \n"
-         << bins << "\n";
-      spdlog::critical(ss.str());
-      spdlog::critical("searching for x: {}", x);
-      spdlog::critical("get_axis_bin_range: {}", contains_range);
-      abort();
-    }
-    // return the original Index
-    return sorted_bins[contains_range.first].first;
+  bin_info.func = [bin_finder](std::vector<double> const &x) -> Index {
+    return bin_finder(x);
   };
   return bin_info;
 }
@@ -411,6 +492,32 @@ Binning Binning::product(std::vector<Binning> const &binnings) {
     return gbin;
   };
   return bin_info_product;
+}
+
+bool operator<(Binning::BinExtents const &a, Binning::BinExtents const &b) {
+  if (a.size() != b.size()) {
+    spdlog::critical(
+        "[operator<(Binning::BinExtents const &a, Binning::BinExtents const "
+        "&b)]: Tried to sort multi-dimensional binning with "
+        "bins of unequal dimensionality: {} != {}",
+        a.size(), b.size());
+    throw MismatchedAxisCount();
+  }
+  for (size_t i = a.size(); i > 0; i--) {
+    if (!(a[i - 1] == b[i - 1])) {
+      return a[i - 1] < b[i - 1];
+    }
+  }
+  // if we've got here the bin is identical in all dimensions
+  return false;
+}
+
+bool operator==(Binning::SingleExtent const &a,
+                Binning::SingleExtent const &b) {
+  return (a.min == b.min) && (a.max == b.max);
+}
+bool operator<(Binning::SingleExtent const &a, Binning::SingleExtent const &b) {
+  return (a.min != b.min) ? (a.min < b.min) : (a.max < b.max);
 }
 
 } // namespace nuis

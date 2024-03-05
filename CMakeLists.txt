@@ -48,6 +48,14 @@ elseif(NOT DEFINED CMAKE_BUILD_TYPE)
 endif()
 
 option(BUILTIN_NuWro "Whether to use build our own version of NuWro" ON)
+option(NUISANCE_ENABLE_TESTS "Whether to enable test suite" OFF)
+option(NUISANCE_ENABLE_SANITIZERS_CLI "Whether to enable ASAN LSAN and UBSAN" OFF)
+option(NUISANCE_ENABLE_GCOV_CLI "Whether to enable GCOV" OFF)
+
+if(NUISANCE_ENABLE_TESTS)
+    SET(NUISANCE_ENABLE_SANITIZERS ON)
+    SET(NUISANCE_ENABLE_GCOV ON)
+endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
 
@@ -168,6 +176,16 @@ target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter Boost::boos
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 target_link_options(nuis_options INTERFACE)
 
+if(NUISANCE_ENABLE_SANITIZERS)
+  target_compile_options(nuis_options INTERFACE -fno-omit-frame-pointer -fsanitize=address -fsanitize=leak -fsanitize=undefined)
+  target_link_options(nuis_options INTERFACE -fsanitize=address -fsanitize=leak -fsanitize=undefined)
+endif()
+
+if(NUISANCE_ENABLE_GCOV)
+  target_compile_options(nuis_options INTERFACE -fprofile-arcs -ftest-coverage)
+  target_link_options(nuis_options INTERFACE -fprofile-arcs -ftest-coverage)
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL Release)
   target_compile_definitions(nuis_options INTERFACE NUIS_NDEBUG)
 endif()
@@ -184,3 +202,16 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
 # BUILD SETUP
 configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.NUISANCEV3.sh.in ${PROJECT_BINARY_DIR}/setup.NUISANCEV3.sh @ONLY)
 install(PROGRAMS ${PROJECT_BINARY_DIR}/setup.NUISANCEV3.sh DESTINATION bin)
+
+if(NUISANCE_ENABLE_TESTS)
+
+  CPMAddPackage("gh:catchorg/Catch2@3.3.2")
+
+  LIST(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
+
+  include(CTest)
+  include(Catch)
+
+  add_subdirectory(tests)
+endif()
+

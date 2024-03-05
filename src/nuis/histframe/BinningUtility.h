@@ -5,8 +5,6 @@
 #include <iostream>
 
 namespace nuis {
-std::vector<Binning::BinExtents>
-stable_sort(std::vector<Binning::BinExtents> bins);
 std::vector<Binning::BinExtents> unique(std::vector<Binning::BinExtents> bins);
 bool bins_overlap(Binning::BinExtents const &a, Binning::BinExtents const &b);
 std::vector<Binning::BinExtents>

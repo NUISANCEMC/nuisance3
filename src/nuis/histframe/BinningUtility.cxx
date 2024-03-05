@@ -8,33 +8,8 @@
 
 namespace nuis {
 
-std::vector<Binning::BinExtents>
-stable_sort(std::vector<Binning::BinExtents> bins) {
-  // sort bins based on extent in each dimension in decreasing dimension order
-  // so that neighbouring bins are neighbouring in the first axis.
-  std::stable_sort(
-      bins.begin(), bins.end(),
-      [](Binning::BinExtents const &a, Binning::BinExtents const &b) {
-        if (a.size() != b.size()) {
-          spdlog::critical(
-              "[stable_sort]: Tried to sort multi-dimensional binning with "
-              "bins of unequal dimensionality: {} != {}",
-              a.size(), b.size());
-          abort();
-        }
-        for (size_t i = a.size(); i > 0; i--) {
-          if (!(a[i - 1] == b[i - 1])) {
-            return a[i - 1] < b[i - 1];
-          }
-        }
-        // if we've got here the bin is identical in all dimensions
-        return false;
-      });
-  return bins;
-}
-
 std::vector<Binning::BinExtents> unique(std::vector<Binning::BinExtents> bins) {
-  bins = stable_sort(bins);
+  std::stable_sort(bins.begin(), bins.end());
   bins.erase(
       std::unique(
           bins.begin(), bins.end(),
