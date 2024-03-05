@@ -124,29 +124,3 @@ bool binning_has_overlaps(std::vector<Binning::BinExtents> const &bins,
 }
 
 } // namespace nuis
-
-std::ostream &operator<<(std::ostream &os,
-                         nuis::Binning::SingleExtent const &sext) {
-  return os << fmt::format("({:.2f} - {:.2f})", sext.min, sext.max);
-}
-std::ostream &operator<<(std::ostream &os,
-                         nuis::Binning::BinExtents const &bext) {
-  os << "[";
-  for (size_t j = 0; j < bext.size(); ++j) {
-    os << bext[j] << ((j + 1) == bext.size() ? "]\n" : ", ");
-  }
-  return os;
-}
-std::ostream &operator<<(std::ostream &os,
-                         std::vector<nuis::Binning::BinExtents> const &bins) {
-  os << "[" << std::endl;
-  for (size_t i = 0; i < bins.size(); ++i) {
-    os << i << ": " << bins[i] << std::endl;
-  }
-  return os << "]" << std::endl;
-}
-
-std::ostream &operator<<(std::ostream &os, nuis::Binning const &bi) {
-  os << fmt::format("Axis lables: {}\nBins: ", bi.axis_labels);
-  return os << bi.bins;
-}

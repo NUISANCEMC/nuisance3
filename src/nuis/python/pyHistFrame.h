@@ -26,44 +26,44 @@ histframe_gettattr(HistFrame &s, std::string const &column) {
 
 void init_histframe(py::module &m) {
 
-  auto pyBinningInfo = py::class_<Bins::BinningInfo>(m, "BinningInfo");
+  auto pyBinning = py::class_<Binning>(m, "Binning");
 
-  py::class_<Bins::SingleExtent>(pyBinningInfo, "extent")
-      .def_readwrite("min", &Bins::SingleExtent::min)
-      .def_readwrite("max", &Bins::SingleExtent::max)
-      .def("width", &Bins::SingleExtent::width)
-      .def("__repr__", [](Bins::SingleExtent const &self) {
+  py::class_<Binning::SingleExtent>(pyBinning, "SingleExtent")
+      .def_readwrite("min", &Binning::SingleExtent::min)
+      .def_readwrite("max", &Binning::SingleExtent::max)
+      .def("width", &Binning::SingleExtent::width)
+      .def("__repr__", [](Binning::SingleExtent const &self) {
         std::stringstream ss;
         ss << self;
         return ss.str();
       });
 
-  pyBinningInfo
-      .def_readonly("extents", &Bins::BinningInfo::extents,
-                    py::return_value_policy::reference_internal)
-      .def_readonly("axis_labels", &Bins::BinningInfo::axis_labels,
-                    py::return_value_policy::reference_internal)
-      .def("bin_sizes", &Bins::BinningInfo::bin_sizes)
-      .def("__repr__", [](Bins::BinningInfo const &self) {
+  pyBinning.def_readonly_static("npos", &Binning::npos)
+      .def_readonly("bins", &Binning::bins)
+      .def_readonly("axis_labels", &Binning::axis_labels)
+      .def("bin_sizes", &Binning::bin_sizes)
+      .def("func", [](Binning const &self,
+                      std::vector<double> const &x) { return self.func(x); })
+      .def("__repr__", [](Binning const &self) {
         std::stringstream ss;
         ss << self;
         return ss.str();
       });
 
-  py::class_<Bins::BinOp>(m, "BinOp")
-      .def_readwrite("bin_info", &Bins::BinOp::bin_info)
-      .def_readwrite("bin_func", &Bins::BinOp::bin_func);
-
-  py::module binning = m.def_submodule("binning", "HistFrame binning bindings");
-  binning.def("combine", &Bins::combine)
-      .def("lin_space", &Bins::lin_space, py::arg("nbins"), py::arg("min"),
-           py::arg("max"), py::arg("label") = "")
-      .def("log_space", &Bins::log_space, py::arg("nbins"), py::arg("min"),
-           py::arg("max"), py::arg("label") = "")
-      .def("log10_space", &Bins::log10_space, py::arg("nbins"), py::arg("min"),
-           py::arg("max"), py::arg("label") = "")
-      .def("lin_spaceND", &Bins::lin_spaceND, py::arg("binnings"),
-           py::arg("labels") = std::vector<std::string>{});
+  pyBinning
+      .def_static("lin_space", &Binning::lin_space, py::arg("nbins"),
+                  py::arg("min"), py::arg("max"), py::arg("label") = "")
+      .def_static("log_space", &Binning::log_space, py::arg("nbins"),
+                  py::arg("min"), py::arg("max"), py::arg("label") = "")
+      .def_static("log10_space", &Binning::log10_space, py::arg("nbins"),
+                  py::arg("min"), py::arg("max"), py::arg("label") = "")
+      .def_static("lin_spaceND", &Binning::lin_spaceND, py::arg("binnings"),
+                  py::arg("labels") = std::vector<std::string>{})
+      .def_static("contiguous", &Binning::contiguous, py::arg("binedges"),
+                  py::arg("labels") = std::vector<std::string>{})
+      .def_static("from_extents", &Binning::from_extents, py::arg("extents"),
+                  py::arg("labels") = std::vector<std::string>{})
+      .def_static("product", &Binning::product, py::arg("ops"));
 
   py::class_<HistFrame::ColumnInfo>(m, "ColumnInfo")
       .def_readonly("name", &HistFrame::ColumnInfo::name,
@@ -73,7 +73,7 @@ void init_histframe(py::module &m) {
                     py::return_value_policy::reference_internal);
 
   py::class_<HistFrame>(m, "HistFrame")
-      .def(py::init<Bins::BinOp, std::string const &, std::string const &>(),
+      .def(py::init<Binning, std::string const &, std::string const &>(),
            py::arg("binop"), py::arg("def_col_name") = "mc",
            py::arg("def_col_label") = "")
       .def_readwrite("contents", &HistFrame::contents,
@@ -123,5 +123,8 @@ void init_histframe(py::module &m) {
         return ss.str();
       });
 
-  m.def("Project", &Project);
+  m.def("Project",
+        py::overload_cast<HistFrame const &, std::vector<size_t> const &>(
+            &Project))
+      .def("Project", py::overload_cast<HistFrame const &, size_t>(&Project));
 }

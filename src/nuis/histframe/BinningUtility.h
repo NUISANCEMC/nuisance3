@@ -17,9 +17,3 @@ bool binning_has_overlaps(std::vector<Binning::BinExtents> const &bins,
 bool binning_has_overlaps(std::vector<Binning::BinExtents> const &bins,
                           size_t proj_to_axis);
 } // namespace nuis
-
-std::ostream &operator<<(std::ostream &os, nuis::Binning::SingleExtent const &);
-std::ostream &operator<<(std::ostream &os, nuis::Binning::BinExtents const &);
-std::ostream &operator<<(std::ostream &os,
-                         std::vector<nuis::Binning::BinExtents> const &);
-std::ostream &operator<<(std::ostream &os, nuis::Binning const &);

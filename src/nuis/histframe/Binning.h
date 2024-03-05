@@ -85,3 +85,9 @@ struct Binning {
 };
 
 } // namespace nuis
+
+std::ostream &operator<<(std::ostream &os, nuis::Binning::SingleExtent const &);
+std::ostream &operator<<(std::ostream &os, nuis::Binning::BinExtents const &);
+std::ostream &operator<<(std::ostream &os,
+                         std::vector<nuis::Binning::BinExtents> const &);
+std::ostream &operator<<(std::ostream &os, nuis::Binning const &);

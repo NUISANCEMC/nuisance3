@@ -69,9 +69,9 @@ Binning::Index HistFrame::find_bin(double proj) const {
 void HistFrame::fill_bin(Binning::Index i, double weight,
                          HistFrame::column_t col) {
 #ifndef NDEBUG
-  if (i == Bins::npos) {
+  if (i == Binning::npos) {
     spdlog::critical(
-        "Tried to Fill histogram with out of range nuis::Bins::npos.");
+        "Tried to Fill histogram with out of range nuis::Binning::npos.");
     return;
   }
   if (i >= contents.rows()) {

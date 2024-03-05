@@ -1,5 +1,7 @@
 #pragma once
 
+#include "nuis/histframe/BinningUtility.h"
+
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
@@ -12,40 +14,20 @@
 namespace nuis {
 
 std::vector<double> GetBinEdges(nuis::HistFrame const &hf, size_t dim) {
-  std::vector<Bins::SingleExtent> bin_extents;
+  auto projected_bins = project_to_unique_bins(hf.binning.bins, {
+                                                                    dim,
+                                                                });
 
-  for (auto const &bin : hf.binning.bin_info.extents) {
-    if (bin.size() <= dim) {
-      spdlog::critical("Tried to get dimension {} extent from binning with "
-                       "only {} dimensions.",
-                       dim, bin.size());
-      abort();
-    }
-    bin_extents.push_back(bin[dim]);
-  }
-
-  // size_t ctr = 0;
-  // for (auto be : bin_extents) {
-  //   spdlog::info("before{}:  {}-{}", ctr++, be.min, be.max);
-  // }
-
-  std::sort(bin_extents.begin(), bin_extents.end());
-  bin_extents.erase(std::unique(bin_extents.begin(), bin_extents.end()),
-                    bin_extents.end());
-
-  // ctr = 0;
-  // for (auto be : bin_extents) {
-  //   spdlog::info("after{}:  {}-{}", ctr++, be.min, be.max);
-  // }
-
-  std::vector<double> contiguous_bin_edges = {bin_extents.front().min};
-  for (auto be : bin_extents) {
-    if (be.min != contiguous_bin_edges.back()) {
-      spdlog::critical("bin edges are not contiguous: {} != {}", be.min,
+  std::vector<double> contiguous_bin_edges = {
+      projected_bins.front().front().min};
+  for (auto bin : projected_bins) {
+    auto dim_bin = bin.front();
+    if (dim_bin.min != contiguous_bin_edges.back()) {
+      spdlog::critical("bin edges are not contiguous: {} != {}", dim_bin.min,
                        contiguous_bin_edges.back());
       abort();
     }
-    contiguous_bin_edges.push_back(be.max);
+    contiguous_bin_edges.push_back(dim_bin.max);
   }
 
   return contiguous_bin_edges;
@@ -59,9 +41,9 @@ std::unique_ptr<TH1> ToTH1(nuis::HistFrame const &hf, std::string const &name,
   auto root_hist =
       std::make_unique<TH1D>(name.c_str(), "", bins.size() - 1, bins.data());
 
-  Eigen::ArrayXd bin_scales = Eigen::ArrayXd::Constant(hf.contents.rows(),1);
+  Eigen::ArrayXd bin_scales = Eigen::ArrayXd::Constant(hf.contents.rows(), 1);
   if (divide_by_bin_width) {
-    bin_scales = hf.binning.bin_info.bin_sizes();
+    bin_scales = hf.binning.bin_sizes();
   }
 
   for (int bi = 0; bi < hf.contents.rows(); ++bi) {

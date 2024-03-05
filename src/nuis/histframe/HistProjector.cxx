@@ -23,8 +23,8 @@ ProjectionMap BuildProjectionMap(Binning const &bin_info,
     pmap.bin_columns[proj_bin] = std::vector<Binning::Index>{};
   }
 
-  for (Binning::Index bi_it = 0;
-       bi_it < Binning::Index(bin_info.bins.size()); ++bi_it) {
+  for (Binning::Index bi_it = 0; bi_it < Binning::Index(bin_info.bins.size());
+       ++bi_it) {
 
     auto const &bin = bin_info.bins[bi_it];
 
@@ -111,7 +111,8 @@ std::ostream &operator<<(std::ostream &os, nuis::ProjectionMap const &pm) {
 
 namespace nuis {
 
-HistFrame Project(HistFrame const &hf, std::vector<size_t> proj_to_axes) {
+HistFrame Project(HistFrame const &hf,
+                  std::vector<size_t> const &proj_to_axes) {
   auto const &pm = BuildProjectionMap(hf.binning, proj_to_axes);
 
   std::vector<std::string> labels;
@@ -135,6 +136,10 @@ HistFrame Project(HistFrame const &hf, std::vector<size_t> proj_to_axes) {
   projhf.nfills = hf.nfills;
 
   return projhf;
+}
+
+HistFrame Project(HistFrame const &hf, size_t proj_to_axis) {
+  return Project(hf, std::vector<size_t>{proj_to_axis});
 }
 
 } // namespace nuis

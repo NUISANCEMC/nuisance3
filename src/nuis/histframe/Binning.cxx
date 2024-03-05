@@ -291,8 +291,8 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
                      return false;
                    });
 
-  std::function<std::pair<Index, Index>(std::vector<double> const &,
-                                            Index, Index, size_t)>
+  std::function<std::pair<Index, Index>(std::vector<double> const &, Index,
+                                        Index, size_t)>
       get_axis_bin_range = [sorted_bins, &get_axis_bin_range](
                                std::vector<double> const &x, Index from,
                                Index to, size_t ax) {
@@ -337,8 +337,8 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
                    : get_axis_bin_range(x, from_this_ax, to_this_ax, ax - 1);
       };
 
-  bin_info.func = [sorted_bins, bins, &get_axis_bin_range](
-                      std::vector<double> const &x) -> Index {
+  bin_info.func = [sorted_bins, bins,
+                   get_axis_bin_range](std::vector<double> const &x) -> Index {
     auto contains_range = get_axis_bin_range(x, 0, sorted_bins.size(), 0);
     if ((contains_range.first == npos) || (contains_range.second == npos)) {
       return npos;
@@ -414,3 +414,29 @@ Binning Binning::product(std::vector<Binning> const &binnings) {
 }
 
 } // namespace nuis
+
+std::ostream &operator<<(std::ostream &os,
+                         nuis::Binning::SingleExtent const &sext) {
+  return os << fmt::format("({:.2f} - {:.2f})", sext.min, sext.max);
+}
+std::ostream &operator<<(std::ostream &os,
+                         nuis::Binning::BinExtents const &bext) {
+  os << "[";
+  for (size_t j = 0; j < bext.size(); ++j) {
+    os << bext[j] << ((j + 1) == bext.size() ? "]" : ", ");
+  }
+  return os;
+}
+std::ostream &operator<<(std::ostream &os,
+                         std::vector<nuis::Binning::BinExtents> const &bins) {
+  os << "[" << std::endl;
+  for (size_t i = 0; i < bins.size(); ++i) {
+    os << "  " << i << ": " << bins[i] << std::endl;
+  }
+  return os << "]" << std::endl;
+}
+
+std::ostream &operator<<(std::ostream &os, nuis::Binning const &bi) {
+  os << fmt::format("Axis lables: {}\nBins: ", bi.axis_labels);
+  return os << bi.bins;
+}
