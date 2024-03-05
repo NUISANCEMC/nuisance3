@@ -43,7 +43,7 @@ nuis::Binning from_hepdata_extents(std::vector<Variables> &axes) {
     }
   }
 
-  bin_info.func = [=](std::vector<double> const &x) -> Binning::Index {
+  bin_info.find_bin = [=](std::vector<double> const &x) -> Binning::Index {
     for (size_t i = 0; i < bin_info.bins.size(); i++) {
       const std::vector<Binning::SingleExtent> &bin_info_slice =
           bin_info.bins[i];

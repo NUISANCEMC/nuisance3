@@ -58,7 +58,7 @@ HistFrame::find_bin(std::vector<double> const &projections) const {
     abort();
   }
 #endif
-  return binning.func(projections);
+  return binning.find_bin(projections);
 }
 Binning::Index HistFrame::find_bin(double proj) const {
   return find_bin(std::vector<double>{
@@ -71,17 +71,17 @@ void HistFrame::fill_bin(Binning::Index i, double weight,
   // PS. Shouldn't an npos check search go on even if not in debug?
 #ifndef NDEBUG
   if (i == Binning::npos) {
-    spdlog::critical(
+    spdlog::warn(
         "Tried to Fill histogram with out of range nuis::Binning::npos.");
     return;
   }
   if (i >= contents.rows()) {
-    spdlog::critical("Tried to Fill histogram with out of range bin {}.", i);
+    spdlog::warn("Tried to Fill histogram with out of range bin {}.", i);
     return;
   }
   if ((weight != 0) && (!std::isnormal(weight))) {
-    spdlog::critical("Tried to Fill histogram with a non-normal weight: {}.",
-                     weight);
+    spdlog::warn("Tried to Fill histogram with a non-normal weight: {}.",
+                 weight);
     return;
   }
 #endif

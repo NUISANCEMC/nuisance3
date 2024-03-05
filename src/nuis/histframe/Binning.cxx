@@ -36,12 +36,12 @@ binning_product_recursive(std::vector<Binning>::const_reverse_iterator from,
 }
 
 Binning::Index Binning::operator()(std::vector<double> const &x) const {
-  return func(x);
+  return find_bin(x);
 }
 Binning::Index Binning::operator()(double x) const {
   static std::vector<double> vect(1, 0);
   vect[0] = x;
-  return func(vect);
+  return find_bin(vect);
 }
 
 Eigen::ArrayXd Binning::bin_sizes() const {
@@ -70,7 +70,7 @@ Binning Binning::lin_space(size_t nbins, double min, double max,
         SingleExtent{min + (i * step), min + ((i + 1) * step)});
   }
 
-  bin_info.func = [=](std::vector<double> const &x) -> Index {
+  bin_info.find_bin = [=](std::vector<double> const &x) -> Index {
     if (x.size() < 1) {
       return npos;
     }
@@ -120,7 +120,7 @@ Binning::lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
     }
   }
 
-  bin_info.func = [=](std::vector<double> const &x) -> Index {
+  bin_info.find_bin = [=](std::vector<double> const &x) -> Index {
     if (x.size() < nax) {
       return npos;
     }
@@ -173,7 +173,7 @@ Binning log_space_impl(size_t nbins, double min, double max,
     bin_info.bins.back().emplace_back(Binning::SingleExtent{low, high});
   }
 
-  bin_info.func = [=](std::vector<double> const &x) -> Binning::Index {
+  bin_info.find_bin = [=](std::vector<double> const &x) -> Binning::Index {
     if (x.size() < 1) {
       return Binning::npos;
     }
@@ -224,7 +224,7 @@ Binning Binning::contiguous(std::vector<double> const &edges,
   bin_info.axis_labels.push_back(label);
 
   // binary search for bin
-  bin_info.func = [=](std::vector<double> const &x) -> Index {
+  bin_info.find_bin = [=](std::vector<double> const &x) -> Index {
     if (x[0] < bin_info.bins.front()[0].min) {
       return npos;
     }
@@ -437,7 +437,7 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
 
   from_extentsHelper bin_finder(bins);
 
-  bin_info.func = [bin_finder](std::vector<double> const &x) -> Index {
+  bin_info.find_bin = [bin_finder](std::vector<double> const &x) -> Index {
     return bin_finder(x);
   };
   return bin_info;
@@ -468,7 +468,7 @@ Binning Binning::product(std::vector<Binning> const &binnings) {
   bin_info_product.bins =
       binning_product_recursive(binnings.rbegin(), binnings.rend());
 
-  bin_info_product.func = [=](std::vector<double> const &x) -> Index {
+  bin_info_product.find_bin = [=](std::vector<double> const &x) -> Index {
     if (x.size() < nax) {
       return npos;
     }
@@ -477,7 +477,7 @@ Binning Binning::product(std::vector<Binning> const &binnings) {
     size_t nax_consumed = 0;
     for (size_t op_it = 0; op_it < nax_in_op.size(); ++op_it) {
 
-      Index op_bin = binnings[op_it].func(
+      Index op_bin = binnings[op_it].find_bin(
           std::vector<double>(x.begin() + nax_consumed,
                               x.begin() + nax_consumed + nax_in_op[op_it]));
 

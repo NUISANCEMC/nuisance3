@@ -42,8 +42,10 @@ void init_histframe(py::module &m) {
       .def_readonly("bins", &Binning::bins)
       .def_readonly("axis_labels", &Binning::axis_labels)
       .def("bin_sizes", &Binning::bin_sizes)
-      .def("func", [](Binning const &self,
-                      std::vector<double> const &x) { return self.func(x); })
+      .def("find_bin", py::overload_cast<std::vector<double> const &>(
+                           &Binning::operator(), py::const_))
+      .def("find_bin",
+           py::overload_cast<double>(&Binning::operator(), py::const_))
       .def("__call__", py::overload_cast<std::vector<double> const &>(
                            &Binning::operator(), py::const_))
       .def("__call__",

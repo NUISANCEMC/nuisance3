@@ -83,12 +83,12 @@ void init_weightcalc(py::module &m) {
   // PS This doesn't actually build in my dev box please can we add a check?
   // Better yet could we recommend pluginss generate their own pybind
   // and we make a nuisance/pyNUISANCE/plugins/__init__.py to catch them?
-  /*
-  py::class_<Prob3plusplusWeightCalc, std::shared_ptr<Prob3plusplusWeightCalc>>(
+
+  py::class_<nuis::Prob3plusplusWeightCalc,
+             std::shared_ptr<nuis::Prob3plusplusWeightCalc>>(
       m, "Prob3plusplusWeightCalc")
       .def(py::init<YAML::Node const &>(), py::arg("config") = YAML::Node{})
       .def("calc_weight", &nuis::Prob3plusplusWeightCalc::calc_weight)
       .def("prob", &nuis::Prob3plusplusWeightCalc::prob)
       .def("set_parameters", &nuis::Prob3plusplusWeightCalc::set_parameters);
-  */
 }

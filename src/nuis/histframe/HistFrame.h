@@ -79,8 +79,8 @@ struct HistFrame {
 
   void fill(std::vector<double> const &projections, double weight,
             column_t col = 0);
-  // A semantically meaningful helper function for passing a selection integer
-  // as the first projection axis
+  // A semantically meaningful helper find_bintion for passing a selection
+  // integer as the first projection axis
   void fill_with_selection(int sel_int, std::vector<double> const &projections,
                            double weight, column_t col = 0);
 

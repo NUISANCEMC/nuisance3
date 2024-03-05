@@ -55,13 +55,13 @@ struct Binning {
   // extents[i] are the N SingleExtents of bin i.
   std::vector<BinExtents> bins;
 
-  std::function<Index(std::vector<double> const &)> func;
+  std::function<Index(std::vector<double> const &)> find_bin;
 
-  // convenience functor-like overloads for calling Binning::func
+  // convenience find_bintor-like overloads for calling Binning::find_bin
   Index operator()(std::vector<double> const &) const;
   Index operator()(double) const;
 
-  //--- member functions
+  //--- member find_bintions
 
   // Get the size for every bin.
   // The size will depend on the dimensionality of the binning: for 1D binning
@@ -69,7 +69,7 @@ struct Binning {
   // volume, etc...
   Eigen::ArrayXd bin_sizes() const;
 
-  //--- static functions
+  //--- static find_bintions
 
   static Binning lin_space(size_t nbins, double min, double max,
                            std::string const &label = "");
