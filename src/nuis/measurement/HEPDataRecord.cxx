@@ -103,7 +103,6 @@ HEPDataRecord::HEPDataRecord(YAML::Node config) {
     abort();
   }
 
-
   // Tables in hepdata alwayss release _ tablename
   std::string table = config["table"].as<std::string>();
   measurement_name = release + "_" + table;

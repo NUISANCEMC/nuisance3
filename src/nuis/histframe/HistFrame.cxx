@@ -68,6 +68,7 @@ Binning::Index HistFrame::find_bin(double proj) const {
 
 void HistFrame::fill_bin(Binning::Index i, double weight,
                          HistFrame::column_t col) {
+  // PS. Shouldn't an npos check search go on even if not in debug?
 #ifndef NDEBUG
   if (i == Binning::npos) {
     spdlog::critical(
@@ -97,6 +98,8 @@ void HistFrame::fill_bin(Binning::Index i, double weight,
 void HistFrame::fill_with_selection(int sel_int,
                                     std::vector<double> const &projections,
                                     double weight, column_t col) {
+
+  // PS Why is local projections necessary if its not used in fill?
   static std::vector<double> local_projections(10);
   local_projections.clear();
   local_projections.push_back(sel_int);
@@ -113,6 +116,12 @@ void HistFrame::fill_with_selection(int sel_int, double projection,
 
 void HistFrame::fill(std::vector<double> const &projections, double weight,
                      HistFrame::column_t col) {
+
+  // PS. NULL values should be checked explicitly to avoid min/max checks.
+  if (std::find(projections.begin(), projections.end(), 0xdeadbeef) !=
+      projections.end())
+    return;
+
   fill_bin(find_bin(projections), weight, col);
 }
 
@@ -126,6 +135,36 @@ void HistFrame::reset() {
   variance = Eigen::ArrayXXd::Zero(binning.bins.size(), column_info.size());
   nfills = 0;
 }
+
+HistColumn_View HistFrame::operator[](std::string const &name) const {
+
+  Eigen::ArrayXd binsize = Eigen::ArrayXd::Zero(binning.bins.size());
+  for (int ri = 0; ri < contents.rows(); ++ri) {
+    double area = 1;
+    for (auto const &binrange : binning.bins[ri]) {
+      area *= binrange.width();
+    }
+    binsize(ri) = area;
+  }
+
+  column_t colid = this->find_column_index(name);
+  return {contents.col(colid), variance.col(colid), binsize};
+}
+
+HistColumn_View HistFrame::operator[](column_t const &colid) const {
+
+  Eigen::ArrayXd binsize = Eigen::ArrayXd::Zero(binning.bins.size());
+  for (int ri = 0; ri < contents.rows(); ++ri) {
+    double area = 1;
+    for (auto const &binrange : binning.bins[ri]) {
+      area *= binrange.width();
+    }
+    binsize[ri] = area;
+  }
+
+  return {contents.col(colid), variance.col(colid), binsize};
+}
+
 } // namespace nuis
 
 std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {

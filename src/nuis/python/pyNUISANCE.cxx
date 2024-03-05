@@ -13,6 +13,7 @@ PYBIND11_MAKE_OPAQUE(std::vector<uint32_t>);
 #include "nuis/python/pyFrame.h"
 #include "nuis/python/pyHistFrame.h"
 #include "nuis/python/pyWeightCalc.h"
+#include "nuis/python/pyRecord.h"
 
 #include "yaml-cpp/yaml.h"
 
@@ -55,4 +56,6 @@ PYBIND11_MODULE(pyNUISANCE, m) {
   init_frame(m);
   init_histframe(m);
   init_weightcalc(m);
+  init_record(m);
+  
 }
