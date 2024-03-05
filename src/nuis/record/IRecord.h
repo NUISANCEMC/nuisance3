@@ -15,7 +15,9 @@ using TablePtr = std::shared_ptr<Table>;
 
 struct IRecord {
 
-    Record(YAML::Node n){
+    IRecord(){};
+
+    IRecord(YAML::Node /*n*/){
         std::cout << "Base constructor being called" << std::endl;
     };
 

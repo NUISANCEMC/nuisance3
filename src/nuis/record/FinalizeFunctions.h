@@ -10,7 +10,7 @@ void FATXNormalizedByBinWidth(ComparisonFrame& fr, const double fatx_by_pdf) {
     return;
 }
 
-void EventRateScaleToData(ComparisonFrame& fr, const double fatx_by_pdf) {
+void EventRateScaleToData(ComparisonFrame& fr, const double /*fatx_by_pdf*/) {
 
     double dt_sum = fr["data"].content.sum();
     if (dt_sum == 0.0) return;

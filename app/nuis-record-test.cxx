@@ -1,7 +1,6 @@
 #include "nuis/eventinput/EventSourceFactory.h"
 
 #include "nuis/weightcalc/WeightCalcFactory.h"
-#include "indicators.hpp"
 
 #include "nuis/frame/FrameGen.h"
 #include "nuis/histframe/HistFrame.h"
