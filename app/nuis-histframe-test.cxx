@@ -72,8 +72,8 @@ int main(int argc, char const *argv[]) {
   EventSourceFactory fact;
   auto [gri, evs] = fact.make(argv[1]);
 
-  RecordFactory rfact;
-  rfact.make( YAML::Load(R"("type":"hepdata")") );
+  // RecordFactory rfact;
+  // rfact.make( YAML::Load(R"("type":"hepdata")") );
 
   if (!evs) {
     spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
@@ -91,7 +91,7 @@ int main(int argc, char const *argv[]) {
     }
     auto ev_q0 = q0_GeV(ev);
     auto q0_bin = q0.find_bin(ev_q0);
-    std::cout << "ev_q0: " << ev_q0 << ", -> bin: " << q0_bin << std::endl;
+    // std::cout << "ev_q0: " << ev_q0 << ", -> bin: " << q0_bin << std::endl;
     q0.fill_bin(q0_bin, cvw);
     auto proc_id = NuHepMC::ER3::ReadProcessID(ev);
     if ((proc_id >= 200) && (proc_id < 250)) {

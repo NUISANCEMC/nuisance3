@@ -1,8 +1,10 @@
 #pragma once
 
 #include "nuis/HistFrame/Binning.h"
+#include "nuis/HistFrame/BinningUtility.h"
 #include "nuis/HistFrame/HistFrame.h"
 #include "nuis/HistFrame/HistProjector.h"
+#include "nuis/HistFrame/Utility.h"
 
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
@@ -129,8 +131,16 @@ void init_histframe(py::module &m) {
         return ss.str();
       });
 
-  m.def("Project",
-        py::overload_cast<HistFrame const &, std::vector<size_t> const &>(
-            &Project))
-      .def("Project", py::overload_cast<HistFrame const &, size_t>(&Project));
+  pyBinning
+      .def_static(
+          "project",
+          py::overload_cast<HistFrame const &, std::vector<size_t> const &>(
+              &Project))
+      .def_static("project",
+                  py::overload_cast<HistFrame const &, size_t>(&Project))
+      .def_static("get_bin_centers", &get_bin_centers)
+      .def_static("get_bin_centers1D", &get_bin_centers1D);
+
+  m.def("plotly1D", plotly1D);
+  m.def("plotly2D", plotly2D);
 }

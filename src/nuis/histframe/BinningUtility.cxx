@@ -98,4 +98,27 @@ bool binning_has_overlaps(std::vector<Binning::BinExtents> const &bins,
                                     });
 }
 
+std::vector<std::vector<double>>
+get_bin_centers(std::vector<Binning::BinExtents> const &bins) {
+  std::vector<std::vector<double>> bcs;
+  for (auto const &bin : bins) {
+    bcs.emplace_back();
+    for (auto const &sext : bin) {
+      bcs.back().push_back((sext.max + sext.min) / 2.0);
+    }
+  }
+
+  return bcs;
+}
+
+std::vector<double>
+get_bin_centers1D(std::vector<Binning::BinExtents> const &bins) {
+  std::vector<double> bcs;
+  auto bcs_all_axes = get_bin_centers(bins);
+  for (auto const &bc : bcs_all_axes) {
+    bcs.push_back(bc[0]);
+  }
+  return bcs;
+}
+
 } // namespace nuis

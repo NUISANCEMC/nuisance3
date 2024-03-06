@@ -88,7 +88,7 @@ Binning::lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
 
   size_t nax = axes.size();
   std::vector<size_t> nbins_in_slice = {1};
-  std::vector<size_t> steps;
+  std::vector<double> steps;
 
   size_t nbins = 1;
   for (size_t ax_i = 0; ax_i < nax; ++ax_i) {

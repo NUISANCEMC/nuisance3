@@ -14,4 +14,9 @@ bool binning_has_overlaps(std::vector<Binning::BinExtents> const &bins,
                           std::vector<size_t> const &proj_to_axes = {});
 bool binning_has_overlaps(std::vector<Binning::BinExtents> const &bins,
                           size_t proj_to_axis);
+
+std::vector<std::vector<double>>
+get_bin_centers(std::vector<Binning::BinExtents> const &bins);
+std::vector<double>
+get_bin_centers1D(std::vector<Binning::BinExtents> const &bins);
 } // namespace nuis

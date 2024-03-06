@@ -10,17 +10,17 @@ namespace nuis {
 struct ProjectionMap {
   std::vector<size_t> project_to_axes;
   std::vector<Binning::BinExtents> projected_extents;
-  std::map<Binning::BinExtents, std::vector<Binning::Index>> bin_columns;
+  std::vector<std::vector<Binning::Index>> bin_columns;
 };
 
 ProjectionMap BuildProjectionMap(Binning const &bin_info,
                                  std::vector<size_t> proj_to_axes) {
-  ProjectionMap pmap;
-  pmap.project_to_axes = proj_to_axes;
-  pmap.projected_extents = project_to_unique_bins(bin_info.bins, proj_to_axes);
+  ProjectionMap pm;
+  pm.project_to_axes = proj_to_axes;
+  pm.projected_extents = project_to_unique_bins(bin_info.bins, proj_to_axes);
 
-  for (auto &proj_bin : pmap.projected_extents) {
-    pmap.bin_columns[proj_bin] = std::vector<Binning::Index>{};
+  for (size_t i = 0; i < pm.projected_extents.size(); ++i) {
+    pm.bin_columns.emplace_back(std::vector<Binning::Index>{});
   }
 
   for (Binning::Index bi_it = 0; bi_it < Binning::Index(bin_info.bins.size());
@@ -33,7 +33,10 @@ ProjectionMap BuildProjectionMap(Binning const &bin_info,
       proj_bin.push_back(bin[proj_to_axis]);
     }
 
-    if (!pmap.bin_columns.count(proj_bin)) {
+    auto bin_it = std::find(pm.projected_extents.begin(),
+                            pm.projected_extents.end(), proj_bin);
+
+    if (bin_it == pm.projected_extents.end()) {
       spdlog::critical(
           "[BuildProjectionMap]: When scanning bins, built projected bin "
           "extent that project_to_unique_bins did not find, this is a bug in "
@@ -43,26 +46,27 @@ ProjectionMap BuildProjectionMap(Binning const &bin_info,
          << bin_info << "\n";
       spdlog::critical(ss.str());
       ss.str("");
-      ss << "projected extents: " << pmap.projected_extents << "\n";
+      ss << "projected extents: " << pm.projected_extents << "\n";
       spdlog::critical(ss.str());
       ss.str("");
       ss << "missed bin: " << proj_bin << "\n----------------------------<<<\n";
       abort();
     }
-    pmap.bin_columns.at(proj_bin).push_back(bi_it);
+    pm.bin_columns[std::distance(pm.projected_extents.begin(), bin_it)]
+        .push_back(bi_it);
   }
 
-  return pmap;
+  return pm;
 }
 
 } // namespace nuis
 
 std::ostream &operator<<(std::ostream &os, nuis::ProjectionMap const &pm) {
   os << "{ Project onto axis: " << pm.project_to_axes.front() << "\n";
-  int i = 0;
-  for (auto const &[proj_extent, bins] : pm.bin_columns) {
-    os << "  { projected bin: " << (i++) << ", extent: " << proj_extent
-       << fmt::format(", original_bins: {} }}\n", bins);
+  for (size_t i = 0; i < pm.projected_extents.size(); ++i) {
+    os << "  { projected bin: " << (i)
+       << ", extent: " << pm.projected_extents[i]
+       << fmt::format(", original_bins: {} }}\n", pm.bin_columns[i]);
   }
   return os << "}" << std::endl;
 }
@@ -83,11 +87,9 @@ HistFrame Project(HistFrame const &hf,
   projhf.reset();
 
   for (size_t row_i = 0; row_i < pm.projected_extents.size(); ++row_i) {
-    for (auto const &bi_it : pm.bin_columns.at(pm.projected_extents[row_i])) {
-      for (int col_i = 0; col_i < hf.contents.cols(); ++col_i) {
-        projhf.contents(row_i, col_i) += hf.contents(bi_it, col_i);
-        projhf.variance(row_i, col_i) += hf.variance(bi_it, col_i);
-      }
+    for (Binning::Index bi_it : pm.bin_columns[row_i]) {
+      projhf.contents.row(row_i) += hf.contents.row(bi_it);
+      projhf.variance.row(row_i) += hf.variance.row(bi_it);
     }
   }
 

@@ -507,13 +507,16 @@ TEST_CASE("from_extents::func -- sea", "[Binning]") {
       {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{0, 1}},
       {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{0, 1}},
       {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{2, 3}},
-      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{2, 3}}};
+      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{2, 3}},
+      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}}};
 
   ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
-  REQUIRE(ls({0.5, 0.5}) == 0);
-  REQUIRE(ls({2.5, 2.5}) == 3);
-  REQUIRE(ls({1.5, 1.5}) == nuis::Binning::npos);
+  REQUIRE(ls({1.5, 1.5}) == 4);
+  REQUIRE(ls({0.5, 1.5}) == nuis::Binning::npos);
+  REQUIRE(ls({1.5, 0.5}) == nuis::Binning::npos);
+  REQUIRE(ls({2.5, 1.5}) == nuis::Binning::npos);
+  REQUIRE(ls({1.5, 2.5}) == nuis::Binning::npos);
 }
 
 TEST_CASE("from_extents::func input vector too short", "[Binning]") {
