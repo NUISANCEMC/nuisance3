@@ -304,6 +304,10 @@ struct from_extentsHelper {
     //              "= {}, ax = {}",
     //              x[ax], from, to, ax);
 
+    if (from == Binning::npos) {
+      return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
+    }
+
     if (sorted_bins[from].second[ax].min >
         x[ax]) { // below any bins in this slice
       // spdlog::info("[get_axis_bin_range]: x = {} < "

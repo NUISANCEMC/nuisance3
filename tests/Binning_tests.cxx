@@ -425,6 +425,97 @@ TEST_CASE("from_extents::func -- reversed", "[Binning]") {
   REQUIRE(ls({0, 3, 5.9}) == nuis::Binning::npos);
 }
 
+TEST_CASE("from_extents::func -- pyramids", "[Binning]") {
+
+  std::vector<nuis::Binning::BinExtents> bins;
+
+  bins.push_back(
+      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{0, 1}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{0, 1}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{0, 1}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}});
+
+  auto ls = nuis::Binning::from_extents(bins, {"x", "y"});
+
+  REQUIRE(ls({1.5, 1.5}) == 3);
+
+  bins.clear();
+  bins.push_back(
+      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{0, 1}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{1, 2}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{2, 3}});
+
+  ls = nuis::Binning::from_extents(bins, {"x", "y"});
+
+  REQUIRE(ls({1.5, 1.5}) == 2);
+
+  bins.clear();
+  bins.push_back(
+      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{2, 3}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{2, 3}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{2, 3}});
+
+  ls = nuis::Binning::from_extents(bins, {"x", "y"});
+
+  REQUIRE(ls({1.5, 1.5}) == 1);
+
+  bins.clear();
+  bins.push_back(
+      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{0, 1}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{1, 2}});
+  bins.push_back(
+      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{2, 3}});
+
+  ls = nuis::Binning::from_extents(bins, {"x", "y"});
+
+  REQUIRE(ls({1.5, 1.5}) == 0);
+}
+
+TEST_CASE("from_extents::func -- sea", "[Binning]") {
+
+  std::vector<nuis::Binning::BinExtents> bins = {
+      {nuis::Binning::SingleExtent{0.1, 0.9}},
+      {nuis::Binning::SingleExtent{1.1, 1.9}},
+      {nuis::Binning::SingleExtent{2.1, 2.9}}};
+
+  auto ls = nuis::Binning::from_extents(bins, {
+                                                  "x",
+                                              });
+
+  REQUIRE(ls(0.5) == 0);
+  REQUIRE(ls(0) == nuis::Binning::npos);
+  REQUIRE(ls(1) == nuis::Binning::npos);
+  REQUIRE(ls(2) == nuis::Binning::npos);
+  REQUIRE(ls(3) == nuis::Binning::npos);
+
+  bins.clear();
+  bins = {
+      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{0, 1}},
+      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{0, 1}},
+      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{2, 3}},
+      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{2, 3}}};
+
+  ls = nuis::Binning::from_extents(bins, {"x", "y"});
+
+  REQUIRE(ls({0.5, 0.5}) == 0);
+  REQUIRE(ls({2.5, 2.5}) == 3);
+  REQUIRE(ls({1.5, 1.5}) == nuis::Binning::npos);
+}
+
 TEST_CASE("from_extents::func input vector too short", "[Binning]") {
 
   std::vector<nuis::Binning::BinExtents> bins;

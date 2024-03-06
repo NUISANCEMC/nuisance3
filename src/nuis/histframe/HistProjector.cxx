@@ -52,48 +52,6 @@ ProjectionMap BuildProjectionMap(Binning const &bin_info,
     pmap.bin_columns.at(proj_bin).push_back(bi_it);
   }
 
-  // do heuristics checks
-
-  // check nbins
-  size_t nbins = 0;
-  size_t i = 0;
-  for (auto const &[proj_extent, bins] : pmap.bin_columns) {
-    if (!i++) {
-      nbins = bins.size();
-    } else {
-      if (nbins != bins.size()) {
-        spdlog::warn(
-            "[Build1DProjectionMap]: Projection axis new bin {} has {} bins in "
-            "its projection column, but the first new bin had {}. This "
-            "suggests that this projection map might not be not correct.",
-            i, bins.size(), nbins);
-      }
-    }
-  }
-
-  // check stride
-  size_t stride = 0;
-  i = 0;
-  for (auto const &[proj_extent, bins] : pmap.bin_columns) {
-    if (bins.size() < 2) {
-      continue;
-    }
-    if (!stride) {
-      stride = bins[1] - bins[0];
-    }
-    for (size_t bi_it = 1; bi_it < bins.size(); ++bi_it) {
-      if (stride != (bins[bi_it] - bins[bi_it - 1])) {
-        spdlog::warn(
-            "[Build1DProjectionMap]: Projection axis new bin {}, projection "
-            "column bin {} to {} has stride {}, but the first stride in the "
-            "first column was {}. This "
-            "suggests that this projection map might not be not correct.",
-            i, bi_it - 1, bi_it, (bins[bi_it] - bins[bi_it - 1]), stride);
-      }
-    }
-    i++;
-  }
-
   return pmap;
 }
 
