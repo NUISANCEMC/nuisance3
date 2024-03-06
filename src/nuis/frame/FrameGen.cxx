@@ -153,10 +153,13 @@ Frame FrameGen::all() {
   Eigen::ArrayXXd next_chunk = next().table;
 
   while (next_chunk.rows()) {
+
     Eigen::ArrayXXd new_builder(builder.rows() + next_chunk.rows(),
                                 builder.cols());
     new_builder.topRows(builder.rows()) = builder;
     new_builder.bottomRows(next_chunk.rows()) = next_chunk;
+
+    builder = new_builder;
 
     next_chunk = next().table;
   }
