@@ -28,6 +28,7 @@ struct Binning {
   struct SingleExtent {
     double min;
     double max;
+    SingleExtent(double mi = 0, double ma = 0) : min(mi), max(ma) {}
 
     double width() const { return (max - min); }
 
@@ -71,14 +72,14 @@ struct Binning {
 
   //--- static find_bintions
 
-  static Binning lin_space(size_t nbins, double min, double max,
+  static Binning lin_space(double min, double max, size_t nbins,
                            std::string const &label = "");
-  static Binning lin_spaceND(std::vector<std::tuple<size_t, double, double>>,
+  static Binning lin_spaceND(std::vector<std::tuple<double, double, size_t>>,
                              std::vector<std::string> = {});
 
-  static Binning log_space(size_t nbins, double min, double max,
+  static Binning log_space(double min, double max, size_t nbins,
                            std::string const &label = "");
-  static Binning log10_space(size_t nbins, double min, double max,
+  static Binning log10_space(double min, double max, size_t nbins,
                              std::string const &label = "");
 
   // bin edges must be unique and monotonically increasing

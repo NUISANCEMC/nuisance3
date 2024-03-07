@@ -77,14 +77,10 @@ TEST_CASE("SingleExtent::contains", "[Binning]") {
 }
 
 TEST_CASE("BinExtents::operator<", "[Binning]") {
-  nuis::Binning::BinExtents ex_0_0{nuis::Binning::SingleExtent{0, 1},
-                                   nuis::Binning::SingleExtent{0, 1}};
-  nuis::Binning::BinExtents ex_1_0{nuis::Binning::SingleExtent{1, 2},
-                                   nuis::Binning::SingleExtent{0, 1}};
-  nuis::Binning::BinExtents ex_0_1{nuis::Binning::SingleExtent{0, 1},
-                                   nuis::Binning::SingleExtent{1, 2}};
-  nuis::Binning::BinExtents ex_1_1{nuis::Binning::SingleExtent{1, 2},
-                                   nuis::Binning::SingleExtent{1, 2}};
+  nuis::Binning::BinExtents ex_0_0{{0, 1}, {0, 1}};
+  nuis::Binning::BinExtents ex_1_0{{1, 2}, {0, 1}};
+  nuis::Binning::BinExtents ex_0_1{{0, 1}, {1, 2}};
+  nuis::Binning::BinExtents ex_1_1{{1, 2}, {1, 2}};
 
   REQUIRE_FALSE(ex_0_0 < ex_0_0);
   REQUIRE(ex_0_0 < ex_1_0);
@@ -98,23 +94,20 @@ TEST_CASE("BinExtents::operator<", "[Binning]") {
 }
 
 TEST_CASE("BinExtents::operator< mismatched axis count", "[Binning]") {
-  nuis::Binning::BinExtents a{nuis::Binning::SingleExtent{0, 1},
-                              nuis::Binning::SingleExtent{0, 1},
-                              nuis::Binning::SingleExtent{0, 1}};
-  nuis::Binning::BinExtents b{nuis::Binning::SingleExtent{1, 2},
-                              nuis::Binning::SingleExtent{0, 1}};
+  nuis::Binning::BinExtents a{{0, 1}, {0, 1}, {0, 1}};
+  nuis::Binning::BinExtents b{{1, 2}, {0, 1}};
 
   REQUIRE_THROWS_AS(a < b, nuis::MismatchedAxisCount);
 }
 
 TEST_CASE("lin_space::axis_labels", "[Binning]") {
-  auto ls = nuis::Binning::lin_space(5, 0, 5, "x");
+  auto ls = nuis::Binning::lin_space(0, 5, 5, "x");
   REQUIRE(ls.axis_labels.size() == 1);
   REQUIRE(ls.axis_labels[0] == "x");
 }
 
 TEST_CASE("lin_space::bins", "[Binning]") {
-  auto ls = nuis::Binning::lin_space(5, 0, 5);
+  auto ls = nuis::Binning::lin_space(0, 5, 5);
   auto bins = ls.bins;
 
   REQUIRE(bins.size() == 5);
@@ -127,7 +120,7 @@ TEST_CASE("lin_space::bins", "[Binning]") {
 }
 
 TEST_CASE("lin_space::func", "[Binning]") {
-  auto ls = nuis::Binning::lin_space(5, 0, 5);
+  auto ls = nuis::Binning::lin_space(0, 5, 5);
 
   REQUIRE(ls(-1) == nuis::Binning::npos);
   REQUIRE(ls(-0.000001) == nuis::Binning::npos);
@@ -137,7 +130,7 @@ TEST_CASE("lin_space::func", "[Binning]") {
 }
 
 TEST_CASE("lin_spaceND::axis_labels", "[Binning]") {
-  auto ls = nuis::Binning::lin_spaceND({{3, 0, 3}, {3, 3, 6}, {3, 6, 9}},
+  auto ls = nuis::Binning::lin_spaceND({{0, 3, 3}, {3, 6, 3}, {6, 9, 3}},
                                        {"x", "y", "z"});
   REQUIRE(ls.axis_labels.size() == 3);
   REQUIRE(ls.axis_labels[0] == "x");
@@ -145,7 +138,7 @@ TEST_CASE("lin_spaceND::axis_labels", "[Binning]") {
 }
 
 TEST_CASE("lin_spaceND::bins", "[Binning]") {
-  auto ls = nuis::Binning::lin_spaceND({{3, 0, 3}, {3, 3, 6}, {3, 6, 9}},
+  auto ls = nuis::Binning::lin_spaceND({{0, 3, 3}, {3, 6, 3}, {6, 9, 3}},
                                        {"x", "y", "z"});
   auto bins = ls.bins;
 
@@ -164,7 +157,7 @@ TEST_CASE("lin_spaceND::bins", "[Binning]") {
 }
 
 TEST_CASE("lin_spaceND::func", "[Binning]") {
-  auto ls = nuis::Binning::lin_spaceND({{3, 0, 3}, {3, 3, 6}, {3, 6, 9}},
+  auto ls = nuis::Binning::lin_spaceND({{0, 3, 3}, {3, 6, 3}, {6, 9, 3}},
                                        {"x", "y", "z"});
 
   REQUIRE(ls({0, 3, 6}) == 0);
@@ -185,13 +178,13 @@ TEST_CASE("lin_spaceND::func", "[Binning]") {
 }
 
 TEST_CASE("log10_space::axis_labels", "[Binning]") {
-  auto ls = nuis::Binning::log10_space(3, 1, 1E3, "lx");
+  auto ls = nuis::Binning::log10_space(1, 1E3, 3, "lx");
   REQUIRE(ls.axis_labels.size() == 1);
   REQUIRE(ls.axis_labels[0] == "lx");
 }
 
 TEST_CASE("log10_space::bins", "[Binning]") {
-  auto ls = nuis::Binning::log10_space(3, 1, 1E3, "lx");
+  auto ls = nuis::Binning::log10_space(1, 1E3, 3, "lx");
   auto bins = ls.bins;
 
   REQUIRE(bins.size() == 3);
@@ -203,7 +196,7 @@ TEST_CASE("log10_space::bins", "[Binning]") {
 }
 
 TEST_CASE("log10_space::func", "[Binning]") {
-  auto ls = nuis::Binning::log10_space(3, 1, 1E3, "lx");
+  auto ls = nuis::Binning::log10_space(1, 1E3, 3, "lx");
 
   REQUIRE(ls(0) == nuis::Binning::npos);
   REQUIRE(ls(0.1) == nuis::Binning::npos);
@@ -265,15 +258,15 @@ TEST_CASE("from_extents::axis_labels", "[Binning]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t xi = 0; xi < 3; ++xi) {
         bins.emplace_back();
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
@@ -299,15 +292,15 @@ TEST_CASE("from_extents::bins", "[Binning]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t xi = 0; xi < 3; ++xi) {
         in_bins.emplace_back();
-        in_bins.back().push_back(nuis::Binning::SingleExtent{
+        in_bins.back().push_back({
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        in_bins.back().push_back(nuis::Binning::SingleExtent{
+        in_bins.back().push_back({
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        in_bins.back().push_back(nuis::Binning::SingleExtent{
+        in_bins.back().push_back({
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
@@ -344,15 +337,15 @@ TEST_CASE("from_extents::func", "[Binning]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t xi = 0; xi < 3; ++xi) {
         bins.emplace_back();
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
@@ -390,15 +383,15 @@ TEST_CASE("from_extents::func -- reversed", "[Binning]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t zi = 0; zi < 3; ++zi) {
         bins.emplace_back();
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
@@ -429,56 +422,40 @@ TEST_CASE("from_extents::func -- pyramids", "[Binning]") {
 
   std::vector<nuis::Binning::BinExtents> bins;
 
-  bins.push_back(
-      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{0, 1}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{0, 1}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{0, 1}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}});
+  bins.push_back({{0, 1}, {0, 1}});
+  bins.push_back({{1, 2}, {0, 1}});
+  bins.push_back({{2, 3}, {0, 1}});
+  bins.push_back({{1, 2}, {1, 2}});
 
   auto ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
   REQUIRE(ls({1.5, 1.5}) == 3);
 
   bins.clear();
-  bins.push_back(
-      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{0, 1}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{1, 2}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{2, 3}});
+  bins.push_back({{2, 3}, {0, 1}});
+  bins.push_back({{2, 3}, {1, 2}});
+  bins.push_back({{1, 2}, {1, 2}});
+  bins.push_back({{2, 3}, {2, 3}});
 
   ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
   REQUIRE(ls({1.5, 1.5}) == 2);
 
   bins.clear();
-  bins.push_back(
-      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{2, 3}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{2, 3}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{2, 3}});
+  bins.push_back({{0, 1}, {2, 3}});
+  bins.push_back({{1, 2}, {1, 2}});
+  bins.push_back({{1, 2}, {2, 3}});
+  bins.push_back({{2, 3}, {2, 3}});
 
   ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
   REQUIRE(ls({1.5, 1.5}) == 1);
 
   bins.clear();
-  bins.push_back(
-      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{0, 1}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{1, 2}});
-  bins.push_back(
-      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{2, 3}});
+  bins.push_back({{1, 2}, {1, 2}});
+  bins.push_back({{0, 1}, {0, 1}});
+  bins.push_back({{0, 1}, {1, 2}});
+  bins.push_back({{0, 1}, {2, 3}});
 
   ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
@@ -488,9 +465,7 @@ TEST_CASE("from_extents::func -- pyramids", "[Binning]") {
 TEST_CASE("from_extents::func -- sea", "[Binning]") {
 
   std::vector<nuis::Binning::BinExtents> bins = {
-      {nuis::Binning::SingleExtent{0.1, 0.9}},
-      {nuis::Binning::SingleExtent{1.1, 1.9}},
-      {nuis::Binning::SingleExtent{2.1, 2.9}}};
+      {{0.1, 0.9}}, {{1.1, 1.9}}, {{2.1, 2.9}}};
 
   auto ls = nuis::Binning::from_extents(bins, {
                                                   "x",
@@ -503,12 +478,11 @@ TEST_CASE("from_extents::func -- sea", "[Binning]") {
   REQUIRE(ls(3) == nuis::Binning::npos);
 
   bins.clear();
-  bins = {
-      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{0, 1}},
-      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{0, 1}},
-      {nuis::Binning::SingleExtent{0, 1}, nuis::Binning::SingleExtent{2, 3}},
-      {nuis::Binning::SingleExtent{2, 3}, nuis::Binning::SingleExtent{2, 3}},
-      {nuis::Binning::SingleExtent{1, 2}, nuis::Binning::SingleExtent{1, 2}}};
+  bins = {{{0, 1}, {0, 1}},
+          {{2, 3}, {0, 1}},
+          {{0, 1}, {2, 3}},
+          {{2, 3}, {2, 3}},
+          {{1, 2}, {1, 2}}};
 
   ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
@@ -530,15 +504,15 @@ TEST_CASE("from_extents::func input vector too short", "[Binning]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t zi = 0; zi < 3; ++zi) {
         bins.emplace_back();
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
@@ -562,15 +536,15 @@ TEST_CASE("from_extents::bins not unique", "[Binning]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t zi = 0; zi < 3; ++zi) {
         bins.emplace_back();
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
@@ -579,15 +553,15 @@ TEST_CASE("from_extents::bins not unique", "[Binning]") {
   }
 
   bins.emplace_back();
-  bins.back().push_back(nuis::Binning::SingleExtent{
+  bins.back().push_back({
       xmin,
       xmin + 1,
   });
-  bins.back().push_back(nuis::Binning::SingleExtent{
+  bins.back().push_back({
       ymin,
       ymin + 1,
   });
-  bins.back().push_back(nuis::Binning::SingleExtent{
+  bins.back().push_back({
       zmin,
       zmin + 1,
   });
@@ -606,15 +580,15 @@ TEST_CASE("from_extents::bins with overlaps", "[Binning]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t zi = 0; zi < 3; ++zi) {
         bins.emplace_back();
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        bins.back().push_back(nuis::Binning::SingleExtent{
+        bins.back().push_back({
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
@@ -623,15 +597,15 @@ TEST_CASE("from_extents::bins with overlaps", "[Binning]") {
   }
 
   bins.emplace_back();
-  bins.back().push_back(nuis::Binning::SingleExtent{
+  bins.back().push_back({
       xmin - 0.5,
       xmin + 0.5,
   });
-  bins.back().push_back(nuis::Binning::SingleExtent{
+  bins.back().push_back({
       ymin - 0.5,
       ymin + 0.5,
   });
-  bins.back().push_back(nuis::Binning::SingleExtent{
+  bins.back().push_back({
       zmin - 0.5,
       zmin + 0.5,
   });
@@ -642,9 +616,9 @@ TEST_CASE("from_extents::bins with overlaps", "[Binning]") {
 
 TEST_CASE("product::axis_labels", "[Binning]") {
 
-  auto lsx = nuis::Binning::lin_space(3, 0, 3, "x");
-  auto lsy = nuis::Binning::lin_space(3, 3, 6, "y");
-  auto lsz = nuis::Binning::lin_space(3, 6, 9, "z");
+  auto lsx = nuis::Binning::lin_space(0, 3, 3, "x");
+  auto lsy = nuis::Binning::lin_space(3, 6, 3, "y");
+  auto lsz = nuis::Binning::lin_space(6, 9, 3, "z");
 
   auto ls = nuis::Binning::product({lsx, lsy, lsz});
 
@@ -655,9 +629,9 @@ TEST_CASE("product::axis_labels", "[Binning]") {
 
 TEST_CASE("product::bins", "[Binning]") {
 
-  auto lsx = nuis::Binning::lin_space(3, 0, 3, "x");
-  auto lsy = nuis::Binning::lin_space(3, 3, 6, "y");
-  auto lsz = nuis::Binning::lin_space(3, 6, 9, "z");
+  auto lsx = nuis::Binning::lin_space(0, 3, 3, "x");
+  auto lsy = nuis::Binning::lin_space(3, 6, 3, "y");
+  auto lsz = nuis::Binning::lin_space(6, 9, 3, "z");
 
   auto ls = nuis::Binning::product({lsx, lsy, lsz});
 
@@ -679,9 +653,9 @@ TEST_CASE("product::bins", "[Binning]") {
 
 TEST_CASE("product::func", "[Binning]") {
 
-  auto lsx = nuis::Binning::lin_space(3, 0, 3, "x");
-  auto lsy = nuis::Binning::lin_space(3, 3, 6, "y");
-  auto lsz = nuis::Binning::lin_space(3, 6, 9, "z");
+  auto lsx = nuis::Binning::lin_space(0, 3, 3, "x");
+  auto lsy = nuis::Binning::lin_space(3, 6, 3, "y");
+  auto lsz = nuis::Binning::lin_space(6, 9, 3, "z");
 
   auto ls = nuis::Binning::product({lsx, lsy, lsz});
 

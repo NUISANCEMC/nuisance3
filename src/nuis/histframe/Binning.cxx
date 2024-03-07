@@ -57,7 +57,7 @@ Eigen::ArrayXd Binning::bin_sizes() const {
   return bin_sizes;
 }
 
-Binning Binning::lin_space(size_t nbins, double min, double max,
+Binning Binning::lin_space(double min, double max, size_t nbins,
                            std::string const &label) {
   double step = (max - min) / double(nbins);
 
@@ -66,8 +66,7 @@ Binning Binning::lin_space(size_t nbins, double min, double max,
 
   for (size_t i = 0; i < nbins; ++i) {
     bin_info.bins.emplace_back();
-    bin_info.bins.back().emplace_back(
-        SingleExtent{min + (i * step), min + ((i + 1) * step)});
+    bin_info.bins.back().emplace_back(min + (i * step), min + ((i + 1) * step));
   }
 
   bin_info.find_bin = [=](std::vector<double> const &x) -> Index {
@@ -83,7 +82,7 @@ Binning Binning::lin_space(size_t nbins, double min, double max,
 }
 
 Binning
-Binning::lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
+Binning::lin_spaceND(std::vector<std::tuple<double, double, size_t>> axes,
                      std::vector<std::string> labels) {
 
   size_t nax = axes.size();
@@ -92,9 +91,9 @@ Binning::lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
 
   size_t nbins = 1;
   for (size_t ax_i = 0; ax_i < nax; ++ax_i) {
-    steps.push_back((std::get<2>(axes[ax_i]) - std::get<1>(axes[ax_i])) /
-                    double(std::get<0>(axes[ax_i])));
-    nbins *= std::get<0>(axes[ax_i]);
+    steps.push_back((std::get<1>(axes[ax_i]) - std::get<0>(axes[ax_i])) /
+                    double(std::get<2>(axes[ax_i])));
+    nbins *= std::get<2>(axes[ax_i]);
     nbins_in_slice.push_back(nbins);
   }
 
@@ -114,9 +113,9 @@ Binning::lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
       dimbins[ax_i] = (bin_remainder / nbins_in_slice[ax_i]);
       bin_remainder = bin_remainder % nbins_in_slice[ax_i];
 
-      bin_info.bins.back()[ax_i] = SingleExtent{
-          std::get<1>(axes[ax_i]) + (dimbins[ax_i] * steps[ax_i]),
-          std::get<1>(axes[ax_i]) + ((dimbins[ax_i] + 1) * steps[ax_i])};
+      bin_info.bins.back()[ax_i] = {
+          std::get<0>(axes[ax_i]) + (dimbins[ax_i] * steps[ax_i]),
+          std::get<0>(axes[ax_i]) + ((dimbins[ax_i] + 1) * steps[ax_i])};
     }
   }
 
@@ -129,10 +128,10 @@ Binning::lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
     for (size_t ax_i = 0; ax_i < nax; ++ax_i) {
 
       Index dimbin =
-          (x[ax_i] >= std::get<2>(axes[ax_i])) ? npos
-          : (x[ax_i] < std::get<1>(axes[ax_i]))
+          (x[ax_i] >= std::get<1>(axes[ax_i])) ? npos
+          : (x[ax_i] < std::get<0>(axes[ax_i]))
               ? npos
-              : std::floor((x[ax_i] - std::get<1>(axes[ax_i])) / steps[ax_i]);
+              : std::floor((x[ax_i] - std::get<0>(axes[ax_i])) / steps[ax_i]);
       gbin += dimbin * nbins_in_slice[ax_i];
 
       if (dimbin == npos) {
@@ -146,7 +145,7 @@ Binning::lin_spaceND(std::vector<std::tuple<size_t, double, double>> axes,
 }
 
 template <int base>
-Binning log_space_impl(size_t nbins, double min, double max,
+Binning log_space_impl(double min, double max, size_t nbins,
                        std::string const &label) {
 
   auto logbase = [=](double v) -> double {
@@ -170,7 +169,7 @@ Binning log_space_impl(size_t nbins, double min, double max,
     auto low = expbase(minl + (i * step));
     auto high = expbase(minl + ((i + 1) * step));
 
-    bin_info.bins.back().emplace_back(Binning::SingleExtent{low, high});
+    bin_info.bins.back().emplace_back(low, high);
   }
 
   bin_info.find_bin = [=](std::vector<double> const &x) -> Binning::Index {
@@ -194,14 +193,14 @@ Binning log_space_impl(size_t nbins, double min, double max,
   return bin_info;
 }
 
-Binning Binning::log10_space(size_t nbins, double min, double max,
+Binning Binning::log10_space(double min, double max, size_t nbins,
                              std::string const &label) {
-  return log_space_impl<10>(nbins, min, max, label);
+  return log_space_impl<10>(min, max, nbins, label);
 }
 
-Binning Binning::log_space(size_t nbins, double min, double max,
+Binning Binning::log_space(double min, double max, size_t nbins,
                            std::string const &label) {
-  return log_space_impl<0>(nbins, min, max, label);
+  return log_space_impl<0>(min, max, nbins, label);
 }
 
 Binning Binning::contiguous(std::vector<double> const &edges,
@@ -218,7 +217,7 @@ Binning Binning::contiguous(std::vector<double> const &edges,
       throw BinningUnsorted();
     }
     bin_info.bins.emplace_back();
-    bin_info.bins.back().push_back(SingleExtent{edges[i - 1], edges[i]});
+    bin_info.bins.back().push_back({edges[i - 1], edges[i]});
   }
 
   bin_info.axis_labels.push_back(label);

@@ -48,9 +48,9 @@ PYBIND11_MODULE(pyNUISANCE, m) {
   }
 
   m.add_object("hm", py::module::import("pyHepMC3"));
-  auto pps = py::module::import("pyProSelecta");
-  m.add_object("pps", pps);
-  m.add_object("pyProSelecta", pps);
+  // auto pps = py::module::import("pyProSelecta");
+  // m.add_object("pps", pps);
+  // m.add_object("pyProSelecta", pps);
 
   init_eventinput(m);
   init_frame(m);
