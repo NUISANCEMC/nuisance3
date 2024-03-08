@@ -2,16 +2,15 @@ import pyNUISANCE as pn
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pyProSelecta as pps
 # PRO SELECTA TESTS
-pn.configure()
-pn.ps.LoadFile("../../data/neutrino_data/ANL/CCQE/182176/analysis.cxx")
-pn.ps.LoadFile("test.cxx")
+# pn.configure()
+pps.load_file("../../data/neutrino_data/ANL/CCQE/182176/analysis.cxx")
 
-print(pn.ps.project.ANL_CCQE_182176_Project_Q2)
-print(pn.ps.filter.CUSTOM_FILTER2)
+print(pps.project.ANL_CCQE_182176_Project_Q2)
+print(pps.filter.CUSTOM_FILTER2)
 
-local_func = pn.ps.project.ANL_CCQE_182176_Project_Q2 
+local_func = pps.project.ANL_CCQE_182176_Project_Q2 
 
 # SOURCE TEST
 nuwro_source = pn.EventSource("NUWRO-D2-ANL_77-numu/NUWRO.numu.numu_flux.ANL_1977_2horn_rescan.8652.evts.root")
@@ -45,13 +44,13 @@ for (e, cvw) in tqdm (nuwro_source, desc="[INFO] : Processing Record "):
 #[INFO] : Processing PS : 100000it [00:17, 5579.50it/s]
 for (e, cvw) in tqdm (nuwro_source, desc="[INFO] : Processing PS "):
     # Manual fill of main Q2
-    f = pn.ps.filter.ANL_CCQE_182176_Filter(e)
-    p = pn.ps.project.ANL_CCQE_182176_Project_Q2(e)
+    f = pps.filter.ANL_CCQE_182176_Filter(e)
+    p = pps.project.ANL_CCQE_182176_Project_Q2(e)
     data.Fill(f, [p], 1.0)
 
 #[INFO] : Processing PRE : 100000it [00:09, 11066.21it/s]
-prefilt = pn.ps.filter.ANL_CCQE_182176_Filter
-preproj = pn.ps.project.ANL_CCQE_182176_Project_Q2
+prefilt = pps.filter.ANL_CCQE_182176_Filter
+preproj = pps.project.ANL_CCQE_182176_Project_Q2
 for (e, cvw) in tqdm (nuwro_source, desc="[INFO] : Processing PRE "):
     # Manual fill of main Q2
     f = prefilt(e)
@@ -61,19 +60,19 @@ for (e, cvw) in tqdm (nuwro_source, desc="[INFO] : Processing PRE "):
 #[INFO] : Processing Custom : 100000it [00:16, 5909.53it/s]
 for (e, cvw) in tqdm (nuwro_source, desc="[INFO] : Processing Custom "):
     # Custom fill of secondary bands
-    f2 = pn.ps.filter.CUSTOM_FILTER(e)
+    f2 = pps.filter.CUSTOM_FILTER(e)
     data.Fill( f * f2, [p], 1.0)
 
 
 def hm_muon(evt):
-  part = pn.ps.sel.OutPartHM(evt, pn.ps.pdg.kMuon)
+  part = pps.sel.OutPartHM(evt, pps.pdg.kMuon)
   if not part: return 0.0
-  return part.momentum().length() * pn.ps.units.GeV
+  return part.momentum().length() * pps.units.GeV
 #[INFO] : Processing Custom PY : 100000it [00:16, 6125.59it/s]
 for (e, cvw) in tqdm (nuwro_source, desc="[INFO] : Processing Custom PY "):
     # Custom fill of secondary bands
     p2 = hm_muon(e)
-    f2 = pn.ps.filter.CUSTOM_FILTER(e)
+    f2 = pps.filter.CUSTOM_FILTER(e)
     data.Fill( f * f2, [p2], 1.0)
 
 
@@ -101,31 +100,31 @@ plt.clf()
 
 # FRAME GENERATION
 def hm_muon(evt):
-  part = pn.ps.sel.OutPartHM(evt, pn.ps.pdg.kMuon)
+  part = pps.sel.OutPartHM(evt, pps.pdg.kMuon)
   if not part: return 0.0
-  return part.momentum().length() * pn.ps.units.GeV
+  return part.momentum().length() * pps.units.GeV
 
 def hm_proton(evt):
-  part = pn.ps.sel.OutPartHM(evt, pn.ps.pdg.kProton)
+  part = pps.sel.OutPartHM(evt, pps.pdg.kProton)
   if not part: return 0.0
-  return part.momentum().length() * pn.ps.units.GeV
+  return part.momentum().length() * pps.units.GeV
 
 def hm_neutron(evt):
-  part = pn.ps.sel.OutPartHM(evt, pn.ps.pdg.kNeutron)
+  part = pps.sel.OutPartHM(evt, pps.pdg.kNeutron)
   if not part: return 0.0
-  return part.momentum().length() * pn.ps.units.GeV
+  return part.momentum().length() * pps.units.GeV
 
 def q0(evt):
-    mu = pn.ps.sel.OutPartHM(evt, pn.ps.pdg.kMuon)
-    nu = pn.ps.sel.Beam(evt, pn.ps.pdg.kNuMu)
-    part = pn.ps.proj.parts.q0(nu,mu)
+    mu = pps.sel.OutPartHM(evt, pps.pdg.kMuon)
+    nu = pps.sel.Beam(evt, pps.pdg.kNuMu)
+    part = pps.proj.parts.q0(nu,mu)
     if not mu or not nu: return 0
     return part
 
 def q3(evt):
-    mu = pn.ps.sel.OutPartHM(evt, pn.ps.pdg.kMuon)
-    nu = pn.ps.sel.Beam(evt, pn.ps.pdg.kNuMu)
-    part = pn.ps.proj.parts.q3(nu,mu)
+    mu = pps.sel.OutPartHM(evt, pps.pdg.kMuon)
+    nu = pps.sel.Beam(evt, pps.pdg.kNuMu)
+    part = pps.proj.parts.q3(nu,mu)
     if not mu or not nu: return 0
     return part
 
@@ -133,10 +132,10 @@ def q3(evt):
 
 print("FRAME Evaluation")
 fr = pn.FrameGen(nuwro_source, 100000)
-fr.AddColumn("Q2", pn.ps.project.ANL_CCQE_182176_Project_Q2)
+fr.AddColumn("Q2", pps.project.ANL_CCQE_182176_Project_Q2)
 fr.AddColumn("MeasQ2", anl_handler.projections[0])
-fr.AddColumn("custom_filter", pn.ps.filter.CUSTOM_FILTER)
-fr.AddColumn("original_filter", pn.ps.filter.ANL_CCQE_182176_Filter)
+fr.AddColumn("custom_filter", pps.filter.CUSTOM_FILTER)
+fr.AddColumn("original_filter", pps.filter.ANL_CCQE_182176_Filter)
 fr.AddColumn("hm_muon", hm_muon)
 fr.AddColumn("hm_proton", hm_proton)
 fr.AddColumn("hm_neutron", hm_neutron)
@@ -169,10 +168,10 @@ plt.clf()
 
 print("FRAME Evaluation")
 fr = pn.FrameGen(neut_source, 100000)
-fr.AddColumn("Q2", pn.ps.project.ANL_CCQE_182176_Project_Q2)
+fr.AddColumn("Q2", pps.project.ANL_CCQE_182176_Project_Q2)
 fr.AddColumn("MeasQ2", anl_handler.projections[0])
-fr.AddColumn("custom_filter", pn.ps.filter.CUSTOM_FILTER)
-fr.AddColumn("original_filter", pn.ps.filter.ANL_CCQE_182176_Filter)
+fr.AddColumn("custom_filter", pps.filter.CUSTOM_FILTER)
+fr.AddColumn("original_filter", pps.filter.ANL_CCQE_182176_Filter)
 fr.AddColumn("hm_muon", hm_muon)
 fr.AddColumn("hm_proton", hm_proton)
 fr.AddColumn("hm_neutron", hm_neutron)

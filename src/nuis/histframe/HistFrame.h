@@ -4,13 +4,47 @@
 
 #include "Eigen/Dense"
 
+#include <iostream>
 #include <string>
 #include <vector>
 
 namespace nuis {
+
+struct HistColumn_View {
+  Eigen::ArrayXd content;
+  Eigen::ArrayXd variance;
+  Eigen::ArrayXd binwidth;
+
+  // Need bin width options (don't love this)
+  // Can we have some change with a visitor/reduction?
+  Eigen::ArrayXd getcv(bool get_by_bin_width = false) {
+    if (get_by_bin_width)
+      return content / binwidth;
+    return content;
+  }
+
+  void setcv(const Eigen::ArrayXd &incol, bool is_by_bin_width = false) {
+    if (is_by_bin_width)
+      content = incol * binwidth;
+    content = incol;
+  }
+
+  Eigen::ArrayXd geter(bool get_by_bin_width = false) {
+    if (get_by_bin_width)
+      return variance / binwidth;
+    return variance;
+  }
+
+  void seter(const Eigen::ArrayXd &incol, bool is_by_bin_width = false) {
+    if (is_by_bin_width)
+      variance = incol * binwidth;
+    variance = incol;
+  }
+};
+
 struct HistFrame {
 
-  Bins::BinOp binning;
+  Binning binning;
 
   struct ColumnInfo {
     std::string name;
@@ -22,8 +56,10 @@ struct HistFrame {
   Eigen::ArrayXXd contents, variance;
   size_t nfills;
 
-  HistFrame(Bins::BinOp bindef, std::string const &def_col_name = "mc",
+  HistFrame(Binning binop, std::string const &def_col_name = "mc",
             std::string const &def_col_label = "");
+
+  HistFrame(){};
 
   using column_t = uint32_t;
   constexpr static column_t const npos = std::numeric_limits<column_t>::max();
@@ -36,21 +72,25 @@ struct HistFrame {
   Eigen::ArrayXd get_error(column_t col = 0,
                            bool divide_by_bin_sizes = false) const;
 
-  Bins::BinId find_bin(std::vector<double> const &projections) const;
+  Binning::Index find_bin(std::vector<double> const &projections) const;
+
+  HistColumn_View operator[](std::string const &name) const;
+  HistColumn_View operator[](column_t const &colid) const;
+
   void fill(std::vector<double> const &projections, double weight,
             column_t col = 0);
-  // A semantically meaningful helper function for passing a selection integer
-  // as the first projection axis
+  // A semantically meaningful helper find_bintion for passing a selection
+  // integer as the first projection axis
   void fill_with_selection(int sel_int, std::vector<double> const &projections,
                            double weight, column_t col = 0);
 
   // convenience for 1D histograms
-  Bins::BinId find_bin(double projection) const;
+  Binning::Index find_bin(double projection) const;
   void fill(double projection, double weight, column_t col = 0);
   void fill_with_selection(int sel_int, double projection, double weight,
                            column_t col = 0);
 
-  void fill_bin(Bins::BinId bini, double weight, column_t col = 0);
+  void fill_bin(Binning::Index bini, double weight, column_t col = 0);
 
   void reset();
 };

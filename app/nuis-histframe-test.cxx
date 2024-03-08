@@ -7,6 +7,9 @@
 #include "nuis/histframe/ROOTUtility.h"
 #include "nuis/histframe/Utility.h"
 
+#include "nuis/record/RecordFactory.h"
+
+
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/FATXUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"
@@ -22,10 +25,6 @@
 
 using namespace nuis;
 
-double ToGeVFactor(HepMC3::GenEvent const &ev) {
-  return (ev.momentum_unit() == HepMC3::Units::MEV) ? 1E-3 : 1;
-}
-
 double Q2_GeV(HepMC3::GenEvent const &ev) {
   auto beamp = NuHepMC::Event::GetBeamParticle(ev);
   auto beam_pid = beamp->pid();
@@ -34,8 +33,7 @@ double Q2_GeV(HepMC3::GenEvent const &ev) {
   auto lep = NuHepMC::Event::GetParticle_First(
       ev, NuHepMC::ParticleStatus::UndecayedPhysical, {cc_lep_pid});
 
-  return -(beamp->momentum() - lep->momentum()).m2() *
-         std::pow(ToGeVFactor(ev), 2);
+  return -(beamp->momentum() - lep->momentum()).m2() * 1E-6;
 }
 
 double q0_GeV(HepMC3::GenEvent const &ev) {
@@ -46,7 +44,7 @@ double q0_GeV(HepMC3::GenEvent const &ev) {
   auto lep = NuHepMC::Event::GetParticle_First(
       ev, NuHepMC::ParticleStatus::UndecayedPhysical, {cc_lep_pid});
 
-  return (beamp->momentum() - lep->momentum()).e() * ToGeVFactor(ev);
+  return (beamp->momentum() - lep->momentum()).e() * 1E-3;
 }
 
 int isCC(HepMC3::GenEvent const &ev) {
@@ -74,11 +72,14 @@ int main(int argc, char const *argv[]) {
   EventSourceFactory fact;
   auto [gri, evs] = fact.make(argv[1]);
 
+  // RecordFactory rfact;
+  // rfact.make( YAML::Load(R"("type":"hepdata")") );
+
   if (!evs) {
     spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
     return 1;
   }
-  nuis::HistFrame q0(Bins::lin_space(100, 0, 10, "q_0 [GeV]"));
+  nuis::HistFrame q0(Binning::lin_space(100, 0, 10, "q_0 [GeV]"));
   auto ccqe_col = q0.add_column("CCQE");
   auto MEC_col = q0.add_column("MEC");
   auto RES_col = q0.add_column("RES");
@@ -90,7 +91,7 @@ int main(int argc, char const *argv[]) {
     }
     auto ev_q0 = q0_GeV(ev);
     auto q0_bin = q0.find_bin(ev_q0);
-    std::cout << "ev_q0: " << ev_q0 << ", -> bin: " << q0_bin << std::endl;
+    // std::cout << "ev_q0: " << ev_q0 << ", -> bin: " << q0_bin << std::endl;
     q0.fill_bin(q0_bin, cvw);
     auto proc_id = NuHepMC::ER3::ReadProcessID(ev);
     if ((proc_id >= 200) && (proc_id < 250)) {
@@ -111,7 +112,7 @@ int main(int argc, char const *argv[]) {
     q0.contents.col(i) * (norm_info.fatx / norm_info.sumweights);
   }
 
-  std::cout << q0.binning.bin_info.bin_sizes() << std::endl;
+  std::cout << q0.binning.bin_sizes() << std::endl;
 
   auto h1 = ToTH1(q0, "q0hist", true);
   auto h1_CCQE = ToTH1(q0, "q0hist_CCQE", true, ccqe_col);
@@ -124,4 +125,9 @@ int main(int argc, char const *argv[]) {
   h1_MEC->Draw("HIST SAME");
   h1_RES->Draw("HIST SAME");
   c1.Print("mycanv.pdf");
+
+  std::cout<<"CCQE" << std::endl;
+  std::cout << q0["CCQE"].getcv(false) << std::endl;
+  std::cout<<"CCQE2" << std::endl;
+  std::cout << q0["CCQE"].getcv(true) << std::endl;
 }

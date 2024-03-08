@@ -10,6 +10,10 @@ target_link_libraries(nuis-frame-test eventinput frame NuHepMC::CPPUtils)
 
 find_package(ROOT 6 REQUIRED)
 add_executable(nuis-histframe-test nuis-histframe-test.cxx)
-target_link_libraries(nuis-histframe-test eventinput histframe NuHepMC::CPPUtils ROOT::Hist ROOT::Gui)
+target_link_libraries(nuis-histframe-test eventinput histframe record NuHepMC::CPPUtils ROOT::Hist ROOT::Gui)
 
-install(TARGETS nuis-dump-events nuis-enu-histograms nuis-frame-test nuis-histframe-test DESTINATION bin)
+add_executable(nuis-record-test nuis-record-test.cxx)
+target_link_libraries(nuis-record-test eventinput record histframe NuHepMC::CPPUtils ROOT::Hist ROOT::Gui)
+
+
+install(TARGETS nuis-dump-events nuis-enu-histograms nuis-frame-test nuis-histframe-test nuis-record-test DESTINATION bin)

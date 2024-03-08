@@ -8,9 +8,9 @@
 
 namespace nuis {
 
-HistFrame::HistFrame(Bins::BinOp bindef, std::string const &def_col_name,
+HistFrame::HistFrame(Binning binop, std::string const &def_col_name,
                      std::string const &def_col_label)
-    : binning(bindef), column_info{{def_col_name, def_col_label}} {
+    : binning(binop), column_info{{def_col_name, def_col_label}} {
 
   reset();
 }
@@ -37,52 +37,51 @@ HistFrame::find_column_index(std::string const &name) const {
 }
 Eigen::ArrayXd HistFrame::get_content(HistFrame::column_t col,
                                       bool divide_by_bin_sizes) const {
-  return divide_by_bin_sizes
-             ? (contents.col(col) / binning.bin_info.bin_sizes()).eval()
-             : contents.col(col);
+  return divide_by_bin_sizes ? (contents.col(col) / binning.bin_sizes()).eval()
+                             : contents.col(col);
 }
 Eigen::ArrayXd HistFrame::get_error(HistFrame::column_t col,
                                     bool divide_by_bin_sizes) const {
   return (divide_by_bin_sizes
-              ? (contents.col(col) / (binning.bin_info.bin_sizes().square()))
-                    .eval()
+              ? (contents.col(col) / (binning.bin_sizes().square())).eval()
               : contents.col(col))
       .sqrt();
 }
 
-Bins::BinId HistFrame::find_bin(std::vector<double> const &projections) const {
+Binning::Index
+HistFrame::find_bin(std::vector<double> const &projections) const {
 #ifndef NUIS_NDEBUG
-  if (projections.size() != binning.bin_info.extents.front().size()) {
+  if (projections.size() != binning.bins.front().size()) {
     spdlog::critical("[HistFrame::find_bin] : Called with {} projections, but "
                      "the binning has {} axes.",
-                     projections.size(),
-                     binning.bin_info.extents.front().size());
+                     projections.size(), binning.bins.front().size());
     abort();
   }
 #endif
-  return binning.bin_func(projections);
+  return binning.find_bin(projections);
 }
-Bins::BinId HistFrame::find_bin(double proj) const {
+Binning::Index HistFrame::find_bin(double proj) const {
   return find_bin(std::vector<double>{
       proj,
   });
 }
 
-void HistFrame::fill_bin(Bins::BinId i, double weight,
+void HistFrame::fill_bin(Binning::Index i, double weight,
                          HistFrame::column_t col) {
+  // PS. Shouldn't an npos check search go on even if not in debug?
 #ifndef NDEBUG
-  if (i == Bins::npos) {
-    spdlog::critical(
-        "Tried to Fill histogram with out of range nuis::Bins::npos.");
+  if (i == Binning::npos) {
+    spdlog::warn(
+        "Tried to Fill histogram with out of range nuis::Binning::npos.");
     return;
   }
   if (i >= contents.rows()) {
-    spdlog::critical("Tried to Fill histogram with out of range bin {}.", i);
+    spdlog::warn("Tried to Fill histogram with out of range bin {}.", i);
     return;
   }
   if ((weight != 0) && (!std::isnormal(weight))) {
-    spdlog::critical("Tried to Fill histogram with a non-normal weight: {}.",
-                     weight);
+    spdlog::warn("Tried to Fill histogram with a non-normal weight: {}.",
+                 weight);
     return;
   }
 #endif
@@ -99,6 +98,8 @@ void HistFrame::fill_bin(Bins::BinId i, double weight,
 void HistFrame::fill_with_selection(int sel_int,
                                     std::vector<double> const &projections,
                                     double weight, column_t col) {
+
+  // PS Why is local projections necessary if its not used in fill?
   static std::vector<double> local_projections(10);
   local_projections.clear();
   local_projections.push_back(sel_int);
@@ -115,6 +116,12 @@ void HistFrame::fill_with_selection(int sel_int, double projection,
 
 void HistFrame::fill(std::vector<double> const &projections, double weight,
                      HistFrame::column_t col) {
+
+  // PS. NULL values should be checked explicitly to avoid min/max checks.
+  if (std::find(projections.begin(), projections.end(), 0xdeadbeef) !=
+      projections.end())
+    return;
+
   fill_bin(find_bin(projections), weight, col);
 }
 
@@ -124,12 +131,40 @@ void HistFrame::fill(double projection, double weight,
 }
 
 void HistFrame::reset() {
-  contents = Eigen::ArrayXXd::Zero(binning.bin_info.extents.size(),
-                                   column_info.size());
-  variance = Eigen::ArrayXXd::Zero(binning.bin_info.extents.size(),
-                                   column_info.size());
+  contents = Eigen::ArrayXXd::Zero(binning.bins.size(), column_info.size());
+  variance = Eigen::ArrayXXd::Zero(binning.bins.size(), column_info.size());
   nfills = 0;
 }
+
+HistColumn_View HistFrame::operator[](std::string const &name) const {
+
+  Eigen::ArrayXd binsize = Eigen::ArrayXd::Zero(binning.bins.size());
+  for (int ri = 0; ri < contents.rows(); ++ri) {
+    double area = 1;
+    for (auto const &binrange : binning.bins[ri]) {
+      area *= binrange.width();
+    }
+    binsize(ri) = area;
+  }
+
+  column_t colid = this->find_column_index(name);
+  return {contents.col(colid), variance.col(colid), binsize};
+}
+
+HistColumn_View HistFrame::operator[](column_t const &colid) const {
+
+  Eigen::ArrayXd binsize = Eigen::ArrayXd::Zero(binning.bins.size());
+  for (int ri = 0; ri < contents.rows(); ++ri) {
+    double area = 1;
+    for (auto const &binrange : binning.bins[ri]) {
+      area *= binrange.width();
+    }
+    binsize[ri] = area;
+  }
+
+  return {contents.col(colid), variance.col(colid), binsize};
+}
+
 } // namespace nuis
 
 std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {

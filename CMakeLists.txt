@@ -48,6 +48,9 @@ elseif(NOT DEFINED CMAKE_BUILD_TYPE)
 endif()
 
 option(BUILTIN_NuWro "Whether to use build our own version of NuWro" ON)
+option(NUISANCE_ENABLE_TESTS "Whether to enable test suite" OFF)
+option(NUISANCE_ENABLE_SANITIZERS_CLI "Whether to enable ASAN LSAN and UBSAN" OFF)
+option(NUISANCE_ENABLE_GCOV_CLI "Whether to enable GCOV" OFF)
 
 LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
 
@@ -168,6 +171,16 @@ target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter Boost::boos
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 target_link_options(nuis_options INTERFACE)
 
+if(NUISANCE_ENABLE_SANITIZERS)
+  target_compile_options(nuis_options INTERFACE -fno-omit-frame-pointer -fsanitize=address -fsanitize=leak -fsanitize=undefined)
+  target_link_options(nuis_options INTERFACE -fsanitize=address -fsanitize=leak -fsanitize=undefined)
+endif()
+
+if(NUISANCE_ENABLE_GCOV)
+  target_compile_options(nuis_options INTERFACE -fprofile-arcs -ftest-coverage)
+  target_link_options(nuis_options INTERFACE -fprofile-arcs -ftest-coverage)
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL Release)
   target_compile_definitions(nuis_options INTERFACE NUIS_NDEBUG)
 endif()
@@ -178,9 +191,130 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/histframe)
 # add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/python)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/record)
+
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
+
+
+# Sorry all this below is a mess, I will tidy.... PS
+
+if(NOT CMAKE_PROPERTY_LIST)
+    execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
+    
+    # Convert command output into a CMake list
+    string(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+    string(REGEX REPLACE "\n" ";" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
+    list(REMOVE_DUPLICATES CMAKE_PROPERTY_LIST)
+endif()
+
+function(print_target_properties target)
+    if(NOT TARGET ${target})
+      message(STATUS "There is no target named '${target}'")
+      return()
+    endif()
+
+    foreach(property ${CMAKE_PROPERTY_LIST})
+        string(REPLACE "<CONFIG>" "DEBUG" property ${property})
+
+        get_property(was_set TARGET ${target} PROPERTY ${property} SET)
+        if(was_set)
+            get_target_property(value ${target} ${property})
+            message("${target} ${property} = ${value}")
+        endif()
+    endforeach()
+    message(STATUS "GOT LIB FOR TARGET '${target}'")
+endfunction()
+
+function(clear_global_properties)
+    set(GLOBAL_COMPILE_OPTIONS "" CACHE INTERNAL "Global compile options")
+    set(GLOBAL_INCLUDE_DIRS "" CACHE INTERNAL "Global include directories")
+    set(GLOBAL_COMPILE_DEFS "" CACHE INTERNAL "Global compile definitions")
+endfunction()
+
+# Function to recursively collect properties
+function(collect_target_properties target)
+    get_target_property(link_libs ${target} INTERFACE_LINK_LIBRARIES)
+    if(link_libs)
+        foreach(lib ${link_libs})
+            if(TARGET ${lib})
+                collect_target_properties(${lib})
+            endif()
+        endforeach()
+    endif()
+
+    #message("LINK LIBS ${link_libs} ${target}")
+    #print_target_properties(${target})
+    # Collect properties
+    #get_target_property(location ${target} LOCATION)
+    get_target_property(include_dirs ${target} INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(compile_defs ${target} INTERFACE_COMPILE_DEFINITIONS)
+
+    #message("${target} ${link_libs} ${location} ${include_dirs} ${compile_defs}")
+    #message("GLOBALS ${GLOBAL_LOCATION} ")
+    #message("GLOBALS ${GLOBAL_INCLUDE_DIRS} ")
+
+    # Append properties to global properties
+    if(location)
+      set(GLOBAL_LOCATION "${GLOBAL_LOCATION};${location}" CACHE INTERNAL "Global compile definitions")
+    endif()
+
+    if(include_dirs)
+      #message("ADDING INCLUDE PATH ${include_dirs} ${GLOBAL_INCLUDE_DIRS}")
+      set(GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS};${include_dirs}" CACHE INTERNAL "Global compile definitions")
+    endif()
+
+    if(compile_defs)
+      #message("ADDING COMPILE DEF ${compile_defs} ${GLOBAL_COMPILE_DEFS}")
+      set(GLOBAL_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS};${compile_defs}" CACHE INTERNAL "Global compile definitions")
+    endif()
+
+  #message("LOCALCOMPILEDEF ${GLOBAL_COMPILE_DEFS}")
+  #message("LOCALCOMPILEDIR ${GLOBAL_INCLUDE_DIRS}")
+  #message("LOCALCOMPILELOC ${GLOBAL_LOCATION}")
+
+endfunction()
+
+
+# Call the function with your target
+#print_target_properties(nuis_options)
+clear_global_properties()
+collect_target_properties(nuis_options)
+
+string(REPLACE ";" " -D" GLOBAL_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS}")
+string(REPLACE ";" ":" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
+string(REPLACE ";" " -L" GLOBAL_LOCATION "${GLOBAL_LOCATION}")
+
+
+string(REPLACE "$" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
+string(REPLACE "<" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
+string(REPLACE "BUILD_INTERFACE:" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
+string(REPLACE ">" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
+string(REPLACE "$" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
+
+string(REPLACE "-D$<$<NOT $<BOOL ON>> YAML_CPP_STATIC_DEFINE>" "" GLOBAL_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS}")
+
+#message("COMPILEDEF ${GLOBAL_COMPILE_DEFS}")
+#message("COMPILEDIR ${GLOBAL_INCLUDE_DIRS}")
+#message("COMPILELOC ${GLOBAL_LOCATION}")
+
+set(NUISANCE_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS}")
+set(NUISANCE_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
+set(NUISANCE_LOCATION "${GLOBAL_LOCATION}")
 
 # BUILD SETUP
 configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.NUISANCEV3.sh.in ${PROJECT_BINARY_DIR}/setup.NUISANCEV3.sh @ONLY)
 install(PROGRAMS ${PROJECT_BINARY_DIR}/setup.NUISANCEV3.sh DESTINATION bin)
+
+if(NUISANCE_ENABLE_TESTS)
+
+  CPMAddPackage("gh:catchorg/Catch2@3.3.2")
+
+  LIST(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
+
+  include(CTest)
+  include(Catch)
+
+  add_subdirectory(tests)
+endif()
+

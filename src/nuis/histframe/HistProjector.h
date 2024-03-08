@@ -6,9 +6,6 @@
 #include "fmt/ranges.h"
 
 namespace nuis {
-namespace Bins {
-std::vector<Bins::BinningInfo::extent>
-GetAxisExtents(BinningInfo const &bin_info, size_t proj_to_axis);
-} // namespace Bins
-HistFrame Project1D(HistFrame const &hf, size_t proj_to_axis);
+HistFrame Project(HistFrame const &hf, std::vector<size_t> const& proj_to_axes);
+HistFrame Project(HistFrame const &hf, size_t proj_to_axis);
 } // namespace nuis

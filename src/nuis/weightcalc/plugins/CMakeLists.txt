@@ -41,15 +41,18 @@ CPMFindPackage(
     GIT_TAG main
 )
 
-add_library(Prob3plusplus_weightcalc_plugin SHARED Prob3plusplusWeightCalc.cxx)
-target_link_libraries(Prob3plusplus_weightcalc_plugin PUBLIC eventinput Prob3plusplus::Prob3plusplus nuis_options)
+if(TARGET Prob3plusplus::Prob3plusplus)
+  add_library(Prob3plusplus_weightcalc_plugin SHARED Prob3plusplusWeightCalc.cxx)
+  target_link_libraries(Prob3plusplus_weightcalc_plugin PUBLIC eventinput Prob3plusplus::Prob3plusplus nuis_options)
 
-set_target_properties(Prob3plusplus_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
-set_target_properties(Prob3plusplus_weightcalc_plugin PROPERTIES OUTPUT_NAME "Prob3plusplus")
+  set_target_properties(Prob3plusplus_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
+  set_target_properties(Prob3plusplus_weightcalc_plugin PROPERTIES OUTPUT_NAME "Prob3plusplus")
 
-install(TARGETS Prob3plusplus_weightcalc_plugin DESTINATION lib/plugins)
+  install(TARGETS Prob3plusplus_weightcalc_plugin DESTINATION lib/plugins)
 
-target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_Prob3plusplus_Enabled)
+  target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_Prob3plusplus_Enabled)
 
-target_link_libraries(weightcalc_plugins INTERFACE Prob3plusplus_weightcalc_plugin)
+  target_link_libraries(weightcalc_plugins INTERFACE Prob3plusplus_weightcalc_plugin)
+endif()
+
 install(TARGETS weightcalc_plugins DESTINATION lib/plugins)

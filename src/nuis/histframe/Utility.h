@@ -6,15 +6,12 @@
 
 namespace nuis {
 
-void FillHistFromEventColumns(HistFrame &hf, Eigen::ArrayXd const &weights,
-                              Eigen::ArrayXXd const &projections,
-                              HistFrame::column_t col = 1);
+std::string plotly1D(HistFrame const &hf);
+std::string plotly2D(HistFrame const &hf);
 
-namespace Bins {
-//boost::json overloads
+// boost::json overloads
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
-                BinningInfo const &bi);
-} // namespace Bins
+                Binning const &bi);
 
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
                 HistFrame const &hf);
