@@ -1,6 +1,6 @@
 # Developer Guidelines
 
-Always a good place to start is the (CppCoreGuidelines)[https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#gsl-guidelines-support-library]. We won't enforce them rigourously, but they are useful to internalise during your lunch breaks.
+Always a good place to start is the [CppCoreGuidelines](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#gsl-guidelines-support-library). We won't enforce them rigourously, but they are useful to internalise during your lunch breaks.
 
 ## Prefer `auto`
 
