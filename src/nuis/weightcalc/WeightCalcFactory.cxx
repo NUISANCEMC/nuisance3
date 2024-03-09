@@ -1,5 +1,6 @@
-#include "nuis/weightcalc/IWeightCalcContainer.h"
-#include "nuis/weightcalc/plugins/IWeightCalcPlugin.h"
+#include "nuis/eventinput/IEventSourceWrapper.h"
+
+#include "nuis/weightcalc/WeightCalcFactory.h"
 
 #include "nuis/except.h"
 #include "nuis/log.txx"
@@ -36,32 +37,8 @@ WeightCalcFactory::WeightCalcFactory() {
   }
 }
 
-IWeightCalcHM3MapPtr make_all(IEventSourcePtr evs, YAML::Node const &cfg = {}) {
-  if (!evs) {
-    return nullptr;
-  }
-
-  auto matching_plugins = std::make_shared<IWeightCalcContainerHM3Map>();
-
-  for (auto &[pluginso, plugin] : pluginfactories) {
-    auto wc = plugin(evs, cfg);
-    if (wc->good()) {
-      log_info("Found WeightCalculator plugin: {} that can process "
-               " proffered IEventSource",
-               pluginso.native());
-      matching_plugins->add(wc);
-    }
-  }
-
-  return matching_plugins;
-}
-
-IWeightCalcHM3MapPtr make_all(IWrappedEventSourcePtr evs,
-                              YAML::Node const &cfg = {}) {
-  return make_all(evs->unwrap(), cfg);
-}
-
-IWeightCalcHM3MapPtr make(IEventSourcePtr evs, YAML::Node const &cfg = {}) {
+IWeightCalcHM3MapPtr WeightCalcFactory::make(IEventSourcePtr evs,
+                                             YAML::Node const &cfg) {
   if (!evs) {
     return nullptr;
   }
@@ -102,9 +79,8 @@ IWeightCalcHM3MapPtr make(IEventSourcePtr evs, YAML::Node const &cfg = {}) {
   return nullptr;
 }
 
-IWeightCalcHM3MapPtr make(IWrappedEventSourcePtr evs,
-                          YAML::Node const &cfg = {}) {
+IWeightCalcHM3MapPtr WeightCalcFactory::make(IWrappedEventSourcePtr evs,
+                                             YAML::Node const &cfg) {
   return make(evs->unwrap(), cfg);
 }
-};
 } // namespace nuis

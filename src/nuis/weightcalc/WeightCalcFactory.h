@@ -10,6 +10,12 @@
 #include <map>
 
 namespace nuis {
+
+class IEventSource;
+using IEventSourcePtr = std::shared_ptr<IEventSource>;
+class IEventSourceWrapper;
+using IWrappedEventSourcePtr = std::shared_ptr<IEventSourceWrapper>;
+
 class WeightCalcFactory : public nuis_named_log("WeightCalc") {
 
   using IWeightCalc_PluginFactory_t = IWeightCalcPluginPtr(IEventSourcePtr,
