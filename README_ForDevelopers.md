@@ -55,7 +55,9 @@ log_error("my error message");
 log_critical("my critical message");
 ```
 
-Behind the scenes these functions forward their arguments to `spdlog`, which means you get all the power of fmtlib for constructing your log messages. However, `spdlog` should not be used directly. For hot code path logging that should be compiled out in release builds, see [Compile Time Log Levels](#compile-time-log-leves).
+Behind the scenes these functions forward their arguments to `spdlog`, which means you get all the power of fmtlib for constructing your log messages. However, `spdlog` should not be used directly as we want to encapsulate this dependency away from user code. 
+
+For hot code path logging that should be compiled out in release builds, see [Compile Time Log Levels](#compile-time-log-levels).
 
 These functions can be called in any NUISANCEv3 implementation file that includes `"nuis/log.txx"`. Implementations should be kept out of header files so that we do not bleed our internal dependencies into user code.
 
