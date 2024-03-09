@@ -2,8 +2,8 @@
 
 #include "nuis/eventinput/HepMC3EventSource.h"
 
-#include "nuis/log.txx"
 #include "nuis/except.h"
+#include "nuis/log.txx"
 
 #include "boost/dll/import.hpp"
 #include "boost/dll/runtime_symbol_info.hpp"
@@ -28,16 +28,17 @@ PathResolver::PathResolver() {
         continue;
       }
 
-      log_debug("EventSourceFactory: PathResolver -- adding search path: {}",
-            path.native());
+      log_debug("[EventSourceFactory:PathResolver] -- adding search path: {}",
+                path.native());
       nuisance_event_paths.emplace_back(std::move(path));
     }
   }
 }
 
 std::filesystem::path PathResolver::resolve(std::string const &filepath) {
-  log_debug("EventSourceFactory: PathResolver::resolve filepath: {}, exists: {}",
-        filepath, std::filesystem::exists(filepath));
+  log_debug(
+      "[EventSourceFactory:PathResolver]::resolve filepath: {}, exists: {}",
+      filepath, std::filesystem::exists(filepath));
 
   if (!filepath.size()) {
     return {};
@@ -49,8 +50,8 @@ std::filesystem::path PathResolver::resolve(std::string const &filepath) {
 
   if (filepath.front() == '/') {
     std::filesystem::path abspath = filepath;
-    log_debug("EventSourceFactory: PathResolver abspath: {}, exists: {}",
-          abspath.native(), std::filesystem::exists(abspath));
+    log_debug("[EventSourceFactory:PathResolver] abspath: {}, exists: {}",
+              abspath.native(), std::filesystem::exists(abspath));
     if (!std::filesystem::exists(abspath)) {
       return {};
     }
@@ -59,9 +60,10 @@ std::filesystem::path PathResolver::resolve(std::string const &filepath) {
 
   for (auto const &search_path : nuisance_event_paths) {
     auto path = search_path / filepath;
-    log_debug("EventSourceFactory: PathResolver search_path: {}, path: "
-          "{}, exists: {}",
-          search_path.native(), path.native(), std::filesystem::exists(path));
+    log_debug("[EventSourceFactory:PathResolver] search_path: {}, path: "
+              "{}, exists: {}",
+              search_path.native(), path.native(),
+              std::filesystem::exists(path));
     if (std::filesystem::exists(path)) {
       return path;
     }
@@ -98,8 +100,8 @@ void EventSourceFactory::add_event_path(std::filesystem::path path) {
       (std::find(resolv.nuisance_event_paths.begin(),
                  resolv.nuisance_event_paths.end(),
                  path) == resolv.nuisance_event_paths.end())) {
-    log_debug("EventSourceFactory: PathResolver -- adding search path: {}",
-          path.native());
+    log_debug("[EventSourceFactory:PathResolver] -- adding search path: {}",
+              path.native());
     resolv.nuisance_event_paths.emplace_back(std::move(path));
   }
 }
@@ -113,16 +115,16 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
       cfg["filepath"] = path.native();
     } else {
       log_warn("EventSourceFactory::PathResolver did not resolve {} to an "
-                   "existing filesystem path.",
-                   cfg["filepath"].as<std::string>());
+               "existing filesystem path.",
+               cfg["filepath"].as<std::string>());
     }
   }
 
   for (auto &[pluginso, plugin] : pluginfactories) {
     auto es = plugin(cfg);
     if (es->first()) {
-      log_debug("Reading file {} with plugin {}", cfg["filepath"].as<std::string>(),
-            pluginso.native());
+      log_debug("Reading file {} with plugin {}",
+                cfg["filepath"].as<std::string>(), pluginso.native());
       return {es->first().value().run_info(), es};
     }
   }
@@ -132,11 +134,11 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
       std::make_shared<HepMC3EventSource>(cfg["filepath"].as<std::string>());
   if (es->first()) {
     log_debug("Reading file {} with native HepMC3EventSource",
-          cfg["filepath"].as<std::string>());
+              cfg["filepath"].as<std::string>());
     return {es->first().value().run_info(), es};
   }
   log_warn("Failed to find plugin capable of reading input file: {}.",
-               cfg["filepath"].as<std::string>());
+           cfg["filepath"].as<std::string>());
   return {nullptr, nullptr};
 }
 

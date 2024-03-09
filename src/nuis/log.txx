@@ -5,6 +5,8 @@
     "nuis/log.txx should not be included by user code. Are our headers leaking?"
 #endif
 
+#define SPDLOG_DISABLE_DEFAULT_LOGGER
+
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 
@@ -20,12 +22,25 @@ template <typename TN> void nuis_named_log_impl<TN>::ensure_logger() {
     logger =
         spdlog::get(boost::mpl::c_str<TN>::value); // check that it hasn't been
                                                    // registered already
+
     if (!logger) {
       logger = spdlog::stdout_color_mt(boost::mpl::c_str<TN>::value);
-      logger->set_pattern("[%n:%l]: %v");
+      // std::cout << "[log]: Instantiated new logger: "
+      //           << boost::mpl::c_str<TN>::value << ", " << logger.get()
+      //           << std::endl;
+      if (std::string("default") == boost::mpl::c_str<TN>::value) {
+        logger->set_pattern("[%l]: %v");
+      } else {
+        logger->set_pattern("[%n:%l]: %v");
+      }
       logger->set_level(spdlog::level::warn);
       envcfg();
     }
+    // else {
+    // std::cout << "[log]: Fetched existing logger: "
+    //           << boost::mpl::c_str<TN>::value << ", " << logger.get()
+    //           << std::endl;
+    // }
   }
 }
 
@@ -156,91 +171,30 @@ template <typename TN> void nuis_named_log_impl<TN>::envcfg() {
   }
 }
 
-// hack to give us library level executable code
-struct set_default_log_level {
-  set_default_log_level() {
-    spdlog::set_level(spdlog::level::warn);
-    spdlog::set_pattern("[%l]: %v");
-  }
-};
-static set_default_log_level default_level_setter;
-
 template <typename... Args> void log_trace(Args &&...args) {
-  spdlog::trace(std::forward<Args>(args)...);
+  nuis_named_log("default")::log_trace(std::forward<Args>(args)...);
 }
 template <typename... Args> void log_debug(Args &&...args) {
-  spdlog::debug(std::forward<Args>(args)...);
+  nuis_named_log("default")::log_debug(std::forward<Args>(args)...);
 }
 template <typename... Args> void log_info(Args &&...args) {
-  spdlog::info(std::forward<Args>(args)...);
+  nuis_named_log("default")::log_info(std::forward<Args>(args)...);
 }
 template <typename... Args> void log_warn(Args &&...args) {
-  spdlog::warn(std::forward<Args>(args)...);
+  nuis_named_log("default")::log_warn(std::forward<Args>(args)...);
 }
 template <typename... Args> void log_error(Args &&...args) {
-  spdlog::error(std::forward<Args>(args)...);
+  nuis_named_log("default")::log_error(std::forward<Args>(args)...);
 }
 template <typename... Args> void log_critical(Args &&...args) {
-  spdlog::critical(std::forward<Args>(args)...);
+  nuis_named_log("default")::log_critical(std::forward<Args>(args)...);
 }
 inline void set_log_level(log_level ll) {
-  switch (ll) {
-  case log_level::trace: {
-    spdlog::set_level(spdlog::level::trace);
-    break;
-  }
-  case log_level::debug: {
-    spdlog::set_level(spdlog::level::debug);
-    break;
-  }
-  case log_level::info: {
-    spdlog::set_level(spdlog::level::info);
-    break;
-  }
-  case log_level::warn: {
-    spdlog::set_level(spdlog::level::warn);
-    break;
-  }
-  case log_level::error: {
-    spdlog::set_level(spdlog::level::err);
-    break;
-  }
-  case log_level::critical: {
-    spdlog::set_level(spdlog::level::critical);
-    break;
-  }
-  case log_level::off: {
-    spdlog::set_level(spdlog::level::off);
-    break;
-  }
-  }
+  nuis_named_log("default")::set_log_level(ll);
 }
 
 inline log_level get_log_level() {
-  switch (spdlog::get_level()) {
-  case spdlog::level::trace: {
-    return log_level::trace;
-  }
-  case spdlog::level::debug: {
-    return log_level::debug;
-  }
-  case spdlog::level::info: {
-    return log_level::info;
-  }
-  case spdlog::level::warn: {
-    return log_level::warn;
-  }
-  case spdlog::level::err: {
-    return log_level::error;
-  }
-  case spdlog::level::critical: {
-    return log_level::critical;
-  }
-  default:
-  case spdlog::level::off: {
-    return log_level::off;
-  }
-  }
+  return nuis_named_log("default")::get_log_level();
 }
 
 } // namespace nuis
