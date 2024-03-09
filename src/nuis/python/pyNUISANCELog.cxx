@@ -2,8 +2,6 @@
 
 #include "nuis/python/pyNUISANCE.h"
 
-#include "spdlog/spdlog.h"
-
 #include <string>
 
 namespace py = pybind11;
@@ -13,9 +11,19 @@ std::shared_ptr<spdlog::logger> get_ensure_logger(std::string const &name) {
   auto logger = spdlog::get(name);
   if (!logger) {
     logger = spdlog::stdout_color_mt(name);
-    logger->set_pattern("[%n:%l]: %v");
+    if (name == "default") {
+      logger->set_pattern("[%l]: %v");
+    } else {
+      logger->set_pattern("[%n:%l]: %v");
+    }
     logger->set_level(spdlog::level::warn);
+    // std::cerr << "[pyLog]: Instantiated new logger: " << name << "("
+    //           << logger.get() << ")" << std::endl;
   }
+  // else {
+  //   std::cerr << "[pyLog]: Fetched existing logger: " << name << "("
+  //             << logger.get() << ")" << std::endl;
+  // }
   return logger;
 }
 
