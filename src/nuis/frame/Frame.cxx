@@ -2,7 +2,7 @@
 
 #include "fmt/core.h"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include <sstream>
 
@@ -10,7 +10,7 @@ namespace nuis {
 Frame::column_t Frame::find_column_index(std::string const &cn) const {
   auto pos = std::find(column_names.begin(), column_names.end(), cn);
   if (pos == column_names.end()) {
-    spdlog::warn(
+    log_warn(
         "Tried to get column, named {} from frame. But no such column exists.",
         cn);
     return Frame::npos;
@@ -21,7 +21,7 @@ Frame::column_t Frame::find_column_index(std::string const &cn) const {
 Eigen::ArrayXd Frame::col(std::string const &cn) const {
   auto cid = find_column_index(cn);
   if (cid == Frame::npos) {
-    spdlog::warn(
+    log_warn(
         "Tried to get column, named {} from frame. But no such column exists.",
         cn);
     return Eigen::ArrayXd::Zero(0);
@@ -33,7 +33,7 @@ Eigen::ArrayXXd Frame::cols(std::vector<std::string> const &cns) const {
   for (size_t i = 0; i < cns.size(); ++i) {
     auto cid = find_column_index(cns[i]);
     if (cid == Frame::npos) {
-      spdlog::warn("Tried to get column, named {} from frame. But no such "
+      log_warn("Tried to get column, named {} from frame. But no such "
                    "column exists.",
                    cns[i]);
       return Eigen::ArrayXd::Zero(0);

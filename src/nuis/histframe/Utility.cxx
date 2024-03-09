@@ -2,7 +2,7 @@
 
 #include "nuis/histframe/BinningUtility.h"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include "boost/json/src.hpp"
 

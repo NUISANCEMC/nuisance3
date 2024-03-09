@@ -1,5 +1,8 @@
 #include "nuis/eventinput/plugins/neutvectEventSource.h"
 
+#include "nuis/log.txx"
+#include "nuis/except.h"
+
 #include "nuis/eventinput/plugins/ROOTUtils.h"
 
 #include "nvconv.h"
@@ -12,11 +15,11 @@
 
 #include "boost/dll/alias.hpp"
 
-#include "spdlog/spdlog.h"
-
 #include <fstream>
 
 namespace nuis {
+
+NEW_NUISANCE_EXCEPT(NeutVectNoFluxRateHistos);
 
 neutvectEventSource::neutvectEventSource(YAML::Node const &cfg) {
   if (cfg["filepath"] &&
@@ -41,7 +44,7 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
 
   for (auto const &ftr : filepaths) {
     if (!chin->Add(ftr.c_str(), 0)) {
-      spdlog::warn("Could not find neuttree in {}", ftr.native());
+      log_warn("Could not find neuttree in {}", ftr.native());
       chin.reset();
       return std::optional<HepMC3::GenEvent>();
     }
@@ -78,8 +81,8 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
       fatx = 1E-2 * (frpair.first->Integral() / frpair.second->Integral());
       flux_hist = std::move(frpair.second);
     } else {
-      spdlog::warn("Couldn't get nvconv::GetFluxRateHistPairFromChain");
-      abort();
+      log_critical("Couldn't get nvconv::GetFluxRateHistPairFromChain");
+      throw NeutVectNoFluxRateHistos();
     }
   }
 

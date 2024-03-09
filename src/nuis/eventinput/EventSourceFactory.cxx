@@ -2,14 +2,15 @@
 
 #include "nuis/eventinput/HepMC3EventSource.h"
 
+#include "nuis/log.txx"
+#include "nuis/except.h"
+
 #include "boost/dll/import.hpp"
 #include "boost/dll/runtime_symbol_info.hpp"
 
 #include "yaml-cpp/yaml.h"
 
 #include "fmt/core.h"
-
-#include "spdlog/spdlog.h"
 
 #include <regex>
 
@@ -27,17 +28,16 @@ PathResolver::PathResolver() {
         continue;
       }
 
-      spdlog::info("EventSourceFactory: PathResolver -- adding search path: {}",
-                   path.native());
+      log_debug("EventSourceFactory: PathResolver -- adding search path: {}",
+            path.native());
       nuisance_event_paths.emplace_back(std::move(path));
     }
   }
 }
 
 std::filesystem::path PathResolver::resolve(std::string const &filepath) {
-  spdlog::info(
-      "EventSourceFactory: PathResolver::resolve filepath: {}, exists: {}",
-      filepath, std::filesystem::exists(filepath));
+  log_debug("EventSourceFactory: PathResolver::resolve filepath: {}, exists: {}",
+        filepath, std::filesystem::exists(filepath));
 
   if (!filepath.size()) {
     return {};
@@ -49,8 +49,8 @@ std::filesystem::path PathResolver::resolve(std::string const &filepath) {
 
   if (filepath.front() == '/') {
     std::filesystem::path abspath = filepath;
-    spdlog::info("EventSourceFactory: PathResolver abspath: {}, exists: {}",
-                 abspath.native(), std::filesystem::exists(abspath));
+    log_debug("EventSourceFactory: PathResolver abspath: {}, exists: {}",
+          abspath.native(), std::filesystem::exists(abspath));
     if (!std::filesystem::exists(abspath)) {
       return {};
     }
@@ -59,10 +59,9 @@ std::filesystem::path PathResolver::resolve(std::string const &filepath) {
 
   for (auto const &search_path : nuisance_event_paths) {
     auto path = search_path / filepath;
-    spdlog::info("EventSourceFactory: PathResolver search_path: {}, path: "
-                 "{}, exists: {}",
-                 search_path.native(), path.native(),
-                 std::filesystem::exists(path));
+    log_debug("EventSourceFactory: PathResolver search_path: {}, path: "
+          "{}, exists: {}",
+          search_path.native(), path.native(), std::filesystem::exists(path));
     if (std::filesystem::exists(path)) {
       return path;
     }
@@ -75,8 +74,8 @@ EventSourceFactory::EventSourceFactory() : resolv() {
   auto NUISANCE = std::getenv("NUISANCE_ROOT");
 
   if (!NUISANCE) {
-    spdlog::critical("NUISANCE_ROOT environment variable not defined");
-    abort();
+    log_critical("NUISANCE_ROOT environment variable not defined");
+    throw NUISANCE_ROOTUndefined();
   }
 
   std::filesystem::path shared_library_dir{NUISANCE};
@@ -85,7 +84,7 @@ EventSourceFactory::EventSourceFactory() : resolv() {
   for (auto const &dir_entry :
        std::filesystem::directory_iterator{shared_library_dir}) {
     if (std::regex_match(dir_entry.path().filename().native(), plugin_re)) {
-      spdlog::info("Found eventinput plugin: {}", dir_entry.path().native());
+      log_debug("Found eventinput plugin: {}", dir_entry.path().native());
       pluginfactories.emplace(
           dir_entry.path(),
           boost::dll::import_alias<IEventSource_PluginFactory_t>(
@@ -99,8 +98,8 @@ void EventSourceFactory::add_event_path(std::filesystem::path path) {
       (std::find(resolv.nuisance_event_paths.begin(),
                  resolv.nuisance_event_paths.end(),
                  path) == resolv.nuisance_event_paths.end())) {
-    spdlog::info("EventSourceFactory: PathResolver -- adding search path: {}",
-                 path.native());
+    log_debug("EventSourceFactory: PathResolver -- adding search path: {}",
+          path.native());
     resolv.nuisance_event_paths.emplace_back(std::move(path));
   }
 }
@@ -113,7 +112,7 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
     if (!path.empty()) {
       cfg["filepath"] = path.native();
     } else {
-      spdlog::warn("EventSourceFactory::PathResolver did not resolve {} to an "
+      log_warn("EventSourceFactory::PathResolver did not resolve {} to an "
                    "existing filesystem path.",
                    cfg["filepath"].as<std::string>());
     }
@@ -122,8 +121,8 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
   for (auto &[pluginso, plugin] : pluginfactories) {
     auto es = plugin(cfg);
     if (es->first()) {
-      spdlog::info("Reading file {} with plugin {}",
-                   cfg["filepath"].as<std::string>(), pluginso.native());
+      log_debug("Reading file {} with plugin {}", cfg["filepath"].as<std::string>(),
+            pluginso.native());
       return {es->first().value().run_info(), es};
     }
   }
@@ -132,11 +131,11 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
   auto es =
       std::make_shared<HepMC3EventSource>(cfg["filepath"].as<std::string>());
   if (es->first()) {
-    spdlog::info("Reading file {} with native HepMC3EventSource",
-                 cfg["filepath"].as<std::string>());
+    log_debug("Reading file {} with native HepMC3EventSource",
+          cfg["filepath"].as<std::string>());
     return {es->first().value().run_info(), es};
   }
-  spdlog::warn("Failed to find plugin capable of reading input file: {}.",
+  log_warn("Failed to find plugin capable of reading input file: {}.",
                cfg["filepath"].as<std::string>());
   return {nullptr, nullptr};
 }

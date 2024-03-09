@@ -27,7 +27,7 @@
 
 #include "boost/dll/alias.hpp"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include "yaml-cpp/yaml.h"
 
@@ -45,19 +45,19 @@ public:
   };
   void set_parameters(std::map<std::string, double> const &params) {
     for (auto &[p, v] : params) {
-      spdlog::info("GENIEReWeightCalc: Setting parameter {} to {}", p, v);
+      log_info("GENIEReWeightCalc: Setting parameter {} to {}", p, v);
       fGENIE3RW->Systematics().Set(GSyst::FromString(p), v);
     }
-    spdlog::info("GENIEReWeightCalc: Beginning Reconfigure");
+    log_info("GENIEReWeightCalc: Beginning Reconfigure");
     fGENIE3RW->Reconfigure();
-    spdlog::info("GENIEReWeightCalc: Done Reconfigure");
+    log_info("GENIEReWeightCalc: Done Reconfigure");
   };
   bool good() const { return bool(nevs); }
 
   GENIEReWeightCalc(IEventSourcePtr evs, YAML::Node const &) {
     nevs = std::dynamic_pointer_cast<GHEP3EventSource>(evs);
     if (!nevs) {
-      spdlog::warn(
+      log_warn(
           "GENIEReWeightCalc: Passed in IEventSourcePtr not instance of "
           "GHEP3EventSource.");
       return;

@@ -5,8 +5,6 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include "spdlog/spdlog.h"
-
 #include <filesystem>
 #include <fstream>
 

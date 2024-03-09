@@ -1,11 +1,14 @@
 #include "nuis/eventinput/INormalizedEventSource.h"
 
+#include "nuis/log.txx"
+#include "nuis/except.h"
+
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/FATXUtils.hxx"
 
 #include "HepMC3/GenParticle.h"
 
-#include "spdlog/spdlog.h"
+NEW_NUISANCE_EXCEPT(EventMomentumUnitNotMeV);
 
 namespace nuis {
 
@@ -16,10 +19,10 @@ INormalizedEventSource::process(std::optional<HepMC3::GenEvent> ev) {
   }
 #ifndef NUIS_NDEBUG
   if (NuHepMC::Event::ToMeVFactor(ev.value()) != 1) {
-    spdlog::critical(
+    log_critical(
         "[INormalizedEventSource]: Processing event not in MeV. This breaks "
         "a critical contract to users, fix the underlying IEventSource.");
-    abort();
+    throw EventMomentumUnitNotMeV();
   }
 
   auto fsprot =
@@ -28,12 +31,12 @@ INormalizedEventSource::process(std::optional<HepMC3::GenEvent> ev) {
                                                                  });
   if (fsprot.size()) {
     if (fsprot.front()->momentum().m() < 10) {
-      spdlog::critical(
+      log_critical(
           "[INormalizedEventSource]: Processing event with a real final "
           "state proton with a reported mass of {} MeV, the units look "
           "incorrectly set. This breaks "
           "a critical contract to users, fix the underlying IEventSource.");
-      abort();
+      throw EventMomentumUnitNotMeV();
     }
   }
 #endif

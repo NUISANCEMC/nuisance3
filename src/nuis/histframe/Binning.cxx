@@ -1,7 +1,7 @@
 #include "nuis/histframe/Binning.h"
 #include "nuis/histframe/BinningUtility.h"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include "fmt/ranges.h"
 
@@ -178,7 +178,7 @@ Binning log_space_impl(double min, double max, size_t nbins,
     }
 
     if (x[0] <= 0) {
-      spdlog::warn("[log_space<base = {}>]: Attempted to find log bin "
+      log_warn("[log_space<base = {}>]: Attempted to find log bin "
                    "for unloggable number, {} ",
                    (base == 0 ? "e" : std::to_string(base)), x[0]);
       return Binning::npos;
@@ -210,7 +210,7 @@ Binning Binning::contiguous(std::vector<double> const &edges,
 
   for (size_t i = 1; i < edges.size(); ++i) {
     if (edges[i] <= edges[i - 1]) {
-      spdlog::critical(
+      log_critical(
           "[contiguous]: Bin edges are not unique and monotonically "
           "increasing. edge[{}] = {}, edge[{}] = {}.",
           i, edges[i], i - 1, edges[i - 1]);
@@ -233,30 +233,30 @@ Binning Binning::contiguous(std::vector<double> const &edges,
 
     size_t L = 0;
     size_t R = bin_info.bins.size() - 1;
-    // spdlog::info("[from_extents]: binary search: {{ x: {}, L: {}, R: {} }}.",
+    // log_info("[from_extents]: binary search: {{ x: {}, L: {}, R: {} }}.",
     //              x[0], L, R);
     while (L <= R) {
       size_t m = std::floor((L + R) / 2);
-      // spdlog::info(
+      // log_info(
       //     "[from_extents]: checking {{ x: {}, m: {}, min: {}, max: {}}}.",
       //     x[0],
       // m, bin_info.bins[m][0].min, bin_info.bins[m][0].max);
       if ((bin_info.bins[m][0].min <= x[0]) &&
           (bin_info.bins[m][0].max > x[0])) {
-        // spdlog::info("-- in bin: {} < {} < {}", bin_info.bins[m][0].min,
+        // log_info("-- in bin: {} < {} < {}", bin_info.bins[m][0].min,
         //              bin_info.bins[m][0].max, x[0]);
         return m;
       } else if (bin_info.bins[m][0].max <= x[0]) {
         L = m + 1;
-        // spdlog::info("-- {} < {}: L = {}", bin_info.bins[m][0].max, x[0],
+        // log_info("-- {} < {}: L = {}", bin_info.bins[m][0].max, x[0],
         // L);
       } else if (bin_info.bins[m][0].min > x[0]) {
         R = m - 1;
-        // spdlog::info("-- {} > {}: R = {}", bin_info.bins[m][0].min, x[0],
+        // log_info("-- {} > {}: R = {}", bin_info.bins[m][0].min, x[0],
         // R);
       }
     }
-    // spdlog::info("[from_extents]: binary search: failed, returning npos.");
+    // log_info("[from_extents]: binary search: failed, returning npos.");
     return npos;
   };
   return bin_info;
@@ -299,7 +299,7 @@ struct from_extentsHelper {
   std::pair<size_t, size_t> get_axis_bin_range(std::vector<double> const &x,
                                                size_t from, size_t to,
                                                size_t ax) const {
-    // spdlog::info("[get_axis_bin_range]: x = {}, from = {}, to "
+    // log_info("[get_axis_bin_range]: x = {}, from = {}, to "
     //              "= {}, ax = {}",
     //              x[ax], from, to, ax);
 
@@ -309,7 +309,7 @@ struct from_extentsHelper {
 
     if (sorted_bins[from].second[ax].min >
         x[ax]) { // below any bins in this slice
-      // spdlog::info("[get_axis_bin_range]: x = {} < "
+      // log_info("[get_axis_bin_range]: x = {} < "
       //              "bins[from][ax].min = {}",
       //              x[ax], sorted_bins[from].second[ax].min);
       return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
@@ -319,7 +319,7 @@ struct from_extentsHelper {
 
     if (sorted_bins[stop - 1].second[ax].max <=
         x[ax]) { // above any bins in this slice
-      // spdlog::info("[get_axis_bin_range]: x = {} < bins[stop - "
+      // log_info("[get_axis_bin_range]: x = {} < bins[stop - "
       //              "1][ax].max = {}",
       //              x[ax], sorted_bins[stop - 1].second[ax].max);
       return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
@@ -332,7 +332,7 @@ struct from_extentsHelper {
         if (from_this_ax == Binning::npos) {
           // std::stringstream ss;
           // ss << sorted_bins[bi_it].second;
-          // spdlog::info("[get_axis_bin_range]: first bin in ax[{}]: {} = {}",
+          // log_info("[get_axis_bin_range]: first bin in ax[{}]: {} = {}",
           // ax,
           //              bi_it, ss.str());
           from_this_ax = bi_it;
@@ -340,7 +340,7 @@ struct from_extentsHelper {
         // else {
         //   std::stringstream ss;
         //   ss << sorted_bins[bi_it].second;
-        //   spdlog::info("    {} bin in ax[{}]: {} = {}", (bi_it -
+        //   log_info("    {} bin in ax[{}]: {} = {}", (bi_it -
         //   from_this_ax),
         //                ax, bi_it, ss.str());
         // }
@@ -352,11 +352,11 @@ struct from_extentsHelper {
     // if (to_this_ax < stop) {
     //   std::stringstream ss;
     //   ss << sorted_bins[to_this_ax].second;
-    //   spdlog::info("[get_axis_bin_range]: first bin not in ax[{}]: {} = {}",
+    //   log_info("[get_axis_bin_range]: first bin not in ax[{}]: {} = {}",
     //   ax,
     //                to_this_ax, ss.str());
     // } else {
-    //   spdlog::info("[get_axis_bin_range]: end of range for ax[{}] = {} >= {},
+    //   log_info("[get_axis_bin_range]: end of range for ax[{}] = {} >= {},
     //   "
     //                "the size of the binning array.",
     //                ax, to_this_ax, stop);
@@ -367,9 +367,9 @@ struct from_extentsHelper {
   }
 
   Binning::Index operator()(std::vector<double> const &x) const {
-    // spdlog::info("[from_extentsHelper]: x = {}", x);
+    // log_info("[from_extentsHelper]: x = {}", x);
     if (x.size() < sorted_bins.front().second.size()) {
-      spdlog::critical("[from_extentsHelper]: projections passed in: {} is "
+      log_critical("[from_extentsHelper]: projections passed in: {} is "
                        "smaller than the number of axes in a bin: {}",
                        x, sorted_bins.front().second.size());
       throw MismatchedAxisCount();
@@ -379,14 +379,14 @@ struct from_extentsHelper {
         x, 0, sorted_bins.size(), sorted_bins.front().second.size() - 1);
     if ((contains_range.first == Binning::npos) ||
         (contains_range.second == Binning::npos)) {
-      // spdlog::info(
+      // log_info(
       //     "[from_extentsHelper]: Search yielded npos. Returning npos.\n");
-      // spdlog::info(tostr());
+      // log_info(tostr());
       return Binning::npos;
     }
 
     if ((contains_range.second - contains_range.first) != 1) {
-      spdlog::critical(
+      log_critical(
           "[from_extentsHelper]: When searching for bin, failed to "
           "find a unique bin. Either this is a bug in "
           "NUISANCE or the binning is not unique.");
@@ -394,13 +394,13 @@ struct from_extentsHelper {
       ss << "REPORT INFO:\n>>>----------------------------\ninput "
             "bins: \n"
          << bins << "\n";
-      spdlog::critical(ss.str());
-      spdlog::critical("searching for x: {}", x);
-      spdlog::critical("get_axis_bin_range: {}", contains_range);
-      throw CatastrophicBinSearchFailure();
+      log_critical(ss.str());
+      log_critical("searching for x: {}", x);
+      log_critical("get_axis_bin_range: {}", contains_range);
+      throw CatastrophicBinningFailure();
     }
     // return the original Index
-    // spdlog::info("[from_extentsHelper]: Found original bin: {}\n",
+    // log_info("[from_extentsHelper]: Found original bin: {}\n",
     //              sorted_bins[contains_range.first].first);
     return sorted_bins[contains_range.first].first;
   }
@@ -419,22 +419,22 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
   auto const &sorted_unique_bins = unique(bins);
 
   if (bin_info.bins.size() != sorted_unique_bins.size()) {
-    spdlog::critical("[from_extents]: When building Binning from vector of "
+    log_critical("[from_extents]: When building Binning from vector of "
                      "BinExtents, the list of unique bins was {} long, while "
                      "the original list was {}. Binnings must be unique.");
     std::stringstream ss("");
     ss << bins;
-    spdlog::critical("Bins: {}", ss.str());
+    log_critical("Bins: {}", ss.str());
     throw BinningNotUnique();
   }
 
   if (binning_has_overlaps(bin_info.bins)) {
-    spdlog::critical("[from_extents]: When building Binning from vector of "
+    log_critical("[from_extents]: When building Binning from vector of "
                      "BinExtents, the list of bins appears to contain "
                      "overlaps. Binnings must be non-overlapping.");
     std::stringstream ss("");
     ss << bins;
-    spdlog::critical("Bins: {}", ss.str());
+    log_critical("Bins: {}", ss.str());
     throw BinningHasOverlaps();
   }
 
@@ -499,7 +499,7 @@ Binning Binning::product(std::vector<Binning> const &binnings) {
 
 bool operator<(Binning::BinExtents const &a, Binning::BinExtents const &b) {
   if (a.size() != b.size()) {
-    spdlog::critical(
+    log_critical(
         "[operator<(Binning::BinExtents const &a, Binning::BinExtents const "
         "&b)]: Tried to sort multi-dimensional binning with "
         "bins of unequal dimensionality: {} != {}",

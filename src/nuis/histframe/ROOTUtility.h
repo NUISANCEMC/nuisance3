@@ -10,6 +10,8 @@
 // This should be header-only so that ROOT is not required by NUISANCE core
 //   but is available for user scripts that want to write out ROOT histograms
 
+NEW_NUISANCE_EXCEPT(NonContiguousBinning);
+
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 namespace nuis {
@@ -24,9 +26,9 @@ std::vector<double> GetBinEdges(HistFrame const &hf, size_t dim) {
   for (auto bin : projected_bins) {
     auto dim_bin = bin.front();
     if (dim_bin.min != contiguous_bin_edges.back()) {
-      spdlog::critical("bin edges are not contiguous: {} != {}", dim_bin.min,
-                       contiguous_bin_edges.back());
-      abort();
+      log_critical("bin edges are not contiguous: {} != {}", dim_bin.min,
+                   contiguous_bin_edges.back());
+      throw NonContiguousBinning();
     }
     contiguous_bin_edges.push_back(dim_bin.max);
   }
@@ -92,8 +94,8 @@ std::unique_ptr<TH2> ToTH2(HistFrame const &hf, std::string const &name,
            << "\n  - Projected binning: " << hfp.binning.bins
            << "\n  - bin edges x = " << fmt::format("{}", binsx)
            << "\n  - bin edges y = " << fmt::format("{}", binsy) << std::endl;
-        spdlog::critical(ss.str());
-        abort();
+        log_critical(ss.str());
+        throw CatastrophicBinningFailure();
       }
 
       auto bi = std::distance(hfp.binning.bins.begin(), bi_it);

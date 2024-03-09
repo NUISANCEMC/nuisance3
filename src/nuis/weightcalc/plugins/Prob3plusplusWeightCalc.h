@@ -4,8 +4,6 @@
 
 #include "nuis/eventinput/plugins/neutvectEventSource.h"
 
-#include "spdlog/spdlog.h"
-
 #include "yaml-cpp/yaml.h"
 
 #include <array>

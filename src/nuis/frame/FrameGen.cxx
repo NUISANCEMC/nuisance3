@@ -4,7 +4,7 @@
 
 #include "fmt/chrono.h"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 namespace nuis {
 
@@ -84,7 +84,7 @@ Frame FrameGen::next() {
 
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
-      spdlog::info("GenFrame has selected {}{} from {} processed events.",
+      log_info("GenFrame has selected {}{} from {} processed events.",
                    n_total_rows,
                    ((nmaxloop != std::numeric_limits<size_t>::max())
                         ? fmt::format("/{}", nmaxloop)

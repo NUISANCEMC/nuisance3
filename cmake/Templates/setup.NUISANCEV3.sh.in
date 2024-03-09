@@ -6,6 +6,7 @@ if ! type add_to_PATH &> /dev/null; then
 function add_to_PATH () {
   for d; do
 
+    if [ ! -e "$d" ]; then continue; fi
     d=$(cd -- "$d" && { pwd -P || pwd; }) 2>/dev/null  # canonicalize symbolic links
     if [ -z "$d" ]; then continue; fi  # skip nonexistent directory
 
@@ -31,6 +32,7 @@ if ! type add_to_PYTHONPATH &> /dev/null; then
 function add_to_PYTHONPATH () {
   for d; do
 
+    if [ ! -e "$d" ]; then continue; fi
     d=$(cd -- "$d" && { pwd -P || pwd; }) 2>/dev/null  # canonicalize symbolic links
     if [ -z "$d" ]; then continue; fi  # skip nonexistent directory
 
@@ -56,6 +58,7 @@ if ! type add_to_LD_LIBRARY_PATH &> /dev/null; then
 function add_to_LD_LIBRARY_PATH () {
   for d; do
 
+    if [ ! -e "$d" ]; then continue; fi
     d=$(cd -- "$d" && { pwd -P || pwd; }) 2>/dev/null  # canonicalize symbolic links
     if [ -z "$d" ]; then continue; fi  # skip nonexistent directory
 

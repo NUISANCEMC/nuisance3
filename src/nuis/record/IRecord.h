@@ -9,11 +9,13 @@
 
 #include "nuis/record/Table.h"
 
+#include "nuis/log.h"
+
 namespace nuis {
 
 using TablePtr = std::shared_ptr<Table>;
 
-struct IRecord {
+struct IRecord : public nuis_named_log("Record") {
 
     IRecord(){};
 

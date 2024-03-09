@@ -7,7 +7,7 @@
 
 #include "boost/dll/alias.hpp"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include "yaml-cpp/yaml.h"
 
@@ -35,7 +35,7 @@ public:
   NReWeightCalc(IEventSourcePtr evs, YAML::Node const &cfg) {
     nevs = std::dynamic_pointer_cast<neutvectEventSource>(evs);
     if (!nevs) {
-      spdlog::warn("NReWeightCalc: Passed in IEventSourcePtr not instance of "
+      log_warn("NReWeightCalc: Passed in IEventSourcePtr not instance of "
                    "neutvectEventSource.");
       return;
     }

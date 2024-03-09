@@ -3,7 +3,7 @@
 
 #include "fmt/ranges.h"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 namespace nuis {
 
@@ -37,20 +37,20 @@ ProjectionMap BuildProjectionMap(Binning const &bin_info,
                             pm.projected_extents.end(), proj_bin);
 
     if (bin_it == pm.projected_extents.end()) {
-      spdlog::critical(
+      log_critical(
           "[BuildProjectionMap]: When scanning bins, built projected bin "
           "extent that project_to_unique_bins did not find, this is a bug in "
           "NUISANCE, please report it to the authors.");
       std::stringstream ss;
       ss << "REPORT INFO:\n>>>----------------------------\ninput bin_info:\n"
          << bin_info << "\n";
-      spdlog::critical(ss.str());
+      log_critical(ss.str());
       ss.str("");
       ss << "projected extents: " << pm.projected_extents << "\n";
-      spdlog::critical(ss.str());
+      log_critical(ss.str());
       ss.str("");
       ss << "missed bin: " << proj_bin << "\n----------------------------<<<\n";
-      abort();
+      throw CatastrophicBinningFailure();
     }
     pm.bin_columns[std::distance(pm.projected_extents.begin(), bin_it)]
         .push_back(bi_it);

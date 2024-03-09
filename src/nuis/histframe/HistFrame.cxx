@@ -1,6 +1,6 @@
 #include "nuis/histframe/HistFrame.h"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include "fmt/ranges.h"
 
@@ -52,10 +52,10 @@ Binning::Index
 HistFrame::find_bin(std::vector<double> const &projections) const {
 #ifndef NUIS_NDEBUG
   if (projections.size() != binning.bins.front().size()) {
-    spdlog::critical("[HistFrame::find_bin] : Called with {} projections, but "
+    log_critical("[HistFrame::find_bin] : Called with {} projections, but "
                      "the binning has {} axes.",
                      projections.size(), binning.bins.front().size());
-    abort();
+    throw MismatchedAxisCount();
   }
 #endif
   return binning.find_bin(projections);
@@ -71,16 +71,16 @@ void HistFrame::fill_bin(Binning::Index i, double weight,
   // PS. Shouldn't an npos check search go on even if not in debug?
 #ifndef NDEBUG
   if (i == Binning::npos) {
-    spdlog::warn(
+    log_warn(
         "Tried to Fill histogram with out of range nuis::Binning::npos.");
     return;
   }
   if (i >= contents.rows()) {
-    spdlog::warn("Tried to Fill histogram with out of range bin {}.", i);
+    log_warn("Tried to Fill histogram with out of range bin {}.", i);
     return;
   }
   if ((weight != 0) && (!std::isnormal(weight))) {
-    spdlog::warn("Tried to Fill histogram with a non-normal weight: {}.",
+    log_warn("Tried to Fill histogram with a non-normal weight: {}.",
                  weight);
     return;
   }

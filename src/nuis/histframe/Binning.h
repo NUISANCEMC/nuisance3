@@ -18,7 +18,8 @@ NEW_NUISANCE_EXCEPT(BinningUnsorted);
 NEW_NUISANCE_EXCEPT(BinningHasOverlaps);
 NEW_NUISANCE_EXCEPT(BinningNotUnique);
 NEW_NUISANCE_EXCEPT(MismatchedAxisCount);
-NEW_NUISANCE_EXCEPT(CatastrophicBinSearchFailure);
+NEW_NUISANCE_EXCEPT(AxisOverflow);
+NEW_NUISANCE_EXCEPT(CatastrophicBinningFailure);
 
 struct Binning {
 

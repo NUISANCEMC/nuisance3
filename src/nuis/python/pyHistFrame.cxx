@@ -1,18 +1,16 @@
-#pragma once
-
 #include "nuis/HistFrame/Binning.h"
 #include "nuis/HistFrame/BinningUtility.h"
 #include "nuis/HistFrame/HistFrame.h"
 #include "nuis/HistFrame/HistProjector.h"
 #include "nuis/HistFrame/Utility.h"
 
+#include "nuis/python/pyYAML.h"
+
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
-
-#include "spdlog/spdlog.h"
 
 namespace py = pybind11;
 using namespace nuis;
@@ -26,7 +24,7 @@ histframe_gettattr(HistFrame &s, std::string const &column) {
   return {};
 }
 
-void init_histframe(py::module &m) {
+void pyHistFrameInit(py::module &m) {
 
   auto pyBinning = py::class_<Binning>(m, "Binning");
 
