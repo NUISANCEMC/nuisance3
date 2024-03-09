@@ -11,7 +11,7 @@
 
 #include "boost/dll/alias.hpp"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include "yaml-cpp/yaml.h"
 
@@ -57,7 +57,7 @@ public:
 
     for (auto const &ftr : filepaths) {
       if (!chin->Add(ftr.c_str(), 0)) {
-        spdlog::warn("Could not find treeout in {}", ftr.native());
+        log_warn("Could not find treeout in {}", ftr.native());
         chin.reset();
         return std::optional<HepMC3::GenEvent>();
       }

@@ -1,6 +1,6 @@
 #include "nuis/histframe/BinningUtility.h"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include "fmt/ranges.h"
 
@@ -15,10 +15,10 @@ std::vector<Binning::BinExtents> unique(std::vector<Binning::BinExtents> bins) {
           bins.begin(), bins.end(),
           [](Binning::BinExtents const &a, Binning::BinExtents const &b) {
             if (a.size() != b.size()) {
-              spdlog::critical(
+              log_critical(
                   "[unique]: Tried to compare multi-dimensional binning for "
                   "equality with bins of unequal dimensionality.");
-              abort();
+              throw MismatchedAxisCount();
             }
             for (size_t i = 0; i < a.size(); ++i) {
               if (!(a[i] == b[i])) {
@@ -33,11 +33,11 @@ std::vector<Binning::BinExtents> unique(std::vector<Binning::BinExtents> bins) {
 
 bool bins_overlap(Binning::BinExtents const &a, Binning::BinExtents const &b) {
   if (a.size() != b.size()) {
-    spdlog::critical(
+    log_critical(
         "[bin_extents_overlap]: Tried to check for bin overlaps with bins "
         "of unequal dimensionality: {} != {}.",
         a.size(), b.size());
-    abort();
+    throw MismatchedAxisCount();
   }
   for (size_t i = 0; i < a.size(); ++i) {
     if (!a[i].overlaps(b[i])) { // must overlap in all dimensions to be consider
@@ -62,10 +62,10 @@ project_to_unique_bins(std::vector<Binning::BinExtents> const &bins,
     for (auto proj_to_axis : proj_to_axes) {
 
       if (bin.size() <= proj_to_axis) {
-        spdlog::critical("[project_to_unique_bins]: Tried to get dimension {} "
-                         "extent from binning with only {} dimensions.",
-                         proj_to_axis, bin.size());
-        abort();
+        log_critical("[project_to_unique_bins]: Tried to get dimension {} "
+                     "extent from binning with only {} dimensions.",
+                     proj_to_axis, bin.size());
+        throw AxisOverflow();
       }
 
       proj_bins.back().push_back(bin[proj_to_axis]);

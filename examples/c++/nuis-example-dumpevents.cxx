@@ -1,18 +1,17 @@
 #include "nuis/eventinput/EventSourceFactory.h"
 
-#include "nuis/weightcalc/WeightCalcFactory.h"
-#include "nuis/weightcalc/WeightCalcFunc.h"
-
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/FATXUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 using namespace nuis;
+
+using mylogger = nuis_named_log("mylogger");
 
 int main(int argc, char const *argv[]) {
 
@@ -21,7 +20,7 @@ int main(int argc, char const *argv[]) {
   auto [gri, evs] = fact.make(argv[1]);
 
   if (!evs) {
-    spdlog::critical("Failed to find EventSource for input file {}", argv[1]);
+    log_critical("Failed to find EventSource for input file {}", argv[1]);
     return 1;
   }
 
@@ -30,17 +29,6 @@ int main(int argc, char const *argv[]) {
   if (gri) {
     procids = NuHepMC::GR4::ReadProcessIdDefinitions(gri);
   }
-
-  nuis::WeightCalcFactory wfact;
-
-  YAML::Node neut_reweight_node = YAML::Load(R"(
-    neut_cardname: "neut.card"
-    )");
-
-  auto weighters = wfact.make(evs, neut_reweight_node);
-  weighters->set_parameters({
-      {"MaCCQE", -2},
-  });
 
   size_t ctr = 0;
   for (auto const &[ev, w] : evs) {
@@ -74,32 +62,27 @@ int main(int argc, char const *argv[]) {
 
     auto procid = NuHepMC::ER3::ReadProcessID(ev);
 
-    // spdlog::info("Enu {}, wgtm {}, wgtv {}",
-    //              NuHepMC::Event::GetBeamParticle(ev)->momentum().e(),
-    //              weighter_m.CalcWeight(ev), weighter_v.CalcWeight(ev));
+    mylogger::log_info("Enu {}",
+                       NuHepMC::Event::GetBeamParticle(ev)->momentum().e());
 
-    // spdlog::info("Event {}: Procid: {} = {}", ev.event_number(), procid,
-    //              procids[procid].first);
-    // spdlog::info("\tBeam particle: id = {}, E = {}", beamp->pid(),
-    //              beamp->momentum().e());
-    // spdlog::info("\tTarget particle id = {}", tgtp->pid());
-    // spdlog::info("\tnum FS protons = {}", nprot);
-    // spdlog::info("\tnum FS pi+ = {}", npip);
-    // spdlog::info("\tnum FS pi- = {}", npim);
-    // spdlog::info("\tnum FS pi0 = {}", npi0);
-    // spdlog::info("-------------------");
-
-    // spdlog::info("evt: mode {}, wght GENIEReWeight: {}",
-    // procids[procid].first,
-    //              weighters->CalcWeight(ev));
+    mylogger::log_info("Event {}: Procid: {} = {}", ev.event_number(), procid,
+                       procids[procid].first);
+    mylogger::log_info("\tBeam particle: id = {}, E = {}", beamp->pid(),
+                       beamp->momentum().e());
+    mylogger::log_info("\tTarget particle id = {}", tgtp->pid());
+    mylogger::log_info("\tnum FS protons = {}", nprot);
+    mylogger::log_info("\tnum FS pi+ = {}", npip);
+    mylogger::log_info("\tnum FS pi- = {}", npim);
+    mylogger::log_info("\tnum FS pi0 = {}", npi0);
+    mylogger::log_info("-------------------");
 
     if (ctr && !(ctr % 50000)) {
-      spdlog::info("Processed {} events. FATX default estimate = {}", ctr,
-                   evs->norm_info().fatx);
+      mylogger::log_info("Processed {} events. FATX default estimate = {}", ctr,
+                         evs->norm_info().fatx);
     }
 
     ctr++;
   }
 
-  spdlog::info("Final FATX estimate: {}", evs->norm_info().fatx);
+  mylogger::log_info("Final FATX estimate: {}", evs->norm_info().fatx);
 }

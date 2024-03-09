@@ -4,6 +4,8 @@
 
 #include "boost/function.hpp"
 
+#include "nuis/log.h"
+
 #include "yaml-cpp/yaml.h"
 
 #include <filesystem>
@@ -15,13 +17,13 @@ class GenRunInfo;
 
 namespace nuis {
 
-struct PathResolver {
+struct PathResolver : public nuis_named_log("EventInput") {
   std::vector<std::filesystem::path> nuisance_event_paths;
   PathResolver();
   std::filesystem::path resolve(std::string const &filepath);
 };
 
-class EventSourceFactory {
+class EventSourceFactory : public nuis_named_log("EventInput") {
   PathResolver resolv;
 
   using IEventSource_PluginFactory_t = IEventSourcePtr(YAML::Node const &);

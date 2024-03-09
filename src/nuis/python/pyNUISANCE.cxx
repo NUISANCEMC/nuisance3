@@ -7,17 +7,10 @@ PYBIND11_MAKE_OPAQUE(std::vector<int>);
 PYBIND11_MAKE_OPAQUE(std::vector<double>);
 PYBIND11_MAKE_OPAQUE(std::vector<uint32_t>);
 
-#include "nuis/python/pyYAML.h"
+#include "nuis/log.txx"
 
 #include "nuis/python/pyEventInput.h"
-#include "nuis/python/pyFrame.h"
-#include "nuis/python/pyHistFrame.h"
-#include "nuis/python/pyWeightCalc.h"
-#include "nuis/python/pyRecord.h"
-
-#include "yaml-cpp/yaml.h"
-
-#include "spdlog/spdlog.h"
+#include "nuis/python/pyYAML.h"
 
 #include <functional>
 #include <iostream>
@@ -25,6 +18,13 @@ PYBIND11_MAKE_OPAQUE(std::vector<uint32_t>);
 #include <vector>
 
 namespace py = pybind11;
+using namespace nuis;
+
+void pyFrameInit(py::module &m);
+void pyHistFrameInit(py::module &m);
+void pyRecordInit(py::module &m);
+void pyWeightCalcInit(py::module &m);
+void pyNUISANCELog(py::module &m);
 
 PYBIND11_MODULE(pyNUISANCE, m) {
 
@@ -40,22 +40,15 @@ PYBIND11_MODULE(pyNUISANCE, m) {
 
   m.doc() = "NUISANCE implementation in python";
 
-  // Check that the NUISANCEDB exists
-  auto DATABASE = std::getenv("NUISANCEDB");
-  if (!DATABASE) {
-    spdlog::critical("NUISANCEDB environment variable is not set");
-    abort();
-  }
-
   m.add_object("hm", py::module::import("pyHepMC3"));
   // auto pps = py::module::import("pyProSelecta");
   // m.add_object("pps", pps);
   // m.add_object("pyProSelecta", pps);
 
-  init_eventinput(m);
-  init_frame(m);
-  init_histframe(m);
-  init_weightcalc(m);
-  init_record(m);
-  
+  pyEventInputInit(m);
+  pyFrameInit(m);
+  pyHistFrameInit(m);
+  pyRecordInit(m);
+  pyWeightCalcInit(m);
+  pyNUISANCELog(m);
 }

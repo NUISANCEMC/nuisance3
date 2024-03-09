@@ -1,5 +1,8 @@
 #include "nuis/eventinput/plugins/GHEP3EventSource.h"
 
+#include "nuis/except.h"
+#include "nuis/log.txx"
+
 #include "nuis/eventinput/plugins/ROOTUtils.h"
 
 #include "Framework/Conventions/Units.h"
@@ -29,13 +32,13 @@
 
 #include "boost/dll/alias.hpp"
 
-#include "spdlog/spdlog.h"
-
 #include <fstream>
 
 namespace nuis {
 
 namespace ghepconv {
+
+NEW_NUISANCE_EXCEPT(FailedGHEPParsing);
 
 std::map<int, std::pair<std::string, std::string>> Modes = {
     {700, {"NuElectronElastic", ""}},
@@ -287,18 +290,18 @@ int ConvertGENIEReactionCode(::genie::GHepRecord const &GHep) {
       else if (GHep.Summary()->ProcInfo().IsDeepInelastic())
         return -600;
       else {
-        spdlog::warn(R"(Unknown GENIE Electron Scattering Mode!
+        log_warn(R"(Unknown GENIE Electron Scattering Mode!
   ScatteringTypeId = {}, InteractionTypeId = {}
   {}
   {}
   {})",
-                     GHep.Summary()->ProcInfo().ScatteringTypeId(),
-                     GHep.Summary()->ProcInfo().InteractionTypeId(),
-                     genie::ScatteringType::AsString(
-                         GHep.Summary()->ProcInfo().ScatteringTypeId()),
-                     genie::InteractionType::AsString(
-                         GHep.Summary()->ProcInfo().InteractionTypeId()),
-                     GHep.Summary()->ProcInfo().IsMEC());
+                 GHep.Summary()->ProcInfo().ScatteringTypeId(),
+                 GHep.Summary()->ProcInfo().InteractionTypeId(),
+                 genie::ScatteringType::AsString(
+                     GHep.Summary()->ProcInfo().ScatteringTypeId()),
+                 genie::InteractionType::AsString(
+                     GHep.Summary()->ProcInfo().InteractionTypeId()),
+                 GHep.Summary()->ProcInfo().IsMEC());
 
         return 0;
       }
@@ -316,7 +319,7 @@ int ConvertGENIEReactionCode(::genie::GHepRecord const &GHep) {
       int neut_code = ::genie::utils::ghep::NeutReactionCode(&GHep);
       int mode = NEUTToMode[neut_code];
       if (!mode) {
-        spdlog::warn("Untranslated NEUT code: {}", neut_code);
+        log_warn("Untranslated NEUT code: {}", neut_code);
       }
       return mode;
     }
@@ -333,7 +336,7 @@ int ConvertGENIEReactionCode(::genie::GHepRecord const &GHep) {
       int neut_code = ::genie::utils::ghep::NeutReactionCode(&GHep);
       int mode = NEUTToMode[neut_code];
       if (!mode) {
-        spdlog::warn("Untranslated NEUT code: {}", neut_code);
+        log_warn("Untranslated NEUT code: {}", neut_code);
       }
       return mode;
     }
@@ -418,15 +421,15 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
       // both
     } else {
       if (::genie::pdg::IsIon(p.Pdg())) {
-        spdlog::critical(
+        log_critical(
             "Particle 1 in GHepRecord stack is an ion but isn't an initial "
             "state particle");
       } else {
-        spdlog::critical(
+        log_critical(
             "Particle 1 in GHepRecord stack is not an ion but is an initial "
             "state particle");
       }
-      abort();
+      throw FailedGHEPParsing();
     }
   }
 
@@ -476,8 +479,7 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
         nucsep_vtx->add_particle_out(part);
         continue;
       }
-      spdlog::warn("GHEP3EventSource missed Primary particle: {}",
-                   PartToStr(part));
+      log_warn("GHEP3EventSource missed Primary particle: {}", PartToStr(part));
     } else {
       if (pid > 1000000000) { // nuclear remnant
         nucsep_vtx->add_particle_out(part);
@@ -488,8 +490,8 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
       }
     }
     if ((state == ::NuHepMC::ParticleStatus::UndecayedPhysical)) {
-      spdlog::warn("GHEP3EventSource missed Physical particle: {}",
-                   PartToStr(part));
+      log_warn("GHEP3EventSource missed Physical particle: {}",
+               PartToStr(part));
     }
   }
 
@@ -504,13 +506,13 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
                  .size();
 
   if (!beamp) {
-    spdlog::critical("GHEP3 event contained no beam particle");
+    log_critical("GHEP3 event contained no beam particle");
   }
   if (!tgtp) {
-    spdlog::critical("GHEP3 event contained no target particle");
+    log_critical("GHEP3 event contained no target particle");
   }
   if (!nfs) {
-    spdlog::critical("GHEP3 event contained no final state particles");
+    log_critical("GHEP3 event contained no final state particles");
   }
 
   if ((!beamp) || (!tgtp) || (!nfs)) {
@@ -524,18 +526,17 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
 
       auto part = std::make_shared<HepMC3::GenParticle>(
           HepMC3::FourVector{p.Px(), p.Py(), p.Pz(), p.E()}, pid, state);
-      spdlog::critical("GHEP3EventSource missed Physical particle: {}",
-                       PartToStr(part));
+      log_critical("GHEP3EventSource missed Physical particle: {}",
+                   PartToStr(part));
     }
 
-    std::cout << GHep << std::endl;
-    abort();
+    throw FailedGHEPParsing() << GHep;
   }
 
   if (tgtp->pid() != TargetPDG) {
-    spdlog::warn("GHEP3EventSource target particle with pid={}, but NUISANCE "
-                 "target resolver found TargetPDG={}, IsFree={}.",
-                 tgtp->pid(), TargetPDG, IsFree);
+    log_warn("GHEP3EventSource target particle with pid={}, but NUISANCE "
+             "target resolver found TargetPDG={}, IsFree={}.",
+             tgtp->pid(), TargetPDG, IsFree);
   }
 
   evt.weights().push_back(1);
@@ -588,7 +589,7 @@ GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
   }
 
   if (!SplineXML.size()) {
-    spdlog::warn(
+    log_warn(
         "No GENIE Spline file set. Add \"spline_file\" key to configuration "
         "YAML node or set GENIE_XSEC_FILE in the environment.");
     return;
@@ -602,8 +603,8 @@ GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
   }
 
   if (!GENIETune.size()) {
-    spdlog::warn("No GENIE Tune set. Add \"tune\" key to configuration "
-                 "YAML node or set GENIE_XSEC_TUNE in the environment.");
+    log_warn("No GENIE Tune set. Add \"tune\" key to configuration "
+             "YAML node or set GENIE_XSEC_TUNE in the environment.");
     return;
   }
 
@@ -612,7 +613,7 @@ GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
 
   genie::XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
   if (ist != genie::kXmlOK) {
-    spdlog::warn("genie::XsecSplineList failed to load from {}", SplineXML);
+    log_warn("genie::XsecSplineList failed to load from {}", SplineXML);
     return;
   }
 
@@ -632,7 +633,7 @@ std::optional<HepMC3::GenEvent> GHEP3EventSource::first() {
 
   for (auto const &ftr : filepaths) {
     if (!chin->Add(ftr.c_str(), 0)) {
-      spdlog::warn("Could not find gtree in {}", ftr.native());
+      log_warn("Could not find gtree in {}", ftr.native());
       chin.reset();
       return std::optional<HepMC3::GenEvent>();
     }

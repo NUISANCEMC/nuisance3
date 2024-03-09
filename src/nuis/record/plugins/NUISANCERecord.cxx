@@ -2,7 +2,7 @@
 
 #include "boost/dll/alias.hpp"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include "yaml-cpp/yaml.h"
 

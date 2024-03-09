@@ -11,7 +11,8 @@
 #include "nuis/record/LikelihoodFunctions.h"
 #include "nuis/record/WeightFunctions.h"
 
-#include "spdlog/spdlog.h"
+#include "nuis/except.h"
+#include "nuis/log.txx"
 
 #include "yaml-cpp/yaml.h"
 
@@ -70,6 +71,12 @@ nuis::Binning from_hepdata_extents(std::vector<Variables> &axes) {
 
 namespace nuis {
 
+NEW_NUISANCE_EXCEPT(HepDataDirDoesNotExist);
+NEW_NUISANCE_EXCEPT(InvalidTableForRecord);
+NEW_NUISANCE_EXCEPT(ProSelectaLoadFileFailure);
+NEW_NUISANCE_EXCEPT(ProSelectaGetFilterFailure);
+NEW_NUISANCE_EXCEPT(ProSelectaGetProjectionFailure);
+
 using ClearFunc = std::function<void(ComparisonFrame &)>;
 
 using ProjectFunc = std::function<double(HepMC3::GenEvent const &)>;
@@ -109,13 +116,13 @@ public:
 
     std::string path_release = db_path + "/neutrino_data/" + release;
     if (!std::filesystem::is_directory(path_release)) {
-      spdlog::critical("HEPData folder is missing: {}", path_release);
-      abort();
+      log_critical("HEPData folder is missing: {}", path_release);
+      throw HepDataDirDoesNotExist();
     }
 
     std::string submission_file = path_release + "/submission.yaml";
     // if (!std::filesystem::is_file(submission_file)) {
-    // spdlog::critical(
+    // log_critical(
     // "HEPData folder is missing submissino.yaml : {}",
     // pasubmission_fileth_release);
     // abort();
@@ -138,17 +145,17 @@ public:
     }
 
     if (table_file.empty()) {
-      spdlog::critical("[ERROR]: HepData Table not found : {} {}", table,
-                       table_file);
-      spdlog::critical("[ERROR]: - [ Available Tables ]");
+      log_critical("[ERROR]: HepData Table not found : {} {}", table,
+                   table_file);
+      log_critical("[ERROR]: - [ Available Tables ]");
       for (auto const &node : yaml_docs) {
         if (!node["name"])
           continue;
         if (!node["date_file"])
           continue;
-        spdlog::critical("[ERROR]:  - {}", node["name"].as<std::string>());
+        log_critical("[ERROR]:  - {}", node["name"].as<std::string>());
       }
-      abort();
+      throw InvalidTableForRecord();
     }
 
     YAML::Node table_node = YAML::LoadFile(path_release + "/" + table_file);
@@ -162,7 +169,7 @@ public:
     }
 
     if (variables_indep.empty()) {
-      spdlog::critical("[ERROR]: HepData Independent Variables len == 0");
+      log_critical("[ERROR]: HepData Independent Variables len == 0");
     }
 
     YAML::Node var_node_dep = table_node["dependent_variables"];
@@ -173,7 +180,7 @@ public:
     }
 
     if (variables_dep.empty()) {
-      spdlog::critical("[ERROR]: HepData dependent Variables len == 0");
+      log_critical("[ERROR]: HepData dependent Variables len == 0");
     }
 
     // This seems to be ProSelecta bug feature, analysis.cxx works
@@ -184,8 +191,8 @@ public:
       analysis = cfg["analysis"].as<std::string>();
 
     if (!ProSelecta::Get().LoadFile("analysis.cxx")) {
-      spdlog::critical("[ERROR]: Cling failed interpreting: {}", analysis);
-      abort();
+      log_critical("[ERROR]: Cling failed interpreting: {}", analysis);
+      throw ProSelectaLoadFileFailure();
     }
 
     std::string filter_name = variables_dep[0].qualifiers["Filter"];
@@ -195,7 +202,7 @@ public:
       std::cout << "[ERROR]: Cling didn't find a filter function named: "
                 << filter_name << " in the input file. Did you extern \"C\"?"
                 << std::endl;
-      abort();
+      throw ProSelectaGetFilterFailure();
     }
 
     std::vector<std::string> projection_names;
@@ -212,7 +219,7 @@ public:
       } else {
         std::cerr << "[ERROR]: Cling didn't find a projection function named: "
                   << pn << " in the input file. Skipping." << std::endl;
-        abort();
+        throw ProSelectaGetProjectionFailure();
       }
     }
 

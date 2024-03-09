@@ -10,7 +10,7 @@
 
 #include "boost/dll/alias.hpp"
 
-#include "spdlog/spdlog.h"
+#include "nuis/log.txx"
 
 #include "yaml-cpp/yaml.h"
 
@@ -38,7 +38,7 @@ Prob3plusplusWeightCalc::NuTypes GetNuType(int pdg) {
   case -12:
     return Prob3plusplusWeightCalc::kNuebarType;
   default: {
-    spdlog::warn("[Prob3plusplusWeightCalc]: Invalid neutrino PDG code: {}",
+    log_warn("[Prob3plusplusWeightCalc]: Invalid neutrino PDG code: {}",
                  pdg);
     return Prob3plusplusWeightCalc::kInvalid;
   }
@@ -61,13 +61,13 @@ void Prob3plusplusWeightCalc::set_baseline(double baseline_km) {
 double Prob3plusplusWeightCalc::prob(double enu_GeV) {
 
   if (from_type == kInvalid) {
-    spdlog::warn("[Prob3plusplusWeightCalc]: Oscillation channel not "
+    log_warn("[Prob3plusplusWeightCalc]: Oscillation channel not "
                  "configured: \"osc:from\" == kInvalid");
     return 1;
   }
 
   if (to_type == kInvalid) {
-    spdlog::warn("[Prob3plusplusWeightCalc]: Oscillation channel not "
+    log_warn("[Prob3plusplusWeightCalc]: Oscillation channel not "
                  "configured: \"osc:to\" == kInvalid");
     return 1;
   }
@@ -83,7 +83,7 @@ double Prob3plusplusWeightCalc::prob(double enu_GeV) {
 double Prob3plusplusWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
   auto beamp = NuHepMC::Event::GetBeamParticle(ev);
   if (!beamp) {
-    spdlog::warn("[Prob3plusplusWeightCalc]: Failed to find valid beam "
+    log_warn("[Prob3plusplusWeightCalc]: Failed to find valid beam "
                  "particle in event");
     return 1;
   }
@@ -102,78 +102,78 @@ void Prob3plusplusWeightCalc::set_parameters(
 
   if (params.count("sinsq_th12")) {
     sinsq_th12 = params.at("sinsq_th12");
-    spdlog::info("[Prob3plusplusWeightCalc]: Set sinsq_th12 = {}", sinsq_th12);
+    log_info("[Prob3plusplusWeightCalc]: Set sinsq_th12 = {}", sinsq_th12);
   }
   if (params.count("th12")) {
     sinsq_th12 = std::pow(std::sin(params.at("sinsq_th12")), 2);
-    spdlog::info("[Prob3plusplusWeightCalc]: Set sinsq_th12 = {}", sinsq_th12);
+    log_info("[Prob3plusplusWeightCalc]: Set sinsq_th12 = {}", sinsq_th12);
   }
 
   if (params.count("sinsq_th13")) {
     sinsq_th13 = params.at("sinsq_th13");
-    spdlog::info("[Prob3plusplusWeightCalc]: Set sinsq_th13 = {}", sinsq_th13);
+    log_info("[Prob3plusplusWeightCalc]: Set sinsq_th13 = {}", sinsq_th13);
   }
   if (params.count("th13")) {
     sinsq_th13 = std::pow(std::sin(params.at("sinsq_th13")), 2);
-    spdlog::info("[Prob3plusplusWeightCalc]: Set sinsq_th13 = {}", sinsq_th13);
+    log_info("[Prob3plusplusWeightCalc]: Set sinsq_th13 = {}", sinsq_th13);
   }
 
   if (params.count("sinsq_th23")) {
     sinsq_th23 = params.at("sinsq_th23");
-    spdlog::info("[Prob3plusplusWeightCalc]: Set sinsq_th23 = {}", sinsq_th23);
+    log_info("[Prob3plusplusWeightCalc]: Set sinsq_th23 = {}", sinsq_th23);
   }
   if (params.count("th23")) {
     sinsq_th23 = std::pow(std::sin(params.at("sinsq_th23")), 2);
-    spdlog::info("[Prob3plusplusWeightCalc]: Set sinsq_th23 = {}", sinsq_th23);
+    log_info("[Prob3plusplusWeightCalc]: Set sinsq_th23 = {}", sinsq_th23);
   }
 
   if (params.count("dmsq_21")) {
     dmsq_21 = params.at("dmsq_21");
-    spdlog::info("[Prob3plusplusWeightCalc]: Set dmsq_21 = {}", dmsq_21);
+    log_info("[Prob3plusplusWeightCalc]: Set dmsq_21 = {}", dmsq_21);
   }
   if (params.count("dmsq_atm")) {
     dmsq_atm = params.at("dmsq_atm");
-    spdlog::info("[Prob3plusplusWeightCalc]: Set dmsq_atm = {}", dmsq_atm);
+    log_info("[Prob3plusplusWeightCalc]: Set dmsq_atm = {}", dmsq_atm);
   }
 
   if (params.count("dcp_rad")) {
     dcp_rad = params.at("dcp_rad");
-    spdlog::info("[Prob3plusplusWeightCalc]: Set dcp_rad = {}", dcp_rad);
+    log_info("[Prob3plusplusWeightCalc]: Set dcp_rad = {}", dcp_rad);
   }
   if (params.count("dcp_npi")) {
     dcp_rad = params.at("dcp_npi") * M_PI;
-    spdlog::info(
+    log_info(
         "[Prob3plusplusWeightCalc]: Set dcp_rad = {}, from dcp_npi = {}",
         dcp_rad, params.at("dcp_npi"));
   }
 
   if (params.count("baseline_km")) {
     set_baseline(params.at("baseline_km"));
-    spdlog::info("[Prob3plusplusWeightCalc]: Set baseline_km = {}",
+    log_info("[Prob3plusplusWeightCalc]: Set baseline_km = {}",
                  params.at("baseline_km"));
   }
 
   if (params.count("dip_angle_deg")) {
     set_dipangle(params.at("dip_angle_deg"));
-    spdlog::info("[Prob3plusplusWeightCalc]: Set dip_angle_deg = {}",
+    log_info("[Prob3plusplusWeightCalc]: Set dip_angle_deg = {}",
                  params.at("dip_angle_deg"));
   }
 
   if (params.count("osc:from")) {
     from_type = GetNuType(params.at("osc:from"));
-    spdlog::info("[Prob3plusplusWeightCalc]: Set oscillation from {}",
+    log_info("[Prob3plusplusWeightCalc]: Set oscillation from {}",
                  from_type);
   }
 
   if (params.count("osc:to")) {
     to_type = GetNuType(params.at("osc:to"));
-    spdlog::info("[Prob3plusplusWeightCalc]: Set oscillation to {}", to_type);
+    log_info("[Prob3plusplusWeightCalc]: Set oscillation to {}", to_type);
   }
 
   if (params.count("osc:numu_disp")) {
     from_type = GetNuType(14);
     to_type = GetNuType(14);
-    spdlog::info("[Prob3plusplusWeightCalc]: Set numu disappearance "
+    log_info("[Prob3plusplusWeightCalc]: Set numu disappearance "
                  "oscillation channel: {} -> {}",
                  from_type, to_type);
   }
@@ -181,7 +181,7 @@ void Prob3plusplusWeightCalc::set_parameters(
   if (params.count("osc:numubar_disp")) {
     from_type = GetNuType(-14);
     to_type = GetNuType(-14);
-    spdlog::info("[Prob3plusplusWeightCalc]: Set numubar disappearance "
+    log_info("[Prob3plusplusWeightCalc]: Set numubar disappearance "
                  "oscillation channel: {} -> {}",
                  from_type, to_type);
   }
@@ -189,7 +189,7 @@ void Prob3plusplusWeightCalc::set_parameters(
   if (params.count("osc:numu_to_nue")) {
     from_type = GetNuType(14);
     to_type = GetNuType(12);
-    spdlog::info("[Prob3plusplusWeightCalc]: Set numu to nue appearance "
+    log_info("[Prob3plusplusWeightCalc]: Set numu to nue appearance "
                  "oscillation channel: {} -> {}",
                  from_type, to_type);
   }
@@ -197,22 +197,22 @@ void Prob3plusplusWeightCalc::set_parameters(
   if (params.count("osc:numubar_to_nuebar")) {
     from_type = GetNuType(-14);
     to_type = GetNuType(-12);
-    spdlog::info("[Prob3plusplusWeightCalc]: Set numubar to nuebar appearance "
+    log_info("[Prob3plusplusWeightCalc]: Set numubar to nuebar appearance "
                  "oscillation channel: {} -> {}",
                  from_type, to_type);
   }
 
   if (params.count("baseline:t2k")) {
     set_parameters({{"baseline_km", 295}});
-    spdlog::info("[Prob3plusplusWeightCalc]: Set t2k baseline");
+    log_info("[Prob3plusplusWeightCalc]: Set t2k baseline");
   }
   if (params.count("baseline:DUNE")) {
     set_parameters({{"baseline_km", 1300}});
-    spdlog::info("[Prob3plusplusWeightCalc]: Set DUNE baseline");
+    log_info("[Prob3plusplusWeightCalc]: Set DUNE baseline");
   }
   if (params.count("baseline:NOvA")) {
     set_parameters({{"baseline_km", 810}});
-    spdlog::info("[Prob3plusplusWeightCalc]: Set NOvA baseline");
+    log_info("[Prob3plusplusWeightCalc]: Set NOvA baseline");
   }
 
   if (params.count("t2k:bestfit")) {
@@ -222,7 +222,7 @@ void Prob3plusplusWeightCalc::set_parameters(
                     {"dmsq_21", 7.37E-5},
                     {"dmsq_atm", 2.463E-3},
                     {"dcp_rad", 0}});
-    spdlog::info("[Prob3plusplusWeightCalc]: Set T2K bestfit parameters");
+    log_info("[Prob3plusplusWeightCalc]: Set T2K bestfit parameters");
   }
 
   if (params.count("NuFit:5.2")) {
@@ -232,7 +232,7 @@ void Prob3plusplusWeightCalc::set_parameters(
                     {"dmsq_21", 7.41E-5},
                     {"dmsq_atm", 2.51E-3},
                     {"dcp_rad", 0}});
-    spdlog::info("[Prob3plusplusWeightCalc]: Set T2K bestfit parameters");
+    log_info("[Prob3plusplusWeightCalc]: Set T2K bestfit parameters");
   }
 }
 

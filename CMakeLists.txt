@@ -185,16 +185,35 @@ if(CMAKE_BUILD_TYPE STREQUAL Release)
   target_compile_definitions(nuis_options INTERFACE NUIS_NDEBUG)
 endif()
 
+if(NOT DEFINED NUISANCE_LOG_LEVEL)
+  SET(NUISANCE_LOG_LEVEL warn)
+endif()
+if(NUISANCE_LOG_LEVEL STREQUAL trace)
+  target_compile_definitions(nuis_options INTERFACE NUIS_ACTIVE_LEVEL=NUIS_LEVEL_TRACE)
+elseif(NUISANCE_LOG_LEVEL STREQUAL debug)
+  target_compile_definitions(nuis_options INTERFACE NUIS_ACTIVE_LEVEL=NUIS_LEVEL_DEBUG)
+elseif(NUISANCE_LOG_LEVEL STREQUAL info)
+  target_compile_definitions(nuis_options INTERFACE NUIS_ACTIVE_LEVEL=NUIS_LEVEL_INFO)
+elseif(NUISANCE_LOG_LEVEL STREQUAL warn)
+  target_compile_definitions(nuis_options INTERFACE NUIS_ACTIVE_LEVEL=NUIS_LEVEL_WARN)
+elseif(NUISANCE_LOG_LEVEL STREQUAL error)
+  target_compile_definitions(nuis_options INTERFACE NUIS_ACTIVE_LEVEL=NUIS_LEVEL_ERROR)
+elseif(NUISANCE_LOG_LEVEL STREQUAL critical)
+  target_compile_definitions(nuis_options INTERFACE NUIS_ACTIVE_LEVEL=NUIS_LEVEL_CRITICAL)
+else()
+  message(FATAL_ERROR "Invalid NUISANCE_LOG_LEVEL set: ${NUISANCE_LOG_LEVEL}. Should be one of: trace, debug, info, warn, error, critical.")
+endif()
+target_compile_definitions(nuis_options INTERFACE NUISANCE_LOG_ENABLED)
+
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/frame)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/histframe)
-# add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/measurement)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/python)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/record)
 
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/examples/c++)
 
 
 # Sorry all this below is a mess, I will tidy.... PS

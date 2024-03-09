@@ -1,15 +1,14 @@
-#pragma once
-
 #include "nuis/Frame/Frame.h"
 #include "nuis/Frame/FrameGen.h"
+
+#include "nuis/python/pyEventInput.h"
+#include "nuis/python/pyYAML.h"
 
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
-
-#include "spdlog/spdlog.h"
 
 namespace py = pybind11;
 
@@ -65,7 +64,7 @@ void frame_settattr(Frame &s, std::string const &column, Eigen::ArrayXd &data) {
   }
 }
 
-void init_frame(py::module &m) {
+void pyFrameInit(py::module &m) {
 
   py::class_<Frame>(m, "Frame")
       .def(py::init<>())

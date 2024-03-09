@@ -1,26 +1,3 @@
-#pragma once
-
-#include <functional>
-#include <iostream>
-#include <string>
-#include <vector>
-
-#include "pybind11/stl_bind.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
-#include "yaml-cpp/yaml.h"
-
-#include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
-#include "pybind11/stl_bind.h"
-#include <pybind11/eigen.h>
-#include <pybind11/functional.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
-#include "spdlog/spdlog.h"
-
 #include "nuis/frame/Frame.h"
 #include "nuis/frame/FrameGen.h"
 
@@ -30,10 +7,21 @@
 #include "nuis/weightcalc/plugins/plugins.h"
 
 #include "nuis/python/pyEventInput.h"
+#include "nuis/python/pyYAML.h"
+
+#include "pybind11/eigen.h"
+#include "pybind11/functional.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
+#include "pybind11/stl_bind.h"
+
+#include <functional>
+#include <iostream>
+#include <string>
+#include <vector>
 
 namespace py = pybind11;
-
-namespace nuis {
+using namespace nuis;
 
 // Only supporting simple for now
 struct pyWeightCalc {
@@ -64,31 +52,29 @@ struct pyWeightCalcFactory {
     return pyWeightCalc(calcs);
   }
 
-  nuis::WeightCalcFactory wfact;
+  WeightCalcFactory wfact;
 };
-} // namespace nuis
 
-void init_weightcalc(py::module &m) {
+void pyWeightCalcInit(py::module &m) {
 
   py::class_<pyWeightCalc>(m, "WeightCalc")
       .def(py::init<>())
-      .def("calc_weight", &nuis::pyWeightCalc::calc_weight)
-      .def("set_parameters", &nuis::pyWeightCalc::set_parameters)
-      .def("__call__", &nuis::pyWeightCalc::operator());
+      .def("calc_weight", &pyWeightCalc::calc_weight)
+      .def("set_parameters", &pyWeightCalc::set_parameters)
+      .def("__call__", &pyWeightCalc::operator());
 
   py::class_<pyWeightCalcFactory>(m, "WeightCalcFactory")
       .def(py::init<>())
-      .def("make", &nuis::pyWeightCalcFactory::make);
+      .def("make", &pyWeightCalcFactory::make);
 
   // PS This doesn't actually build in my dev box please can we add a check?
   // Better yet could we recommend pluginss generate their own pybind
   // and we make a nuisance/pyNUISANCE/plugins/__init__.py to catch them?
 
-  py::class_<nuis::Prob3plusplusWeightCalc,
-             std::shared_ptr<nuis::Prob3plusplusWeightCalc>>(
+  py::class_<Prob3plusplusWeightCalc, std::shared_ptr<Prob3plusplusWeightCalc>>(
       m, "Prob3plusplusWeightCalc")
       .def(py::init<YAML::Node const &>(), py::arg("config") = YAML::Node{})
-      .def("calc_weight", &nuis::Prob3plusplusWeightCalc::calc_weight)
-      .def("prob", &nuis::Prob3plusplusWeightCalc::prob)
-      .def("set_parameters", &nuis::Prob3plusplusWeightCalc::set_parameters);
+      .def("calc_weight", &Prob3plusplusWeightCalc::calc_weight)
+      .def("prob", &Prob3plusplusWeightCalc::prob)
+      .def("set_parameters", &Prob3plusplusWeightCalc::set_parameters);
 }

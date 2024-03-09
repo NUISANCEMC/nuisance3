@@ -1,5 +1,7 @@
 #pragma once
 
+#include "nuis/log.h"
+
 #include <map>
 #include <memory>
 #include <string>
@@ -11,7 +13,8 @@ class GenEvent;
 namespace nuis {
 
 template <typename ET, typename PT>
-class IWeightCalc : public std::enable_shared_from_this<IWeightCalc<ET, PT>> {
+class IWeightCalc : public std::enable_shared_from_this<IWeightCalc<ET, PT>>,
+                    public nuis_named_log("WeightCalc") {
 public:
   using EvtType = ET;
   using ParamType = PT;
