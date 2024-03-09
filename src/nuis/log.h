@@ -11,7 +11,7 @@ class logger;
 
 namespace nuis {
 
-enum class log_level { trace, debug, info, warn, error, critical };
+enum class log_level { trace, debug, info, warn, error, critical, off };
 
 template <typename TN> class nuis_named_log_impl {
 
@@ -26,6 +26,7 @@ public:
   template <typename... Args> static void log_error(Args &&...args);
   template <typename... Args> static void log_critical(Args &&...args);
   static void set_log_level(log_level);
+  static log_level get_log_level();
   static void envcfg();
 };
 
@@ -36,6 +37,7 @@ template <typename... Args> void log_warn(Args &&...args);
 template <typename... Args> void log_error(Args &&...args);
 template <typename... Args> void log_critical(Args &&...args);
 inline void set_log_level(log_level);
+inline log_level get_log_level();
 
 template <typename T> std::string str_via_ss(T const &t) {
   std::stringstream ss;

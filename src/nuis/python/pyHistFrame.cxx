@@ -4,13 +4,12 @@
 #include "nuis/HistFrame/HistProjector.h"
 #include "nuis/HistFrame/Utility.h"
 
-#include "nuis/python/pyYAML.h"
+#include "nuis/log.txx"
+
+#include "nuis/python/pyNUISANCE.h"
 
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
-#include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
-#include "pybind11/stl_bind.h"
 
 namespace py = pybind11;
 using namespace nuis;
@@ -42,6 +41,13 @@ void pyHistFrameInit(py::module &m) {
       .def_readonly("bins", &Binning::bins)
       .def_readonly("axis_labels", &Binning::axis_labels)
       .def("bin_sizes", &Binning::bin_sizes)
+      .def("__repr__", [](Binning const &self) {
+        std::stringstream ss;
+        ss << self;
+        return ss.str();
+      });
+
+  pyBinning
       .def("find_bin", py::overload_cast<std::vector<double> const &>(
                            &Binning::operator(), py::const_))
       .def("find_bin",
@@ -49,12 +55,7 @@ void pyHistFrameInit(py::module &m) {
       .def("__call__", py::overload_cast<std::vector<double> const &>(
                            &Binning::operator(), py::const_))
       .def("__call__",
-           py::overload_cast<double>(&Binning::operator(), py::const_))
-      .def("__repr__", [](Binning const &self) {
-        std::stringstream ss;
-        ss << self;
-        return ss.str();
-      });
+           py::overload_cast<double>(&Binning::operator(), py::const_));
 
   pyBinning
       .def_static("lin_space", &Binning::lin_space, py::arg("nbins"),

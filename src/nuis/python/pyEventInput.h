@@ -2,24 +2,18 @@
 
 #include "nuis/eventinput/EventSourceFactory.h"
 
-#include "nuis/python/pyYAML.h"
-
-#include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
-#include "pybind11/stl_bind.h"
-
-namespace py = pybind11;
+#include "nuis/python/pyNUISANCE.h"
 
 struct pyNormalizedEventSource {
   nuis::EventSourceFactory fact;
   std::shared_ptr<HepMC3::GenRunInfo> gri;
   nuis::INormalizedEventSourcePtr evs;
-  py::tuple curr_event;
+  pybind11::tuple curr_event;
 
   pyNormalizedEventSource(std::string filename);
 
-  py::object first();
-  py::object next();
+  pybind11::object first();
+  pybind11::object next();
   std::shared_ptr<HepMC3::GenRunInfo> run_info();
   double fatx();
   double sumw();
@@ -28,12 +22,12 @@ struct pyNormalizedEventSource {
 
 class pyNormalizedEventSource_looper {
   std::reference_wrapper<pyNormalizedEventSource> pysource;
-  py::object curr_event;
+  pybind11::object curr_event;
 
 public:
   pyNormalizedEventSource_looper(pyNormalizedEventSource &pyevs);
   void operator++();
-  py::object const &operator*();
+  pybind11::object const &operator*();
   bool operator!=(nuis::IEventSource_sentinel const &) const;
   bool operator==(nuis::IEventSource_sentinel const &) const;
 };
@@ -41,4 +35,4 @@ public:
 pyNormalizedEventSource_looper begin(pyNormalizedEventSource &evs);
 nuis::IEventSource_sentinel end(pyNormalizedEventSource &);
 
-void pyEventInputInit(py::module &m);
+void pyEventInputInit(pybind11::module &m);

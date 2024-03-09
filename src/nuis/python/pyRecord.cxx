@@ -4,13 +4,10 @@
 #include "nuis/record/Table.h"
 #include "nuis/record/Utility.h"
 
-#include "nuis/python/pyYAML.h"
+#include "nuis/python/pyNUISANCE.h"
 
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
-#include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
-#include "pybind11/stl_bind.h"
 
 #include <string>
 
@@ -51,7 +48,9 @@ struct pyRecordFactory {
 
 void pyRecordInit(py::module &m) {
 
-  (void)nuis::database();
+  // this is probably needed, but currently Juptyer notebooks crash hard if
+  // ProSeleca::Get() has been called in this function.
+  //  (void)nuis::database();
 
   py::class_<ComparisonFrame>(m, "ComparisonFrame");
   // .def_readwrite("mc", ComparisonFrame::mc)

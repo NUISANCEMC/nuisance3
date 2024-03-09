@@ -104,6 +104,14 @@ mytrace::log_info("logging directly to mytrace");
 
 New trace names will be automatically registered with spdlog on first use.
 
+If you would like to use the same logger as a known class, you can call it as a static function on that class, like:
+
+```c++
+void saysomethingfree(){
+  myclass::log_info("some information"); //logs to the "mytrace" logger as myclass subclasses nuis_named_log("mytrace")
+}
+```
+
 #### A Pitfall
 
 If the logging call is fully qualified with the `nuis::` namespace, then this will stop the name overload resolution considering the static member functions. Write logging calls like without namespace qualification for the intended effect.
@@ -166,8 +174,22 @@ NUIS_LOG_DEBUG("Some debug message"); // logs to the default or named trace subc
 NUIS_LOGGER_INFO("some_trace","Some debug message"); // logs to the "some_trace" named trace logger at the info level
 ```
 
-The compile-time log level is controlled with:
+The level of logging calls that are compiled in is set by:
 
 ```bash
 $ cmake -DNUISANCE_DEBUG_LEVEL=warn
+```
+
+The default for `Release` and `RelWithDebInfo` builds is `warn`, and for `Debug` the default is `trace`.
+
+*N.B.* This level just determines what level of messages are compiled in/out of the binary. If thye are compiled in, then they will respect log levels for the relevant default or named logger.
+
+As a result, you should instrument your code liberally with `NUIS_LOG_TRACE`/`NUIS_LOG_DEBUG` calls, as they will not spam stdout unless you lower the logger level, and they will not impact performance in Releasey builds.
+
+Get the current compile-time level with like:
+
+```c++
+#include "nuis/log.txx"
+
+nuis::get_macro_log_level();
 ```
