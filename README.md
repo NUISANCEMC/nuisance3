@@ -19,7 +19,7 @@ cd /path/to/repo
 mkdir build; cd build
 cmake ../ -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   [-DNUISANCE_ENABLE_TESTS=OFF] \
-  [-DNUISANCE_DEBUG_LEVEL=Warn]
+  [-DNUISANCE_DEBUG_LEVEL=warn]
 make install -j $(nproc)
 ```
 

@@ -40,6 +40,28 @@ This guideline is pure style, we won't get too upset if you order them different
 
 e.g. `#include <cmath>` instead of `#include <math.h>`
 
+## Exceptions
+
+Declare new exception types and throw them when exceptional things happen.
+
+Only throw an exception if you cannot reasonably continue. Being forced to otherwise make assumptions in possibly confusing ways and masking user errors counts as not being able to reasonably continue.
+
+```c++
+#include "nuis/except.h"
+
+NEW_NUISANCE_EXCEPT(MyTypedException);
+
+void myfunc(){
+  if (something.isbad()) {
+    throw MyTypedException()
+        << "write an error message to be displayed by the runtime if the "
+           "exception is not caught."; // don't use std::endl, it will cause a
+                                       // compiler error
+  }
+}
+
+```
+
 ## Logging
 
 Logging in NUISANCEv3 code should be done like:
@@ -65,13 +87,13 @@ These functions can be called in any NUISANCEv3 implementation file that include
 
 We implement automatic logging to named loggers by providing the `nuis_named_log` macro, which defines a class template with static member logging functions templated over the logger name. We then take advantage of C++ name overload resolution ordering to have the static member functions be called, in `nuis_named_log` subclasses, which forward to the named logger instances, rather than free functions with the same name, which forward to the default `spdlog` logger. Practically, this means that all logging should be done via the `log_<level>` functions above, but when logging from member functions of classes that subclass `nuis_named_log`, specific loggers will be transparently used.
 
-An example of a new class which uses an automatically named trace:
+An example of a new class which uses an automatically named logger:
 
 ```c++
 //myclass.h
 #include "nuis/log.h"
 
-class myclass : public named_log_trace("mytrace") {
+class myclass : public named_log_trace("mylogger") {
   void saysomething();
 };
 
@@ -79,7 +101,7 @@ class myclass : public named_log_trace("mytrace") {
 #include "nuis/log.txx"
 
 void myclass::saysomething(){ 
-  log_info("some information"); //logs to the "mytrace" logger
+  log_info("some information"); //logs to the "mylogger" logger
 }
 
 void saysomethingfree(){
@@ -92,14 +114,14 @@ If myclass is not a subclass of `named_log_trace`, then the overload resolution 
 If you would like to explicitly log to a named logger you can instead call:
 
 ```c++
-named_log_trace("mytrace")::log_info("logging directly to mytrace");
+named_log_trace("mylogger")::log_info("logging directly to mylogger");
 ```
 
-from any execution block. It can improve readability if you declare a `using` alias to the named trace type.
+from any execution block. It can improve readability if you declare a `using` alias to the named logger type.
 
 ```c++
-using mytrace = named_log_trace("mytrace");
-mytrace::log_info("logging directly to mytrace");
+using mylogger = named_log_trace("mylogger");
+mylogger::log_info("logging directly to mylogger");
 ```
 
 New trace names will be automatically registered with spdlog on first use.
@@ -108,9 +130,11 @@ If you would like to use the same logger as a known class, you can call it as a 
 
 ```c++
 void saysomethingfree2(){
-  myclass::log_info("some information"); //logs to the "mytrace" logger as myclass subclasses nuis_named_log("mytrace")
+  myclass::log_info("some information"); //logs to the "mylogger" logger as myclass subclasses nuis_named_log("mylogger")
 }
 ```
+
+This will cause a compiler error if `myclass` does not publicly inherit from `named_log_trace`.
 
 #### A Pitfall
 
@@ -131,7 +155,7 @@ For example, running:
 $ nuis-example-dumpevents test.hepmc3.gz
 ```
 
-may not log any information about the attempts to parse the input file. If you would like the `"EventInput"` trace to be verbose, you might instead run:
+may not log any information about the attempts to parse the input file. If you would like the `"EventInput"` logger to be verbose, you might instead run:
 
 ```bash
 $ NUIS_LOG_LEVEL_EventInput=trace nuis-example-dumpevents test.hepmc3.gz 
@@ -144,7 +168,7 @@ $ NUIS_LOG_LEVEL_EventInput=trace nuis-example-dumpevents test.hepmc3.gz
 
 #### With Function Calls
 
-The trace log level is automatically set on first use from the environment, it can be changed at any time with:
+The logger level is automatically set on first use from the environment, it can be changed at any time with:
 
 ```c++
 
@@ -153,13 +177,13 @@ void myfreefunc(){
 }
 
 myclass::mymethod(){
-  set_log_level(log_level::debug); // sets the myclass named trace log level if myclass is a named_log_trace subclass, or the default log level if not
+  set_log_level(log_level::debug); // sets the myclass named logger level if myclass is a named_log_trace subclass, or the default log level if not
 }
-named_log_trace("mytrace")::set_log_level(log_level::info); // sets the mytrace named trace log level
-using mytrace = named_log_trace("mytrace");
-mytrace::set_log_level(log_level::warn); // sets the mytrace named trace log level
+named_log_trace("mylogger")::set_log_level(log_level::info); // sets the mylogger named logger level
+using mylogger = named_log_trace("mylogger");
+mylogger::set_log_level(log_level::warn); // sets the mylogger named logger level
 set_log_level(log_level::error);
-set_log_level(log_level::critical);
+myclass::set_log_level(log_level::critical); // sets the myclass named logger level if myclass is a named_log_trace subclass, or causes a a compiler error if not
 ```
 
 ### Compile Time Log Levels
@@ -170,8 +194,8 @@ Compile-time switchable logging macros can be used:
 #include "nuis/log.txx"
 
 NUIS_LOG_TRACE("Some trace message with param {}", 42);
-NUIS_LOG_DEBUG("Some debug message"); // logs to the default or named trace subclass logger at the debug level
-NUIS_LOGGER_INFO("some_trace","Some debug message"); // logs to the "some_trace" named trace logger at the info level
+NUIS_LOG_DEBUG("Some debug message"); // uses the default logger or named logger subclass logger at the debug level
+NUIS_LOGGER_INFO("some_logger","Some debug message"); // logs to the "some_logger" named loggerger at the info level
 ```
 
 The level of logging calls that are compiled in is set by:
