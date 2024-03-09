@@ -63,7 +63,7 @@ These functions can be called in any NUISANCEv3 implementation file that include
 
 ### Named Loggers
 
-We implement automatic logging to named loggers by providing the `nuis_named_log` macro, which should be used to subclass a class with static member functions templated over the logger name. We then take advantage of C++ name overload resolution ordering to have the static member functions be called, which forward to the named logger instances, rather than free functions with the same name, which forward to the default `spdlog` logger. Practically, this means that all logging should be done via the `log_<level>` functions above, but when logging from member functions of classes that subclass `nuis_named_log`, specific loggers will be transparently used.
+We implement automatic logging to named loggers by providing the `nuis_named_log` macro, which defines a class template with static member logging functions templated over the logger name. We then take advantage of C++ name overload resolution ordering to have the static member functions be called, in `nuis_named_log` subclasses, which forward to the named logger instances, rather than free functions with the same name, which forward to the default `spdlog` logger. Practically, this means that all logging should be done via the `log_<level>` functions above, but when logging from member functions of classes that subclass `nuis_named_log`, specific loggers will be transparently used.
 
 An example of a new class which uses an automatically named trace:
 
@@ -95,7 +95,7 @@ If you would like to explicitly log to a named logger you can instead call:
 named_log_trace("mytrace")::log_info("logging directly to mytrace");
 ```
 
-from any execution block. If you are using a named trace a lot, it might improve compile times if you declare a using alias to the named trace type.
+from any execution block. It can improve readability if you declare a `using` alias to the named trace type.
 
 ```c++
 using mytrace = named_log_trace("mytrace");
@@ -107,14 +107,14 @@ New trace names will be automatically registered with spdlog on first use.
 If you would like to use the same logger as a known class, you can call it as a static function on that class, like:
 
 ```c++
-void saysomethingfree(){
+void saysomethingfree2(){
   myclass::log_info("some information"); //logs to the "mytrace" logger as myclass subclasses nuis_named_log("mytrace")
 }
 ```
 
 #### A Pitfall
 
-If the logging call is fully qualified with the `nuis::` namespace, then this will stop the name overload resolution considering the static member functions. Write logging calls like without namespace qualification for the intended effect.
+If the logging call is fully qualified with the `nuis::` namespace, then this will stop the name overload resolution considering the static member functions. Write logging calls without namespace qualification for the intended effect. Use `using namespace nuis` if you have to (but not in a header file).
 
 ### Controlling the Log Level
 
