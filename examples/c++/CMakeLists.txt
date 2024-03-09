@@ -2,6 +2,10 @@ add_executable(nuis-example-dumpevents nuis-example-dumpevents.cxx)
 target_link_libraries(nuis-example-dumpevents eventinput)
 install(TARGETS nuis-example-dumpevents DESTINATION bin)
 
+add_executable(nuis-example-binning nuis-example-binning.cxx)
+target_link_libraries(nuis-example-binning eventinput histframe)
+install(TARGETS nuis-example-binning DESTINATION bin)
+
 # add_executable(nuis-enu-histograms nuis-enu-histograms.cxx)
 # target_link_libraries(nuis-enu-histograms eventinput NuHepMC::CPPUtils)
 

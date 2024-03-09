@@ -15,6 +15,7 @@ NEW_NUISANCE_EXCEPT(InvalidYAMLSchemaObject);
 std::string database() {
   // Require ProSelectra input
   auto PROSELECTA = std::getenv("PROSELECTA_DIR");
+  (void)PROSELECTA;
   if (!PROSELECTA) {
     log_critical("PROSELECTA_DIR environment variable not defined");
     throw PROSELECTA_DIRUndefined();
@@ -23,6 +24,7 @@ std::string database() {
 
   // Require Database Valid
   auto DATABASE = std::getenv("NUISANCEDB");
+  (void)DATABASE;
   if (!DATABASE) {
     log_critical("NUISANCE_DB environment variable not defined");
     throw NUISANCEDBUndefined();

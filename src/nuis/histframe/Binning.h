@@ -2,6 +2,8 @@
 
 #include "nuis/except.h"
 
+#include "nuis/log.h"
+
 #include "yaml-cpp/yaml.h"
 
 #include "Eigen/Dense"
@@ -14,6 +16,10 @@
 
 namespace nuis {
 
+NEW_NUISANCE_EXCEPT(BinningNotIncreasing);
+NEW_NUISANCE_EXCEPT(UnbinnableNumber);
+NEW_NUISANCE_EXCEPT(InvalidBinEdgForLogarithmicBinning);
+NEW_NUISANCE_EXCEPT(TooFewProjectionsForBinning);
 NEW_NUISANCE_EXCEPT(BinningUnsorted);
 NEW_NUISANCE_EXCEPT(BinningHasOverlaps);
 NEW_NUISANCE_EXCEPT(BinningNotUnique);
@@ -21,7 +27,7 @@ NEW_NUISANCE_EXCEPT(MismatchedAxisCount);
 NEW_NUISANCE_EXCEPT(AxisOverflow);
 NEW_NUISANCE_EXCEPT(CatastrophicBinningFailure);
 
-struct Binning {
+struct Binning : public nuis_named_log("Binning") {
 
   //--- types
   using Index = uint32_t;

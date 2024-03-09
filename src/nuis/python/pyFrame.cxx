@@ -1,14 +1,12 @@
 #include "nuis/Frame/Frame.h"
 #include "nuis/Frame/FrameGen.h"
 
+#include "nuis/python/pyNUISANCE.h"
+
 #include "nuis/python/pyEventInput.h"
-#include "nuis/python/pyYAML.h"
 
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
-#include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
-#include "pybind11/stl_bind.h"
 
 namespace py = pybind11;
 

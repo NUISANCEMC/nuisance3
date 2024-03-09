@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pybind11/pybind11.h"
+#include "nuis/python/pyNUISANCE.h"
 
 #include "yaml-cpp/yaml.h"
 

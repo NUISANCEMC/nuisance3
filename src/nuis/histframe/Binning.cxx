@@ -39,7 +39,7 @@ Binning::Index Binning::operator()(std::vector<double> const &x) const {
   return find_bin(x);
 }
 Binning::Index Binning::operator()(double x) const {
-  static std::vector<double> vect(1, 0);
+  static std::vector<double> vect = {0};
   vect[0] = x;
   return find_bin(vect);
 }
@@ -59,6 +59,13 @@ Eigen::ArrayXd Binning::bin_sizes() const {
 
 Binning Binning::lin_space(double min, double max, size_t nbins,
                            std::string const &label) {
+
+  if (min >= max) {
+    log_critical("lin_space({0},{1},{2}) is invalid as min={0} >= max={1}.",
+                 min, max, nbins);
+    throw BinningNotIncreasing();
+  }
+
   double step = (max - min) / double(nbins);
 
   Binning bin_info;
@@ -70,13 +77,40 @@ Binning Binning::lin_space(double min, double max, size_t nbins,
   }
 
   bin_info.find_bin = [=](std::vector<double> const &x) -> Index {
+    NUIS_LOG_TRACE("[lin_space({},{},{}).find_bin] x.size() = {}, x[0] = {}",
+                   min, max, nbins, x.size(), x.size() ? x[0] : 0xdeadbeef);
     if (x.size() < 1) {
+      log_warn("[lin_space({},{},{}).find_bin] was passed an empty projection "
+               "vector. Returning npos. Compile with "
+               "CMAKE_BUILD_TYPE=Debug to make this an exception.",
+               min, max, nbins);
+#ifndef NUIS_NDEBUG
+      throw TooFewProjectionsForBinning();
+#endif
       return npos;
     }
 
-    return (x[0] >= max)  ? npos
-           : (x[0] < min) ? npos
-                          : std::floor((x[0] - min) / step);
+    if ((x[0] != 0) && !std::isnormal(x[0])) {
+      log_warn("[lin_space({},{},{}).find_bin] was passed an "
+               "abnornmal number = {}. Returning npos. Compile with "
+               "CMAKE_BUILD_TYPE=Debug to make this an exception.",
+               min, max, nbins, x[0]);
+#ifndef NUIS_NDEBUG
+      throw UnbinnableNumber();
+#endif
+      return Binning::npos;
+    }
+
+    Index bin = (x[0] >= max)  ? npos
+                : (x[0] < min) ? npos
+                               : std::floor((x[0] - min) / step);
+    NUIS_LOG_TRACE("[lin_space({},{},{}).find_bin] Found bin: {}{}", min, max,
+                   nbins, bin == npos ? "npos" : std::to_string(bin),
+                   bin_info.bins.size() > bin
+                       ? fmt::format(", ({} -- {})", bin_info.bins[bin][0].min,
+                                     bin_info.bins[bin][0].max)
+                       : "");
+    return bin;
   };
   return bin_info;
 }
@@ -91,9 +125,20 @@ Binning::lin_spaceND(std::vector<std::tuple<double, double, size_t>> axes,
 
   size_t nbins = 1;
   for (size_t ax_i = 0; ax_i < nax; ++ax_i) {
-    steps.push_back((std::get<1>(axes[ax_i]) - std::get<0>(axes[ax_i])) /
-                    double(std::get<2>(axes[ax_i])));
-    nbins *= std::get<2>(axes[ax_i]);
+
+    auto const &ax_min = std::get<0>(axes[ax_i]);
+    auto const &ax_max = std::get<1>(axes[ax_i]);
+    auto const &ax_nbins = std::get<2>(axes[ax_i]);
+
+    if (ax_min >= ax_max) {
+      log_critical(
+          "lin_spaceND({}) is invalid along axis {} as min={} >= max={}.", axes,
+          ax_i, ax_min, ax_max);
+      throw BinningNotIncreasing();
+    }
+
+    steps.push_back((ax_max - ax_min) / double(ax_nbins));
+    nbins *= ax_nbins;
     nbins_in_slice.push_back(nbins);
   }
 
@@ -110,34 +155,76 @@ Binning::lin_spaceND(std::vector<std::tuple<double, double, size_t>> axes,
     size_t bin_remainder = bin_i;
     for (int ax_i = int(nax - 1); ax_i >= 0; --ax_i) {
 
+      auto const &ax_min = std::get<0>(axes[ax_i]);
+
       dimbins[ax_i] = (bin_remainder / nbins_in_slice[ax_i]);
       bin_remainder = bin_remainder % nbins_in_slice[ax_i];
 
-      bin_info.bins.back()[ax_i] = {
-          std::get<0>(axes[ax_i]) + (dimbins[ax_i] * steps[ax_i]),
-          std::get<0>(axes[ax_i]) + ((dimbins[ax_i] + 1) * steps[ax_i])};
+      bin_info.bins.back()[ax_i] = {ax_min + (dimbins[ax_i] * steps[ax_i]),
+                                    ax_min +
+                                        ((dimbins[ax_i] + 1) * steps[ax_i])};
     }
   }
 
   bin_info.find_bin = [=](std::vector<double> const &x) -> Index {
+    NUIS_LOG_TRACE("[lin_spaceND({}).find_bin] x.size() = {}/{} axes, x = {}",
+                   axes, x.size(), nax, x);
+
     if (x.size() < nax) {
+      log_warn("[lin_spaceND({}).find_bin] was passed too few projections. "
+               "x.size() = "
+               "{} < nax = {}. Returning npos. Compile with "
+               "CMAKE_BUILD_TYPE=Debug to make this an exception.",
+               axes, x.size(), nax);
+#ifndef NUIS_NDEBUG
+      throw TooFewProjectionsForBinning();
+#endif
       return npos;
     }
 
     Index gbin = 0;
     for (size_t ax_i = 0; ax_i < nax; ++ax_i) {
 
+      if ((x[ax_i] != 0) && !std::isnormal(x[ax_i])) {
+        log_warn(
+            "[lin_spaceND({}).find_bin] was passed an "
+            "abnornmal number = {} on axis {}. Returning npos. Compile with "
+            "CMAKE_BUILD_TYPE=Debug to make this an exception.",
+            axes, x[ax_i], ax_i);
+#ifndef NUIS_NDEBUG
+        throw UnbinnableNumber();
+#endif
+        return Binning::npos;
+      }
+
       Index dimbin =
           (x[ax_i] >= std::get<1>(axes[ax_i])) ? npos
           : (x[ax_i] < std::get<0>(axes[ax_i]))
               ? npos
               : std::floor((x[ax_i] - std::get<0>(axes[ax_i])) / steps[ax_i]);
+
+      NUIS_LOG_TRACE("[lin_spaceND({}).find_bin] Found bin[{}]: {}{}", axes,
+                     ax_i, dimbin == npos ? "npos" : std::to_string(dimbin),
+                     bin_info.bins.size() > dimbin
+                         ? fmt::format(", ({} -- {})",
+                                       bin_info.bins[dimbin][ax_i].min,
+                                       bin_info.bins[dimbin][ax_i].max)
+                         : "");
+
       gbin += dimbin * nbins_in_slice[ax_i];
+      NUIS_LOG_TRACE("[lin_spaceND({}).find_bin] gbin after {} axes: {}", axes,
+                     ax_i, gbin == npos ? "npos" : std::to_string(gbin));
 
       if (dimbin == npos) {
+        NUIS_LOG_TRACE("[lin_spaceND({}).find_bin] out of range on axis {}. "
+                       "Returning npos.",
+                       axes, ax_i);
         return npos;
       }
     }
+
+    NUIS_LOG_TRACE("[lin_spaceND({}).find_bin] returning gbin {} for x = {}",
+                   axes, gbin == npos ? "npos" : std::to_string(gbin), x);
 
     return gbin;
   };
@@ -147,6 +234,17 @@ Binning::lin_spaceND(std::vector<std::tuple<double, double, size_t>> axes,
 template <int base>
 Binning log_space_impl(double min, double max, size_t nbins,
                        std::string const &label) {
+  if (min <= 0) {
+    log_critical("log{}_space({},{},{}) is invalid as min <= 0.",
+                 base == 0 ? "" : std::to_string(base), min, max, nbins);
+    throw InvalidBinEdgForLogarithmicBinning();
+  }
+
+  if (min >= max) {
+    log_critical("log{0}_space({1},{2},{3}) is invalid as min={1} >= max={2}.",
+                 base == 0 ? "" : std::to_string(base), min, max, nbins);
+    throw BinningNotIncreasing();
+  }
 
   auto logbase = [=](double v) -> double {
     return (base == 0) ? std::log(v) : (std::log(v) / std::log(base));
@@ -173,14 +271,43 @@ Binning log_space_impl(double min, double max, size_t nbins,
   }
 
   bin_info.find_bin = [=](std::vector<double> const &x) -> Binning::Index {
+    NUIS_LOGGER_TRACE(
+        "Binning", "[log{}_space({},{},{}).find_bin] x.size() = {}, x[0] = {}",
+        base == 0 ? "" : std::to_string(base), min, max, nbins, x.size(),
+        x.size() ? x[0] : 0xdeadbeef);
     if (x.size() < 1) {
+      Binning::log_warn(
+          "[log{0}_space({},{},{}).find_bin] was passed an empty projection "
+          "vector. Returning npos. Compile with "
+          "CMAKE_BUILD_TYPE=Debug to make this an exception.",
+          base == 0 ? "" : std::to_string(base), min, max, nbins);
+#ifndef NUIS_NDEBUG
+      throw TooFewProjectionsForBinning();
+#endif
       return Binning::npos;
     }
 
-    if (x[0] <= 0) {
-      log_warn("[log_space<base = {}>]: Attempted to find log bin "
-                   "for unloggable number, {} ",
-                   (base == 0 ? "e" : std::to_string(base)), x[0]);
+    if (!std::isnormal(x[0])) {
+      Binning::log_warn("[log{0}_space({},{},{}).find_bin] was passed an "
+                        "abnornmal number = {}. Returning npos. Compile with "
+                        "CMAKE_BUILD_TYPE=Debug to make this an exception.",
+                        base == 0 ? "" : std::to_string(base), min, max, nbins,
+                        x[0]);
+#ifndef NUIS_NDEBUG
+      throw UnbinnableNumber();
+#endif
+      return Binning::npos;
+    }
+
+    if (x[0] < 0) {
+      Binning::log_warn("[log{0}_space({},{},{}).find_bin] was passed an "
+                        "unloggable number = {}. Returning npos. Compile with "
+                        "CMAKE_BUILD_TYPE=Debug to make this an exception.",
+                        base == 0 ? "" : std::to_string(base), min, max, nbins,
+                        x[0]);
+#ifndef NUIS_NDEBUG
+      throw UnbinnableNumber();
+#endif
       return Binning::npos;
     }
 
@@ -210,10 +337,9 @@ Binning Binning::contiguous(std::vector<double> const &edges,
 
   for (size_t i = 1; i < edges.size(); ++i) {
     if (edges[i] <= edges[i - 1]) {
-      log_critical(
-          "[contiguous]: Bin edges are not unique and monotonically "
-          "increasing. edge[{}] = {}, edge[{}] = {}.",
-          i, edges[i], i - 1, edges[i - 1]);
+      log_critical("[contiguous]: Bin edges are not unique and monotonically "
+                   "increasing. edge[{}] = {}, edge[{}] = {}.",
+                   i, edges[i], i - 1, edges[i - 1]);
       throw BinningUnsorted();
     }
     bin_info.bins.emplace_back();
@@ -224,39 +350,68 @@ Binning Binning::contiguous(std::vector<double> const &edges,
 
   // binary search for bin
   bin_info.find_bin = [=](std::vector<double> const &x) -> Index {
-    if (x[0] < bin_info.bins.front()[0].min) {
+    if (x.size() < 1) {
+      log_warn("[contiguous.find_bin] was passed an empty projection "
+               "vector. Returning npos. Compile with "
+               "CMAKE_BUILD_TYPE=Debug to make this an exception.");
+#ifndef NUIS_NDEBUG
+      throw TooFewProjectionsForBinning();
+#endif
       return npos;
     }
-    if (x[0] > bin_info.bins.back()[0].max) {
+
+    if ((x[0] != 0) && !std::isnormal(x[0])) {
+      log_warn("[contiguous.find_bin] was passed an "
+               "abnornmal number = {}. Returning npos. Compile with "
+               "CMAKE_BUILD_TYPE=Debug to make this an exception.",
+               x[0]);
+#ifndef NUIS_NDEBUG
+      throw UnbinnableNumber();
+#endif
+      return Binning::npos;
+    }
+
+    if (x[0] < bin_info.bins.front()[0].min) {
+      NUIS_LOG_TRACE("[contiguous.find_bin] x = {} < binning low edge = {}, "
+                     "returning npos.",
+                     x[0], bin_info.bins.front()[0].min);
+      return npos;
+    }
+    if (x[0] >= bin_info.bins.back()[0].max) {
+      NUIS_LOG_TRACE("[contiguous.find_bin] x = {} >= binning high edge = {}, "
+                     "returning npos.",
+                     x[0], bin_info.bins.back()[0].max);
       return npos;
     }
 
     size_t L = 0;
     size_t R = bin_info.bins.size() - 1;
-    // log_info("[from_extents]: binary search: {{ x: {}, L: {}, R: {} }}.",
-    //              x[0], L, R);
+    NUIS_LOG_TRACE("[contiguous.find_bin]: begin binary search: {{ x: {}, L: "
+                   "{}, R: {} }}.",
+                   x[0], L, R);
     while (L <= R) {
       size_t m = std::floor((L + R) / 2);
-      // log_info(
-      //     "[from_extents]: checking {{ x: {}, m: {}, min: {}, max: {}}}.",
-      //     x[0],
-      // m, bin_info.bins[m][0].min, bin_info.bins[m][0].max);
+      NUIS_LOG_TRACE("[contiguous.find_bin]: checking {{ x: {}, m: {}, min: "
+                     "{}, max: {}}}.",
+                     x[0], m, bin_info.bins[m][0].min, bin_info.bins[m][0].max);
       if ((bin_info.bins[m][0].min <= x[0]) &&
           (bin_info.bins[m][0].max > x[0])) {
-        // log_info("-- in bin: {} < {} < {}", bin_info.bins[m][0].min,
-        //              bin_info.bins[m][0].max, x[0]);
+        NUIS_LOG_TRACE("[contiguous.find_bin]: binary search succeeded, in "
+                       "bin: {} < {} < {}",
+                       bin_info.bins[m][0].min, bin_info.bins[m][0].max, x[0]);
         return m;
       } else if (bin_info.bins[m][0].max <= x[0]) {
         L = m + 1;
-        // log_info("-- {} < {}: L = {}", bin_info.bins[m][0].max, x[0],
-        // L);
+        NUIS_LOG_TRACE("  -- {} < {}: L = {}", bin_info.bins[m][0].max, x[0],
+                       L);
       } else if (bin_info.bins[m][0].min > x[0]) {
         R = m - 1;
-        // log_info("-- {} > {}: R = {}", bin_info.bins[m][0].min, x[0],
-        // R);
+        NUIS_LOG_TRACE("  -- {} > {}: R = {}", bin_info.bins[m][0].min, x[0],
+                       R);
       }
     }
-    // log_info("[from_extents]: binary search: failed, returning npos.");
+    NUIS_LOG_TRACE(
+        "[contiguous.find_bin]: binary search failed, returning npos.");
     return npos;
   };
   return bin_info;
@@ -299,9 +454,9 @@ struct from_extentsHelper {
   std::pair<size_t, size_t> get_axis_bin_range(std::vector<double> const &x,
                                                size_t from, size_t to,
                                                size_t ax) const {
-    // log_info("[get_axis_bin_range]: x = {}, from = {}, to "
-    //              "= {}, ax = {}",
-    //              x[ax], from, to, ax);
+    NUIS_LOG_TRACE("[get_axis_bin_range]: x = {}, from = {}, to "
+                   "= {}, ax = {}",
+                   x[ax], from, to, ax);
 
     if (from == Binning::npos) {
       return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
@@ -309,9 +464,9 @@ struct from_extentsHelper {
 
     if (sorted_bins[from].second[ax].min >
         x[ax]) { // below any bins in this slice
-      // log_info("[get_axis_bin_range]: x = {} < "
-      //              "bins[from][ax].min = {}",
-      //              x[ax], sorted_bins[from].second[ax].min);
+      NUIS_LOG_TRACE("[get_axis_bin_range]: x = {} < "
+                     "bins[from][ax].min = {}",
+                     x[ax], sorted_bins[from].second[ax].min);
       return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
     }
 
@@ -319,9 +474,9 @@ struct from_extentsHelper {
 
     if (sorted_bins[stop - 1].second[ax].max <=
         x[ax]) { // above any bins in this slice
-      // log_info("[get_axis_bin_range]: x = {} < bins[stop - "
-      //              "1][ax].max = {}",
-      //              x[ax], sorted_bins[stop - 1].second[ax].max);
+      NUIS_LOG_TRACE("[get_axis_bin_range]: x = {} < bins[stop - "
+                     "1][ax].max = {}",
+                     x[ax], sorted_bins[stop - 1].second[ax].max);
       return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
     }
 
@@ -330,20 +485,22 @@ struct from_extentsHelper {
     for (size_t bi_it = from; bi_it < stop; ++bi_it) {
       if (sorted_bins[bi_it].second[ax].contains(x[ax])) {
         if (from_this_ax == Binning::npos) {
-          // std::stringstream ss;
-          // ss << sorted_bins[bi_it].second;
-          // log_info("[get_axis_bin_range]: first bin in ax[{}]: {} = {}",
-          // ax,
-          //              bi_it, ss.str());
+#if (NUIS_ACTIVE_LEVEL <= NUIS_LEVEL_TRACE)
+          std::stringstream ss;
+          ss << sorted_bins[bi_it].second;
+          NUIS_LOG_TRACE("[get_axis_bin_range]: first bin in ax[{}]: {} = {}",
+                         ax, bi_it, ss.str());
+#endif
           from_this_ax = bi_it;
         }
-        // else {
-        //   std::stringstream ss;
-        //   ss << sorted_bins[bi_it].second;
-        //   log_info("    {} bin in ax[{}]: {} = {}", (bi_it -
-        //   from_this_ax),
-        //                ax, bi_it, ss.str());
-        // }
+#if (NUIS_ACTIVE_LEVEL <= NUIS_LEVEL_TRACE)
+        else {
+          std::stringstream ss;
+          ss << sorted_bins[bi_it].second;
+          NUIS_LOG_TRACE("    {} bin in ax[{}]: {} = {}",
+                         (bi_it - from_this_ax), ax, bi_it, ss.str());
+        }
+#endif
       } else if (from_this_ax != Binning::npos) {
         to_this_ax = bi_it;
         break;
@@ -352,11 +509,12 @@ struct from_extentsHelper {
     // if (to_this_ax < stop) {
     //   std::stringstream ss;
     //   ss << sorted_bins[to_this_ax].second;
-    //   log_info("[get_axis_bin_range]: first bin not in ax[{}]: {} = {}",
-    //   ax,
+    //   NUIS_LOG_TRACE("[get_axis_bin_range]: first bin not in ax[{}]: {} =
+    //   {}", ax,
     //                to_this_ax, ss.str());
     // } else {
-    //   log_info("[get_axis_bin_range]: end of range for ax[{}] = {} >= {},
+    //   NUIS_LOG_TRACE("[get_axis_bin_range]: end of range for ax[{}] = {} >=
+    //   {},
     //   "
     //                "the size of the binning array.",
     //                ax, to_this_ax, stop);
@@ -367,11 +525,11 @@ struct from_extentsHelper {
   }
 
   Binning::Index operator()(std::vector<double> const &x) const {
-    // log_info("[from_extentsHelper]: x = {}", x);
+    // NUIS_LOG_TRACE("[from_extentsHelper]: x = {}", x);
     if (x.size() < sorted_bins.front().second.size()) {
       log_critical("[from_extentsHelper]: projections passed in: {} is "
-                       "smaller than the number of axes in a bin: {}",
-                       x, sorted_bins.front().second.size());
+                   "smaller than the number of axes in a bin: {}",
+                   x, sorted_bins.front().second.size());
       throw MismatchedAxisCount();
     }
 
@@ -379,17 +537,16 @@ struct from_extentsHelper {
         x, 0, sorted_bins.size(), sorted_bins.front().second.size() - 1);
     if ((contains_range.first == Binning::npos) ||
         (contains_range.second == Binning::npos)) {
-      // log_info(
-      //     "[from_extentsHelper]: Search yielded npos. Returning npos.\n");
-      // log_info(tostr());
+      NUIS_LOG_TRACE(
+          "[from_extentsHelper]: Search yielded npos. Returning npos.\n{}",
+          tostr());
       return Binning::npos;
     }
 
     if ((contains_range.second - contains_range.first) != 1) {
-      log_critical(
-          "[from_extentsHelper]: When searching for bin, failed to "
-          "find a unique bin. Either this is a bug in "
-          "NUISANCE or the binning is not unique.");
+      log_critical("[from_extentsHelper]: When searching for bin, failed to "
+                   "find a unique bin. Either this is a bug in "
+                   "NUISANCE or the binning is not unique.");
       std::stringstream ss;
       ss << "REPORT INFO:\n>>>----------------------------\ninput "
             "bins: \n"
@@ -400,8 +557,8 @@ struct from_extentsHelper {
       throw CatastrophicBinningFailure();
     }
     // return the original Index
-    // log_info("[from_extentsHelper]: Found original bin: {}\n",
-    //              sorted_bins[contains_range.first].first);
+    NUIS_LOG_TRACE("[from_extentsHelper]: Found original bin: {}\n",
+                   sorted_bins[contains_range.first].first);
     return sorted_bins[contains_range.first].first;
   }
 };
@@ -420,8 +577,8 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
 
   if (bin_info.bins.size() != sorted_unique_bins.size()) {
     log_critical("[from_extents]: When building Binning from vector of "
-                     "BinExtents, the list of unique bins was {} long, while "
-                     "the original list was {}. Binnings must be unique.");
+                 "BinExtents, the list of unique bins was {} long, while "
+                 "the original list was {}. Binnings must be unique.");
     std::stringstream ss("");
     ss << bins;
     log_critical("Bins: {}", ss.str());
@@ -430,8 +587,8 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
 
   if (binning_has_overlaps(bin_info.bins)) {
     log_critical("[from_extents]: When building Binning from vector of "
-                     "BinExtents, the list of bins appears to contain "
-                     "overlaps. Binnings must be non-overlapping.");
+                 "BinExtents, the list of bins appears to contain "
+                 "overlaps. Binnings must be non-overlapping.");
     std::stringstream ss("");
     ss << bins;
     log_critical("Bins: {}", ss.str());

@@ -1,16 +1,8 @@
-#include "pybind11/pybind11.h"
-#include "pybind11/stl.h"
-#include "pybind11/stl_bind.h"
-
-PYBIND11_MAKE_OPAQUE(std::vector<bool>);
-PYBIND11_MAKE_OPAQUE(std::vector<int>);
-PYBIND11_MAKE_OPAQUE(std::vector<double>);
-PYBIND11_MAKE_OPAQUE(std::vector<uint32_t>);
+#include "nuis/python/pyNUISANCE.h"
 
 #include "nuis/log.txx"
 
 #include "nuis/python/pyEventInput.h"
-#include "nuis/python/pyYAML.h"
 
 #include <functional>
 #include <iostream>
