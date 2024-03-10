@@ -7,8 +7,6 @@
 
 #include <sstream>
 
-NEW_NUISANCE_EXCEPT(InvalidFrameColumnName);
-
 namespace nuis {
 Frame::column_t Frame::find_column_index(std::string const &cn) const {
   auto pos = std::find(column_names.begin(), column_names.end(), cn);

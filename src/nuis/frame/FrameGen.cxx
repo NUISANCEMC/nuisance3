@@ -85,11 +85,11 @@ Frame FrameGen::next() {
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
       log_info("GenFrame has selected {}{} from {} processed events.",
-                   n_total_rows,
-                   ((nmaxloop != std::numeric_limits<size_t>::max())
-                        ? fmt::format("/{}", nmaxloop)
-                        : ""),
-                   neventsprocessed);
+               n_total_rows,
+               ((nmaxloop != std::numeric_limits<size_t>::max())
+                    ? fmt::format("/{}", nmaxloop)
+                    : ""),
+               neventsprocessed);
     }
 
     bool cut = false;

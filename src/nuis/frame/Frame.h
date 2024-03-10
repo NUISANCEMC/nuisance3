@@ -2,6 +2,8 @@
 
 #include "nuis/eventinput/INormalizedEventSource.h"
 
+#include "nuis/except.h"
+
 #include "Eigen/Dense"
 
 #include <iostream>
@@ -13,6 +15,8 @@ using ArrayXdRef = Ref<ArrayXd, 0, Stride<Dynamic, Dynamic>>;
 } // namespace Eigen
 
 namespace nuis {
+
+NEW_NUISANCE_EXCEPT(InvalidFrameColumnName);
 
 struct Frame {
   std::vector<std::string> column_names;
@@ -26,8 +30,6 @@ struct Frame {
 
   column_t find_column_index(std::string const &name) const;
 
-  // get a copy of a column, if you want to set a column, access the table
-  // directly
   Eigen::ArrayXdRef col(std::string const &cn);
   std::vector<Eigen::ArrayXdRef> cols(std::vector<std::string> const &cns);
 };

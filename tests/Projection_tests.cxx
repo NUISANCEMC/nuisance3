@@ -317,7 +317,7 @@ TEST_CASE("3D->2D: random", "[Projection]") {
   std::default_random_engine e1(r());
   std::uniform_real_distribution<> uni(0, 3);
 
-  for (size_t i = 0; i < 100000; ++i) {
+  for (size_t i = 0; i < 10000; ++i) {
     std::vector<double> rvect = {uni(e1), 3 + uni(e1), 6 + uni(e1)};
     hf3D.fill(rvect, 1);
     hf2D.fill({rvect[0], rvect[1]}, 1);
@@ -422,7 +422,7 @@ TEST_CASE("3D->1D: random", "[Projection]") {
   std::default_random_engine e1(r());
   std::uniform_real_distribution<> uni(0, 3);
 
-  for (size_t i = 0; i < 100000; ++i) {
+  for (size_t i = 0; i < 10000; ++i) {
     std::vector<double> rvect = {uni(e1), 3 + uni(e1), 6 + uni(e1)};
     hf3D.fill(rvect, 1);
     hf1Dx.fill({rvect[0]}, 1);

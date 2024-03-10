@@ -28,7 +28,7 @@ RecordFactory::RecordFactory() {
   for (auto const &dir_entry :
        std::filesystem::directory_iterator{shared_library_dir}) {
     if (std::regex_match(dir_entry.path().filename().native(), plugin_re)) {
-      log_info("Found record plugin: {}", dir_entry.path().native());
+      log_debug("Found record plugin: {}", dir_entry.path().native());
       pluginfactories.emplace(dir_entry.path(),
                               boost::dll::import_alias<IRecord_PluginFactory_t>(
                                   dir_entry.path().native(), "Make"));

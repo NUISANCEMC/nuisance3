@@ -145,7 +145,10 @@ template <typename TN> log_level nuis_named_log_impl<TN>::get_log_level() {
 }
 
 template <typename TN> void nuis_named_log_impl<TN>::envcfg() {
-  auto envname = fmt::format("NUIS_LOG_LEVEL_{}", boost::mpl::c_str<TN>::value);
+  auto envname =
+      (std::string(boost::mpl::c_str<TN>::value) == "default")
+          ? "NUIS_LOG_LEVEL"
+          : fmt::format("NUIS_LOG_LEVEL_{}", boost::mpl::c_str<TN>::value);
   auto envv = std::getenv(envname.c_str());
   if (envv) {
     std::string envs(envv);

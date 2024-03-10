@@ -198,7 +198,7 @@ TEST_CASE("log10_space::bins", "[Binning]") {
 TEST_CASE("log10_space::func", "[Binning]") {
   auto ls = nuis::Binning::log10_space(1, 1E3, 3, "lx");
 
-  REQUIRE(ls(0) == nuis::Binning::npos);
+  REQUIRE_THROWS_AS(ls(0), nuis::UnbinnableNumber);
   REQUIRE(ls(0.1) == nuis::Binning::npos);
   REQUIRE(ls(1) == 0);
   REQUIRE(ls(10) == 1);

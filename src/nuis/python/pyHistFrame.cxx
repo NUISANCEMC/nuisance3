@@ -129,6 +129,8 @@ void pyHistFrameInit(py::module &m) {
       .def_static("project",
                   py::overload_cast<HistFrame const &, size_t>(&Project));
 
+  pyHistFrame.def_static("to_yaml_str", &nuis::to_yaml_str);
+
   py::module plotlymod = m.def_submodule("plotly", "plotly utilities");
   plotlymod.def("to_1D_json", &plotly::to_1D_json);
 
