@@ -49,13 +49,13 @@ Eigen::ArrayXd HistFrame::get_values(HistFrame::column_t colid) const {
   return (contents.col(colid) / bin_weights);
 }
 Eigen::ArrayXd HistFrame::get_errors(HistFrame::column_t colid) const {
-  if (colid >= contents.cols()) {
+  if (colid >= variance.cols()) {
     log_critical(
         "Tried to access column {}, but this HistFrame only has {} columns.",
-        colid, contents.cols());
+        colid, variance.cols());
     throw InvalidColumnAccess();
   }
-  return (contents.col(colid) / bin_weights.square()).sqrt();
+  return (variance.col(colid) / bin_weights.square()).sqrt();
 }
 
 HistFrame::column_valerr
