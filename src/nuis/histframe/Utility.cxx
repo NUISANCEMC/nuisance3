@@ -147,6 +147,16 @@ template <> struct convert<nuis::Binning::SingleExtent> {
     out["high"] = rhs.max;
     return out;
   }
+
+  static bool decode(const Node &node, nuis::Binning::SingleExtent &rhs) {
+    if (!node.IsMap()) {
+      return false;
+    }
+
+    rhs.min = node["low"].as<double>();
+    rhs.max = node["high"].as<double>();
+    return true;
+  }
 };
 template <> struct convert<nuis::Binning> {
   static Node encode(nuis::Binning const &rhs) {
@@ -162,6 +172,43 @@ template <> struct convert<nuis::Binning> {
     }
     return out;
   }
+
+  static bool decode(const Node &node, nuis::Binning &rhs) {
+    if (!node.IsSequence() || !node.size()) {
+      return false;
+    }
+    std::vector<nuis::Binning::BinExtents> bins;
+    std::vector<std::string> axis_labels;
+    for (size_t ni = 0; ni < node.size(); ++ni) { // each independent_variable
+      auto const &indep_var = node[ni];
+
+      if (!indep_var["values"] || !indep_var["values"].IsSequence() ||
+          !indep_var["values"].size()) {
+        return false;
+      }
+
+      if (!bins.size()) { // build the bin shape in nuis::Binning ordering
+        bins.resize(indep_var["values"].size());
+        for (size_t bi = 0; bi < bins.size(); ++bi) {
+          bins[bi].resize(node.size());
+        }
+      }
+
+      if (indep_var["header"] && indep_var["header"]["name"]) {
+        axis_labels.push_back(indep_var["header"]["name"].as<std::string>());
+      } else {
+        axis_labels.emplace_back();
+      }
+
+      for (size_t bi = 0; bi < indep_var["values"].size(); ++bi) {
+        auto const &bin = indep_var["values"][bi];
+        bins[bi][ni] = bin.as<nuis::Binning::SingleExtent>();
+      }
+    }
+
+    rhs = nuis::Binning::from_extents(bins, axis_labels);
+    return true;
+  }
 };
 template <> struct convert<nuis::HistFrame> {
   static Node encode(nuis::HistFrame const &rhs) {
@@ -172,8 +219,8 @@ template <> struct convert<nuis::HistFrame> {
     YAML::Node header;
     header["name"] = rhs.column_info[0].dependent_axis_label;
 
-    YAML::Node ivar;
-    ivar["header"] = header;
+    YAML::Node dvar;
+    dvar["header"] = header;
 
     for (size_t i = 0; i < rhs.binning.bins.size(); ++i) {
       YAML::Node val;
@@ -183,11 +230,49 @@ template <> struct convert<nuis::HistFrame> {
       staterr["symerror"] = std::sqrt(rhs.variance(i, 0));
       staterr["label"] = "stat";
       val["errors"].push_back(staterr);
-      ivar["values"].push_back(val);
+      dvar["values"].push_back(val);
     }
 
-    out["dependent_variables"].push_back(ivar);
+    out["dependent_variables"].push_back(dvar);
     return out;
+  }
+
+  static bool decode(const Node &node, nuis::HistFrame &rhs) {
+    if (!node.IsMap() || !node["independent_variables"] ||
+        !node["dependent_variables"]) {
+      return false;
+    }
+
+    nuis::HistFrame hf;
+
+    hf.binning = node["independent_variables"].as<nuis::Binning>();
+
+    hf.reset();
+
+    for (size_t dv_it = 0; dv_it < node["dependent_variables"].size();
+         ++dv_it) {
+      auto const &dvar = node["dependent_variables"][dv_it];
+      hf.add_column(dvar["header"]["name"].as<std::string>());
+    }
+    hf.reset();
+
+    for (size_t dv_it = 0; dv_it < node["dependent_variables"].size();
+         ++dv_it) {
+      auto const &dvar = node["dependent_variables"][dv_it];
+      for (size_t bi = 0; bi < dvar["values"].size(); ++bi) {
+        auto const &val = dvar["values"][bi];
+        hf.contents(bi, dv_it) = val["value"].as<double>();
+
+        if (val["errors"] && val["errors"].size()) {
+          hf.variance(bi, dv_it) =
+              std::pow(val["errors"][0]["symerror"].as<double>(), 2);
+        }
+      }
+    }
+
+    rhs = hf;
+
+    return true;
   }
 };
 } // namespace YAML
@@ -197,5 +282,10 @@ YAML::Node to_yaml(HistFrame const &hf) {
   return YAML::convert<nuis::HistFrame>::encode(hf);
 }
 std::string to_yaml_str(HistFrame const &hf) { return str_via_ss(to_yaml(hf)); }
+
+HistFrame from_yaml(YAML::Node const &yhf) { return yhf.as<HistFrame>(); }
+HistFrame from_yaml_str(std::string const &shf) {
+  return YAML::Load(shf).as<HistFrame>();
+}
 
 } // namespace nuis

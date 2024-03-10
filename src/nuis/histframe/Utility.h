@@ -20,6 +20,9 @@ to_pcolormesh_data(HistFrame const &hf, HistFrame::column_t colid = 0);
 YAML::Node to_yaml(HistFrame const &hf);
 std::string to_yaml_str(HistFrame const &hf);
 
+HistFrame from_yaml(YAML::Node const &yhf);
+HistFrame from_yaml_str(std::string const &shf);
+
 // boost::json overloads
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
                 Binning const &bi);

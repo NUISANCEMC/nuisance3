@@ -15,6 +15,7 @@ There are also a few short notebooks for miscellania:
 1. [Getting NuHepMC Flux Information](../../../notebooks/flux_info.ipynb)
 1. [Simple Oscillation Weights](../../../notebooks/osc.ipynb)
 1. [Altering Logging Levels](../../../notebooks/logging.ipynb)
+1. [Serializing HistFrames to/from YAML](../../../notebooks/hfyaml.ipynb)
 
 ## API Walking Tour
 
