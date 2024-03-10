@@ -46,7 +46,7 @@ Eigen::ArrayXd HistFrame::get_values(HistFrame::column_t colid) const {
         colid, contents.cols());
     throw InvalidColumnAccess();
   }
-  return (contents.col(colid) / bin_weights);
+  return (contents.col(colid) * bin_weights);
 }
 Eigen::ArrayXd HistFrame::get_errors(HistFrame::column_t colid) const {
   if (colid >= variance.cols()) {
@@ -55,7 +55,7 @@ Eigen::ArrayXd HistFrame::get_errors(HistFrame::column_t colid) const {
         colid, variance.cols());
     throw InvalidColumnAccess();
   }
-  return (variance.col(colid) / bin_weights.square()).sqrt();
+  return variance.col(colid).sqrt() * bin_weights;
 }
 
 HistFrame::column_valerr
@@ -177,7 +177,8 @@ void HistFrame::fill(double projection, double weight,
 }
 
 void HistFrame::set_value_is_content_density() {
-  bin_weights = binning.bin_sizes();
+  bin_weights =
+      Eigen::ArrayXd::Constant(binning.bins.size(), 1) / binning.bin_sizes();
 }
 
 void HistFrame::set_value_is_content() {
