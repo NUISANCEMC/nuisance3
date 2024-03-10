@@ -57,6 +57,13 @@ Eigen::ArrayXd Binning::bin_sizes() const {
   return bin_sizes;
 }
 
+size_t Binning::number_of_axes() const {
+  for (auto const &bin : bins) {
+    return bin.size();
+  }
+  return 0;
+}
+
 Binning Binning::lin_space(double min, double max, size_t nbins,
                            std::string const &label) {
 
@@ -300,7 +307,7 @@ Binning log_space_impl(double min, double max, size_t nbins,
     }
 
     if (x[0] < 0) {
-      Binning::log_warn("[log{0}_space({},{},{}).find_bin] was passed an "
+      Binning::log_info("[log{0}_space({},{},{}).find_bin] was passed an "
                         "unloggable number = {}. Returning npos. Compile with "
                         "CMAKE_BUILD_TYPE=Debug to make this an exception.",
                         base == 0 ? "" : std::to_string(base), min, max, nbins,
@@ -417,7 +424,7 @@ Binning Binning::contiguous(std::vector<double> const &edges,
   return bin_info;
 }
 
-struct from_extentsHelper {
+struct from_extentsHelper : public nuis_named_log("Binning") {
 
   std::vector<Binning::BinExtents> bins;
   std::vector<std::pair<Binning::Index, Binning::BinExtents>> sorted_bins;
@@ -486,19 +493,15 @@ struct from_extentsHelper {
       if (sorted_bins[bi_it].second[ax].contains(x[ax])) {
         if (from_this_ax == Binning::npos) {
 #if (NUIS_ACTIVE_LEVEL <= NUIS_LEVEL_TRACE)
-          std::stringstream ss;
-          ss << sorted_bins[bi_it].second;
-          NUIS_LOG_TRACE("[get_axis_bin_range]: first bin in ax[{}]: {} = {}",
-                         ax, bi_it, ss.str());
+          log_trace("[get_axis_bin_range]: first bin in ax[{}]: {} = {}", ax,
+                    bi_it, str_via_ss(sorted_bins[bi_it].second));
 #endif
           from_this_ax = bi_it;
         }
 #if (NUIS_ACTIVE_LEVEL <= NUIS_LEVEL_TRACE)
         else {
-          std::stringstream ss;
-          ss << sorted_bins[bi_it].second;
-          NUIS_LOG_TRACE("    {} bin in ax[{}]: {} = {}",
-                         (bi_it - from_this_ax), ax, bi_it, ss.str());
+          log_trace("    {} bin in ax[{}]: {} = {}", (bi_it - from_this_ax), ax,
+                    bi_it, str_via_ss(sorted_bins[bi_it].second));
         }
 #endif
       } else if (from_this_ax != Binning::npos) {
@@ -506,26 +509,24 @@ struct from_extentsHelper {
         break;
       }
     }
-    // if (to_this_ax < stop) {
-    //   std::stringstream ss;
-    //   ss << sorted_bins[to_this_ax].second;
-    //   NUIS_LOG_TRACE("[get_axis_bin_range]: first bin not in ax[{}]: {} =
-    //   {}", ax,
-    //                to_this_ax, ss.str());
-    // } else {
-    //   NUIS_LOG_TRACE("[get_axis_bin_range]: end of range for ax[{}] = {} >=
-    //   {},
-    //   "
-    //                "the size of the binning array.",
-    //                ax, to_this_ax, stop);
-    // }
+#if (NUIS_ACTIVE_LEVEL <= NUIS_LEVEL_TRACE)
+    if (to_this_ax < stop) {
+      log_trace("[get_axis_bin_range]: first bin not in ax[{}]: {} = {} ", ax,
+                to_this_ax, str_via_ss(sorted_bins[to_this_ax].second));
+    } else {
+      log_trace("[get_axis_bin_range]: end of range for ax[{}] = {} >= {}, the "
+                "size of the binning array.",
+                ax, to_this_ax, stop);
+    }
+#endif
 
     return (ax == 0) ? std::pair<size_t, size_t>{from_this_ax, to_this_ax}
                      : get_axis_bin_range(x, from_this_ax, to_this_ax, ax - 1);
   }
 
   Binning::Index operator()(std::vector<double> const &x) const {
-    // NUIS_LOG_TRACE("[from_extentsHelper]: x = {}", x);
+    NUIS_LOG_TRACE("[from_extentsHelper]: x = {}", x);
+
     if (x.size() < sorted_bins.front().second.size()) {
       log_critical("[from_extentsHelper]: projections passed in: {} is "
                    "smaller than the number of axes in a bin: {}",
@@ -579,9 +580,7 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
     log_critical("[from_extents]: When building Binning from vector of "
                  "BinExtents, the list of unique bins was {} long, while "
                  "the original list was {}. Binnings must be unique.");
-    std::stringstream ss("");
-    ss << bins;
-    log_critical("Bins: {}", ss.str());
+    log_critical("Bins: {}", str_via_ss(bins));
     throw BinningNotUnique();
   }
 
@@ -589,9 +588,7 @@ Binning Binning::from_extents(std::vector<BinExtents> bins,
     log_critical("[from_extents]: When building Binning from vector of "
                  "BinExtents, the list of bins appears to contain "
                  "overlaps. Binnings must be non-overlapping.");
-    std::stringstream ss("");
-    ss << bins;
-    log_critical("Bins: {}", ss.str());
+    log_critical("Bins: {}", str_via_ss(bins));
     throw BinningHasOverlaps();
   }
 

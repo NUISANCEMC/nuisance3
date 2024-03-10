@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nuis/record/ComparisonFrame.h"
+#include "nuis/record/Comparison.h"
 
 namespace nuis {
 namespace weight {

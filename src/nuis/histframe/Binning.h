@@ -69,7 +69,7 @@ struct Binning : public nuis_named_log("Binning") {
   Index operator()(std::vector<double> const &) const;
   Index operator()(double) const;
 
-  //--- member find_bintions
+  //--- member functions
 
   // Get the size for every bin.
   // The size will depend on the dimensionality of the binning: for 1D binning
@@ -77,7 +77,9 @@ struct Binning : public nuis_named_log("Binning") {
   // volume, etc...
   Eigen::ArrayXd bin_sizes() const;
 
-  //--- static find_bintions
+  size_t number_of_axes() const;
+
+  //--- static functions
 
   static Binning lin_space(double min, double max, size_t nbins,
                            std::string const &label = "");

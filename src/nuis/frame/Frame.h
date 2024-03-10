@@ -8,6 +8,10 @@
 #include <string>
 #include <vector>
 
+namespace Eigen {
+using ArrayXdRef = Ref<ArrayXd, 0, Stride<Dynamic, Dynamic>>;
+} // namespace Eigen
+
 namespace nuis {
 
 struct Frame {
@@ -24,8 +28,8 @@ struct Frame {
 
   // get a copy of a column, if you want to set a column, access the table
   // directly
-  Eigen::ArrayXd col(std::string const &cn) const;
-  Eigen::ArrayXXd cols(std::vector<std::string> const &cns) const;
+  Eigen::ArrayXdRef col(std::string const &cn);
+  std::vector<Eigen::ArrayXdRef> cols(std::vector<std::string> const &cns);
 };
 
 struct FramePrinter {

@@ -43,8 +43,8 @@ class NUISANCERecord : public IRecordPlugin {
         auto tab = Table();
 
         // Replace with Datasete
-        ComparisonFrame hist(Bins::lin_space(100, 0, 10, "q_0 [GeV]"));
-        tab.blueprint = std::make_shared<ComparisonFrame>(hist);
+        Comparison hist(Bins::lin_space(100, 0, 10, "q_0 [GeV]"));
+        tab.blueprint = std::make_shared<Comparison>(hist);
 
         tab.blueprint["data"].content  = 0.0;
         tab.blueprint["data"].variance = 0.0;

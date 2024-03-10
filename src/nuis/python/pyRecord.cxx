@@ -1,4 +1,4 @@
-#include "nuis/record/ComparisonFrame.h"
+#include "nuis/record/Comparison.h"
 #include "nuis/record/IRecord.h"
 #include "nuis/record/RecordFactory.h"
 #include "nuis/record/Table.h"
@@ -52,9 +52,9 @@ void pyRecordInit(py::module &m) {
   // ProSeleca::Get() has been called in this function.
   //  (void)nuis::database();
 
-  py::class_<ComparisonFrame>(m, "ComparisonFrame");
-  // .def_readwrite("mc", ComparisonFrame::mc)
-  // .def_readwrite("data", ComparisonFrame::data);
+  py::class_<Comparison>(m, "Comparison")
+      .def_readwrite("mc", &Comparison::mc)
+      .def_readwrite("data", &Comparison::data);
 
   py::class_<pyRecordFactory>(m, "RecordFactory")
       .def(py::init<>())

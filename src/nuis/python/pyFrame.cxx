@@ -51,11 +51,12 @@ struct pyFrameGen {
   std::shared_ptr<FrameGen> gen;
 };
 
-Eigen::ArrayXd frame_gettattr(Frame &s, std::string const &column) {
+Eigen::ArrayXdRef frame_gettattr(Frame &s, std::string const &column) {
   return s.col(column);
 }
 
-void frame_settattr(Frame &s, std::string const &column, Eigen::ArrayXd &data) {
+void frame_settattr(Frame &s, std::string const &column,
+                    Eigen::ArrayXdRef const data) {
   auto cid = s.find_column_index(column);
   if (cid != Frame::npos) {
     s.table.col(cid) = data;
@@ -73,16 +74,13 @@ void pyFrameInit(py::module &m) {
       .def("fatx", [](Frame &s) { return s.norm_info.fatx; })
       .def("sumw", [](Frame &s) { return s.norm_info.sumweights; })
       .def("nevents", [](Frame &s) { return s.norm_info.nevents; })
-      // Pandas style data access
+      .def_readonly_static("npos", &Frame::npos)
+      .def_readonly_static("missing_datum", &Frame::missing_datum)
       .def("__getattr__", &frame_gettattr)
       .def("__setattr__", &frame_settattr)
       .def("__getitem__", &frame_gettattr)
       .def("__setitem__", &frame_settattr)
-      .def("__str__", [](Frame const &s) {
-        std::stringstream ss("");
-        ss << FramePrinter(s);
-        return ss.str();
-      });
+      .def("__repr__", &str_via_ss<Frame>);
 
   py::class_<pyFrameGen>(m, "FrameGen")
       .def(py::init<pyNormalizedEventSource, size_t>(), py::arg("event_source"),

@@ -18,7 +18,7 @@ std::map<std::string, Eigen::ArrayXd>
 histframe_gettattr(HistFrame &s, std::string const &column) {
   auto cid = s.find_column_index(column);
   if (cid != HistFrame::npos) {
-    return {{"contents", s.get_content(cid)}, {"error", s.get_error(cid)}};
+    return {{"contents", s.get_values(cid)}, {"error", s.get_errors(cid)}};
   }
   return {};
 }
@@ -31,21 +31,13 @@ void pyHistFrameInit(py::module &m) {
       .def_readwrite("min", &Binning::SingleExtent::min)
       .def_readwrite("max", &Binning::SingleExtent::max)
       .def("width", &Binning::SingleExtent::width)
-      .def("__repr__", [](Binning::SingleExtent const &self) {
-        std::stringstream ss;
-        ss << self;
-        return ss.str();
-      });
+      .def("__repr__", &str_via_ss<Binning::SingleExtent>);
 
   pyBinning.def_readonly_static("npos", &Binning::npos)
       .def_readonly("bins", &Binning::bins)
       .def_readonly("axis_labels", &Binning::axis_labels)
       .def("bin_sizes", &Binning::bin_sizes)
-      .def("__repr__", [](Binning const &self) {
-        std::stringstream ss;
-        ss << self;
-        return ss.str();
-      });
+      .def("__repr__", &str_via_ss<Binning>);
 
   pyBinning
       .def("find_bin", py::overload_cast<std::vector<double> const &>(
@@ -67,7 +59,7 @@ void pyHistFrameInit(py::module &m) {
       .def_static("lin_spaceND", &Binning::lin_spaceND, py::arg("binnings"),
                   py::arg("labels") = std::vector<std::string>{})
       .def_static("contiguous", &Binning::contiguous, py::arg("binedges"),
-                  py::arg("labels") = std::vector<std::string>{})
+                  py::arg("label") = "")
       .def_static("from_extents", &Binning::from_extents, py::arg("extents"),
                   py::arg("labels") = std::vector<std::string>{})
       .def_static("product", &Binning::product, py::arg("ops"));
@@ -79,67 +71,68 @@ void pyHistFrameInit(py::module &m) {
                     &HistFrame::ColumnInfo::dependent_axis_label,
                     py::return_value_policy::reference_internal);
 
-  py::class_<HistFrame>(m, "HistFrame")
-      .def(py::init<Binning, std::string const &, std::string const &>(),
-           py::arg("binop"), py::arg("def_col_name") = "mc",
-           py::arg("def_col_label") = "")
-      .def_readwrite("contents", &HistFrame::contents,
-                     py::return_value_policy::reference_internal)
-      .def_readwrite("variance", &HistFrame::variance,
-                     py::return_value_policy::reference_internal)
-      .def_readwrite("column_info", &HistFrame::column_info,
-                     py::return_value_policy::reference_internal)
-      .def_readwrite("nfills", &HistFrame::nfills,
-                     py::return_value_policy::reference_internal)
-      .def_readwrite("binning", &HistFrame::binning,
-                     py::return_value_policy::reference_internal)
-      .def("add_column", &HistFrame::add_column, py::arg("name"),
-           py::arg("label") = "")
-      .def("find_bin", py::overload_cast<std::vector<double> const &>(
-                           &HistFrame::find_bin, py::const_))
-      .def("find_bin",
-           py::overload_cast<double>(&HistFrame::find_bin, py::const_))
-      .def("fill_bin", &HistFrame::fill_bin, py::arg("bini"), py::arg("weight"),
-           py::arg("col") = 0)
-      .def("fill",
-           py::overload_cast<std::vector<double> const &, double,
-                             HistFrame::column_t>(&HistFrame::fill),
-           py::arg("projections"), py::arg("weight"), py::arg("col") = 0)
-      .def("fill",
-           py::overload_cast<double, double, HistFrame::column_t>(
-               &HistFrame::fill),
-           py::arg("projection"), py::arg("weight"), py::arg("col") = 0)
-      .def("fill_with_selection",
-           py::overload_cast<int, std::vector<double> const &, double,
-                             HistFrame::column_t>(
-               &HistFrame::fill_with_selection),
-           py::arg("selection"), py::arg("projections"), py::arg("weight"),
-           py::arg("col") = 0)
-      .def("fill_with_selection",
-           py::overload_cast<int, double, double, HistFrame::column_t>(
-               &HistFrame::fill_with_selection),
-           py::arg("selection"), py::arg("projection"), py::arg("weight"),
-           py::arg("col") = 0)
-      .def("reset", &HistFrame::reset)
-      // Pandas style data access
-      .def("__getattr__", &histframe_gettattr)
-      .def("__getitem__", &histframe_gettattr)
-      .def("__str__", [](HistFrame const &s) {
-        std::stringstream ss("");
-        ss << HistFramePrinter(s);
-        return ss.str();
-      });
+  pyBinning.def_static("get_bin_centers", &get_bin_centers)
+      .def_static("get_bin_centers1D", &get_bin_centers1D);
 
-  pyBinning
+  auto pyHistFrame =
+      py::class_<HistFrame>(m, "HistFrame")
+          .def(py::init<Binning, std::string const &, std::string const &>(),
+               py::arg("binop"), py::arg("def_col_name") = "mc",
+               py::arg("def_col_label") = "")
+          .def_readonly_static("npos", &HistFrame::npos)
+          .def_readonly_static("missing_datum", &HistFrame::missing_datum)
+          .def_readonly("binning", &HistFrame::binning)
+          .def_readwrite("contents", &HistFrame::contents,
+                         py::return_value_policy::reference_internal)
+          .def_readwrite("variance", &HistFrame::variance,
+                         py::return_value_policy::reference_internal)
+          .def_readonly("column_info", &HistFrame::column_info)
+          .def_readonly("nfills", &HistFrame::nfills)
+          .def("add_column", &HistFrame::add_column, py::arg("name"),
+               py::arg("label") = "")
+          .def("find_bin", py::overload_cast<std::vector<double> const &>(
+                               &HistFrame::find_bin, py::const_))
+          .def("find_bin",
+               py::overload_cast<double>(&HistFrame::find_bin, py::const_))
+          .def("fill_bin", &HistFrame::fill_bin, py::arg("bini"),
+               py::arg("weight"), py::arg("col") = 0)
+          .def("fill",
+               py::overload_cast<std::vector<double> const &, double,
+                                 HistFrame::column_t>(&HistFrame::fill),
+               py::arg("projections"), py::arg("weight"), py::arg("col") = 0)
+          .def("fill",
+               py::overload_cast<double, double, HistFrame::column_t>(
+                   &HistFrame::fill),
+               py::arg("projection"), py::arg("weight"), py::arg("col") = 0)
+          .def("fill_with_selection",
+               py::overload_cast<int, std::vector<double> const &, double,
+                                 HistFrame::column_t>(
+                   &HistFrame::fill_with_selection),
+               py::arg("selection"), py::arg("projections"), py::arg("weight"),
+               py::arg("col") = 0)
+          .def("fill_with_selection",
+               py::overload_cast<int, double, double, HistFrame::column_t>(
+                   &HistFrame::fill_with_selection),
+               py::arg("selection"), py::arg("projection"), py::arg("weight"),
+               py::arg("col") = 0)
+          .def("reset", &HistFrame::reset)
+          // Pandas style data access
+          .def("__getattr__", &histframe_gettattr)
+          .def("__getitem__", &histframe_gettattr)
+          .def("__repr__", &str_via_ss<HistFrame>);
+
+  pyHistFrame
       .def_static(
           "project",
           py::overload_cast<HistFrame const &, std::vector<size_t> const &>(
               &Project))
       .def_static("project",
-                  py::overload_cast<HistFrame const &, size_t>(&Project))
-      .def_static("get_bin_centers", &get_bin_centers)
-      .def_static("get_bin_centers1D", &get_bin_centers1D);
+                  py::overload_cast<HistFrame const &, size_t>(&Project));
 
-  m.def("plotly1D", plotly1D);
-  m.def("plotly2D", plotly2D);
+  py::module plotlymod = m.def_submodule("plotly", "plotly utilities");
+  plotlymod.def("to_1D_json", &plotly::to_1D_json);
+
+  py::module mplmod = m.def_submodule("matplotlib", "matplotlib utilities");
+  mplmod.def("to_pcolormesh_data", &matplotlib::to_pcolormesh_data,
+             py::arg("histframe"), py::arg("col") = 0);
 }

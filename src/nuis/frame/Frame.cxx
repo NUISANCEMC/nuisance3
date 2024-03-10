@@ -2,43 +2,44 @@
 
 #include "fmt/core.h"
 
+#include "nuis/except.h"
 #include "nuis/log.txx"
 
 #include <sstream>
+
+NEW_NUISANCE_EXCEPT(InvalidFrameColumnName);
 
 namespace nuis {
 Frame::column_t Frame::find_column_index(std::string const &cn) const {
   auto pos = std::find(column_names.begin(), column_names.end(), cn);
   if (pos == column_names.end()) {
-    log_warn(
-        "Tried to get column, named {} from frame. But no such column exists.",
-        cn);
     return Frame::npos;
   }
   return pos - column_names.begin();
 }
 
-Eigen::ArrayXd Frame::col(std::string const &cn) const {
+Eigen::ArrayXdRef Frame::col(std::string const &cn) {
   auto cid = find_column_index(cn);
   if (cid == Frame::npos) {
-    log_warn(
+    log_critical(
         "Tried to get column, named {} from frame. But no such column exists.",
         cn);
-    return Eigen::ArrayXd::Zero(0);
+    throw InvalidFrameColumnName();
   }
   return table.col(cid);
 }
-Eigen::ArrayXXd Frame::cols(std::vector<std::string> const &cns) const {
-  Eigen::ArrayXXd rtn(table.rows(), cns.size());
+std::vector<Eigen::ArrayXdRef>
+Frame::cols(std::vector<std::string> const &cns) {
+  std::vector<Eigen::ArrayXdRef> rtn;
   for (size_t i = 0; i < cns.size(); ++i) {
     auto cid = find_column_index(cns[i]);
     if (cid == Frame::npos) {
-      log_warn("Tried to get column, named {} from frame. But no such "
+      log_critical("Tried to get column, named {} from frame. But no such "
                    "column exists.",
                    cns[i]);
-      return Eigen::ArrayXd::Zero(0);
+      throw InvalidFrameColumnName();
     }
-    rtn.col(i) = table.col(cid);
+    rtn.push_back(table.col(cid));
   }
   return rtn;
 }

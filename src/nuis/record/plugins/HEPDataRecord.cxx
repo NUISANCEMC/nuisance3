@@ -77,7 +77,7 @@ NEW_NUISANCE_EXCEPT(ProSelectaLoadFileFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetFilterFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetProjectionFailure);
 
-using ClearFunc = std::function<void(ComparisonFrame &)>;
+using ClearFunc = std::function<void(Comparison &)>;
 
 using ProjectFunc = std::function<double(HepMC3::GenEvent const &)>;
 
@@ -86,9 +86,9 @@ using WeightFunc = std::function<double(HepMC3::GenEvent const &)>;
 using SelectFunc = std::function<int(HepMC3::GenEvent const &)>;
 
 // Don't love that this needs all at once
-using FinalizeFunc = std::function<void(ComparisonFrame &, const double)>;
+using FinalizeFunc = std::function<void(Comparison &, const double)>;
 
-using LikelihoodFunc = std::function<double(ComparisonFrame const &)>;
+using LikelihoodFunc = std::function<double(Comparison const &)>;
 
 class HEPDataRecord : public IRecordPlugin {
 public:
@@ -239,7 +239,7 @@ public:
 
     nuis::Binning binning = from_hepdata_extents(variables_indep);
 
-    ComparisonFrame hist(binning);
+    Comparison hist(binning);
 
     hist.data.contents.col(0) = Eigen::Map<Eigen::VectorXd>(
         variables_dep[0].values.data(), variables_dep[0].values.size());
@@ -247,7 +247,7 @@ public:
     hist.data.variance.col(0) = Eigen::Map<Eigen::VectorXd>(
         variables_dep[0].errors.data(), variables_dep[0].errors.size());
 
-    tab.blueprint = std::make_shared<ComparisonFrame>(hist);
+    tab.blueprint = std::make_shared<Comparison>(hist);
 
     return std::make_shared<Table>(tab);
   }

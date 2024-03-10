@@ -1,6 +1,24 @@
 # NUISANCE python interface
 
-## EventInput
+## Jupyter Notebook Tutorial
+
+You can follow the notebook tutorial that covers the main features of the python API over the following notebooks:
+
+1. [Opening Event Files](notebooks/opening_event_files.ipynb)
+1. [HepMC3 Binding Interoperability](notebooks/HepMC3_binding_interop.ipynb)
+1. [Basic Event Loops](notebooks/basing_loops.ipynb)
+1. [Advanced Event Loops](notebooks/advanced_looping.ipynb)
+1. [HistFrames](notebooks/histframes.ipynb)
+
+There are also a few short notebooks for miscellania:
+
+1. [Getting NuHepMC Flux Information](notebooks/flux_info.ipynb)
+1. [Simple Oscillation Weights](notebooks/osc.ipynb)
+1. [Altering Logging Levels](notebooks/logging.ipynb)
+
+## API Walking Tour
+
+### EventInput
 
 The `pyNUISANCE.EventSource` interface wraps the NUISANCE event reading functionality.
 

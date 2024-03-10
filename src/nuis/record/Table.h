@@ -4,12 +4,12 @@
 #include <memory>
 #include <utility>
 
-#include "nuis/record/ComparisonFrame.h"
+#include "nuis/record/Comparison.h"
 
 namespace nuis {
 
 using ClearFunc =
-    std::function<void(ComparisonFrame&)>;
+    std::function<void(Comparison&)>;
 
 using ProjectFunc =
     std::function<double(HepMC3::GenEvent const &)>;
@@ -24,10 +24,10 @@ using SelectFunc =
     std::function<int(HepMC3::GenEvent const &)>;
 
 using FinalizeFunc =
-    std::function<void(ComparisonFrame&, const double)>;
+    std::function<void(Comparison&, const double)>;
 
 using LikelihoodFunc =
-    std::function<double(ComparisonFrame const&)>;
+    std::function<double(Comparison const&)>;
 
 // The point in a table is to map
 // the hist frame associated with a given RecordFactory output
@@ -41,8 +41,8 @@ struct Table {
     // This also allows Table.blueprint->add_column()
     // And all spawned objects get the same.
     // Don't love the . -> requirement
-    std::shared_ptr<ComparisonFrame> blueprint;
-    ComparisonFrame comparison() {
+    std::shared_ptr<Comparison> blueprint;
+    Comparison comparison() {
         return *blueprint;
     }
 
