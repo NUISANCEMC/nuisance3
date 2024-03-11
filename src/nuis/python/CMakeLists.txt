@@ -1,4 +1,4 @@
-pybind11_add_module(pyNUISANCE SHARED pyNUISANCE.cxx pyYAML.cxx pyEventInput.cxx pyFrame.cxx pyHistFrame.cxx pyRecord.cxx pyWeightCalc.cxx pyNUISANCELog.cxx)
+pybind11_add_module(pyNUISANCE SHARED pyNUISANCE.cxx pyYAML.cxx pyEventInput.cxx pyFrame.cxx pyHistFrame.cxx pyRecord.cxx pyWeightCalc.cxx pyNUISANCELog.cxx pyConvert.cxx)
 
 target_link_libraries(pyNUISANCE PRIVATE eventinput frame histframe weightcalc weightcalc_plugins record NuHepMC::CPPUtils pybind11::module)
 

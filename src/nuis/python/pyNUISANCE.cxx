@@ -18,6 +18,7 @@ void pyHistFrameInit(py::module &);
 void pyRecordInit(py::module &);
 void pyWeightCalcInit(py::module &);
 void pyNUISANCELog(py::module &);
+void pyConvert(py::module &);
 
 PYBIND11_MODULE(pyNUISANCE, m) {
 
@@ -45,4 +46,5 @@ PYBIND11_MODULE(pyNUISANCE, m) {
   pyRecordInit(m);
   pyWeightCalcInit(m);
   pyNUISANCELog(m);
+  pyConvert(m);
 }
