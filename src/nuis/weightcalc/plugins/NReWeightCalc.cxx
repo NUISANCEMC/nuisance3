@@ -1,3 +1,5 @@
+#include "NReWeightCalc.h"
+
 #include "nuis/weightcalc/plugins/IWeightCalcPlugin.h"
 
 #include "nuis/eventinput/plugins/neutvectEventSource.h"
@@ -15,24 +17,20 @@
 
 namespace nuis {
 
-class NReWeightCalc : public IWeightCalcPlugin {
-  std::unique_ptr<neut::rew::NReWeight> fNEUTRW;
-  std::shared_ptr<neutvectEventSource> nevs;
-
-public:
-  double calc_weight(HepMC3::GenEvent const &ev) {
+  double NReWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
     neut::CommonBlockIFace::ReadVect(nevs->neutvect(ev));
     return fNEUTRW->CalcWeight();
   };
-  void set_parameters(std::map<std::string, double> const &params) {
+
+  void NReWeightCalc::set_parameters(std::map<std::string, double> const &params) {
     for (auto &[p, v] : params) {
       fNEUTRW->SetDial_To_Value(fNEUTRW->DialFromString(p), v);
     }
     fNEUTRW->Reconfigure();
   };
-  bool good() const { return bool(nevs); }
+  bool NReWeightCalc::good() const { return bool(nevs); }
 
-  NReWeightCalc(IEventSourcePtr evs, YAML::Node const &cfg) {
+  NReWeightCalc::NReWeightCalc(IEventSourcePtr evs, YAML::Node const &cfg) {
     nevs = std::dynamic_pointer_cast<neutvectEventSource>(evs);
     if (!nevs) {
       log_warn("NReWeightCalc: Passed in IEventSourcePtr not instance of "
@@ -44,15 +42,18 @@ public:
     fNEUTRW = neut::rew::MakeNReWeightInstance();
   };
 
-  static IWeightCalcPluginPtr MakeWeightCalc(IEventSourcePtr evs,
-                                                       YAML::Node const &cfg) {
-    return std::make_shared<NReWeightCalc>(evs, cfg);
-  }
+ 
 
-  virtual ~NReWeightCalc() {}
-};
+  NReWeightCalc::~NReWeightCalc() {}
 
-BOOST_DLL_ALIAS(nuis::NReWeightCalc::MakeWeightCalc,
+namespace neut {
+static IWeightCalcPluginPtr MakeWeightCalc(IEventSourcePtr evs,
+                                                    YAML::Node const &cfg) {
+return std::make_shared<NReWeightCalc>(evs, cfg);
+}
+}
+
+BOOST_DLL_ALIAS(nuis::neut::MakeWeightCalc,
                 MakeWeightCalc);
 
 } // namespace nuis
