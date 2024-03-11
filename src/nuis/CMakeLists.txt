@@ -3,6 +3,7 @@ add_subdirectory(binning)
 add_subdirectory(frame)
 add_subdirectory(histframe)
 add_subdirectory(weightcalc)
-add_subdirectory(python)
 add_subdirectory(record)
 add_subdirectory(convert)
+
+add_subdirectory(python)

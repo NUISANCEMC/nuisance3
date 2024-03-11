@@ -1,5 +1,7 @@
 #include "nuis/convert/yaml.h"
 
+#include "fmt/core.h"
+
 // independent_variables:
 // - header: {name: Leading dilepton PT, units: GEV}
 //   values:
@@ -25,8 +27,8 @@ namespace YAML {
 template <> struct convert<nuis::SingleExtent> {
   static Node encode(nuis::SingleExtent const &rhs) {
     YAML::Node out;
-    out["low"] = rhs.low;
-    out["high"] = rhs.high;
+    out["low"] = fmt::format("{:.4}", rhs.low);
+    out["high"] = fmt::format("{:.4}", rhs.high);
     return out;
   }
 

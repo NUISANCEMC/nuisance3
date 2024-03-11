@@ -17,8 +17,8 @@ void pyBinningInit(py::module &);
 void pyHistFrameInit(py::module &);
 void pyRecordInit(py::module &);
 void pyWeightCalcInit(py::module &);
-void pyNUISANCELog(py::module &);
-void pyConvert(py::module &);
+void pyNUISANCELogInit(py::module &);
+void pyConvertInit(py::module &);
 
 PYBIND11_MODULE(pyNUISANCE, m) {
 
@@ -45,6 +45,6 @@ PYBIND11_MODULE(pyNUISANCE, m) {
   pyHistFrameInit(m);
   pyRecordInit(m);
   pyWeightCalcInit(m);
-  pyNUISANCELog(m);
-  pyConvert(m);
+  pyNUISANCELogInit(m);
+  pyConvertInit(m);
 }

@@ -13,33 +13,31 @@ using namespace nuis;
 
 void pyBinningInit(py::module &m) {
 
-  auto pyBinning = py::class_<Binning, std::shared_ptr<Binning>>(m, "Binning");
+  auto pyBinning = py::class_<Binning, BinningPtr>(m, "Binning");
 
-  py::class_<Binning::SingleExtent>(pyBinning, "SingleExtent")
-      .def_readwrite("min", &Binning::SingleExtent::min)
-      .def_readwrite("max", &Binning::SingleExtent::max)
-      .def("width", &Binning::SingleExtent::width)
-      .def("__repr__", &str_via_ss<Binning::SingleExtent>);
+  py::class_<SingleExtent>(pyBinning, "SingleExtent")
+      .def_readwrite("low", &SingleExtent::low)
+      .def_readwrite("high", &SingleExtent::high)
+      .def("width", &SingleExtent::width)
+      .def("__repr__", &str_via_ss<SingleExtent>);
 
   pyBinning.def_readonly_static("npos", &Binning::npos)
       .def_readonly("bins", &Binning::bins)
       .def_readonly("axis_labels", &Binning::axis_labels)
       .def("bin_sizes", &Binning::bin_sizes)
       .def("__repr__", &str_via_ss<Binning>)
-      .def("find_bin", py::overload_cast<std::vector<double> const &>(
-                           &Binning::operator(), py::const_))
       .def("find_bin",
-           py::overload_cast<double>(&Binning::operator(), py::const_))
-      .def("__call__", py::overload_cast<std::vector<double> const &>(
-                           &Binning::operator(), py::const_))
-      .def("__call__",
-           py::overload_cast<double>(&Binning::operator(), py::const_))
+           [](BinningPtr binning, double x) { return binning->find_bin(x); })
+      .def("find_bin",
+           [](BinningPtr binning, std::vector<double> const &x) {
+             return binning->find_bin(x);
+           })
       .def_static("lin_space", &Binning::lin_space, py::arg("nbins"),
-                  py::arg("min"), py::arg("max"), py::arg("label") = "")
-      .def_static("log_space", &Binning::log_space, py::arg("nbins"),
-                  py::arg("min"), py::arg("max"), py::arg("label") = "")
+                  py::arg("start"), py::arg("stop"), py::arg("label") = "")
+      .def_static("ln_space", &Binning::ln_space, py::arg("nbins"),
+                  py::arg("start"), py::arg("stop"), py::arg("label") = "")
       .def_static("log10_space", &Binning::log10_space, py::arg("nbins"),
-                  py::arg("min"), py::arg("max"), py::arg("label") = "")
+                  py::arg("start"), py::arg("stop"), py::arg("label") = "")
       .def_static("lin_spaceND", &Binning::lin_spaceND, py::arg("binnings"),
                   py::arg("labels") = std::vector<std::string>{})
       .def_static("contiguous", &Binning::contiguous, py::arg("binedges"),

@@ -9,7 +9,6 @@ namespace py = pybind11;
 using namespace nuis;
 
 void pyConvertInit(py::module &m) {
-
   m.def_submodule("convert", "")
       .def_submodule("HistFrame", "")
       .def("to_plotly1D", &to_plotly1D)
