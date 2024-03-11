@@ -1,3 +1,9 @@
+#include "nuis/convert/json.h"
+
+#include "boost/json/src.hpp"
+
+namespace nuis {
+
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
                 Binning const &bi) {
   boost::json::array bins_arr;
@@ -6,7 +12,7 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
     boost::json::array ax_exts;
     ax_exts.resize(bi.bins[i].size());
     for (size_t j = 0; j < bi.bins[i].size(); ++j) {
-      ax_exts[j] = {{"min", bi.bins[i][j].min}, {"max", bi.bins[i][j].max}};
+      ax_exts[j] = {{"low", bi.bins[i][j].low}, {"high", bi.bins[i][j].high}};
     }
     bins_arr[i] = ax_exts;
   }
@@ -18,7 +24,7 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
                 HistFrame const &hf) {
   boost::json::object hist_frame;
-  hist_frame["binning"] = boost::json::value_from(hf.binning);
+  hist_frame["binning"] = boost::json::value_from(*hf.binning);
 
   for (int i = 0; i < hf.contents.cols(); ++i) {
     std::string key_name =
@@ -47,3 +53,4 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
   }
   jv = hist_frame;
 }
+} // namespace nuis

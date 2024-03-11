@@ -1,8 +1,14 @@
-namespace plotly {
-std::string to_1D_json(HistFrame const &hf);
-}
+#pragma once
 
-namespace matplotlib {
+#include "nuis/histframe/HistFrame.h"
+
+#include "Eigen/Dense"
+
+#include <map>
+#include <string>
+
+namespace nuis {
+std::string to_plotly1D(HistFrame const &hf);
 std::map<std::string, Eigen::ArrayXXd>
-to_pcolormesh_data(HistFrame const &hf, HistFrame::column_t colid = 0);
-}
+to_mpl_pcolormesh(HistFrame const &hf, HistFrame::column_t colid = 0);
+} // namespace nuis
