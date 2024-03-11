@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nuis/histframe/Binning.h"
+#include "nuis/binning/Binning.h"
 
 #include "nuis/log.h"
 
@@ -42,14 +42,14 @@ struct HistFrame : nuis_named_log("HistFrame") {
 
   std::vector<ColumnInfo> column_info;
 
-  Binning binning;
+  BinningPtr binning;
   Eigen::ArrayXd bin_weights;
 
   Eigen::ArrayXXd contents, variance;
 
   size_t nfills;
 
-  HistFrame(Binning binop, std::string const &def_col_name = "mc",
+  HistFrame(BinningPtr binop, std::string const &def_col_name = "mc",
             std::string const &def_col_label = "");
 
   HistFrame(){};
@@ -57,7 +57,7 @@ struct HistFrame : nuis_named_log("HistFrame") {
   column_t add_column(std::string const &name, std::string const &label = "");
   column_t find_column_index(std::string const &name) const;
 
-  Binning::Index find_bin(std::vector<double> const &projections) const;
+  Binning::index_t find_bin(std::vector<double> const &projections) const;
 
   Eigen::ArrayXd get_values(column_t col = 0) const;
   Eigen::ArrayXd get_errors(column_t col = 0) const;
@@ -74,12 +74,12 @@ struct HistFrame : nuis_named_log("HistFrame") {
                            double weight, column_t col = 0);
 
   // convenience for 1D histograms
-  Binning::Index find_bin(double projection) const;
+  Binning::index_t find_bin(double projection) const;
   void fill(double projection, double weight, column_t col = 0);
   void fill_with_selection(int sel_int, double projection, double weight,
                            column_t col = 0);
 
-  void fill_bin(Binning::Index bini, double weight, column_t col = 0);
+  void fill_bin(Binning::index_t bini, double weight, column_t col = 0);
 
   // when
   void set_value_is_content_density();
@@ -90,16 +90,14 @@ struct HistFrame : nuis_named_log("HistFrame") {
 
 struct HistFramePrinter {
   std::reference_wrapper<HistFrame const> fr;
-  std::string format;
   int max_rows;
   size_t max_col_width;
 
-  explicit HistFramePrinter(HistFrame const &f, std::string fmt = "table",
-                            int mr = 20, size_t mcw = 12)
-      : fr{f}, format{fmt}, max_rows{mr}, max_col_width{mcw} {}
+  explicit HistFramePrinter(HistFrame const &f, int mr = 20, size_t mcw = 12)
+      : fr{f}, max_rows{mr}, max_col_width{mcw} {}
 };
-
-} // namespace nuis
 
 std::ostream &operator<<(std::ostream &os, nuis::HistFrame const &);
 std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter);
+
+} // namespace nuis

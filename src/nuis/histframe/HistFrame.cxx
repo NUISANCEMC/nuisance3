@@ -1,21 +1,23 @@
 #include "nuis/histframe/HistFrame.h"
 
+#include "nuis/binning/exceptions.h"
+
 #include "nuis/log.txx"
 
 #include "fmt/ranges.h"
 
-#include "nuis/histframe/Utility.h"
+#include "nuis/histframe/utility.h"
 
 NEW_NUISANCE_EXCEPT(MissingProjectionEncountered);
 NEW_NUISANCE_EXCEPT(InvalidColumnAccess);
 
 namespace nuis {
 
-HistFrame::HistFrame(Binning binop, std::string const &def_col_name,
+HistFrame::HistFrame(BinningPtr binop, std::string const &def_col_name,
                      std::string const &def_col_label)
     : column_info{{def_col_name, def_col_label}}, binning(binop) {
   reset();
-  bin_weights = Eigen::ArrayXd::Constant(binning.bins.size(), 1);
+  bin_weights = Eigen::ArrayXd::Constant(binning->bins.size(), 1);
 }
 
 HistFrame::column_t HistFrame::add_column(std::string const &name,
@@ -88,9 +90,9 @@ HistFrame::column_view HistFrame::operator[](std::string const &name) {
   return operator[](colid);
 }
 
-Binning::Index
+Binning::index_t
 HistFrame::find_bin(std::vector<double> const &projections) const {
-  if (projections.size() < binning.number_of_axes()) {
+  if (projections.size() < binning->number_of_axes()) {
     NUIS_LOG_DEBUG("Too few projections passed to HistFrame::fill: {}. Compile "
                    "with CMAKE_BUILD_TYPE=Debug to make this an exception.",
                    projections);
@@ -101,7 +103,7 @@ HistFrame::find_bin(std::vector<double> const &projections) const {
   }
 
   // can't search too far as we use a possibly oversized static local vector
-  auto end = projections.begin() + binning.number_of_axes();
+  auto end = projections.begin() + binning->number_of_axes();
   if (std::find(projections.begin(), end, HistFrame::missing_datum) != end) {
     NUIS_LOG_DEBUG(
         "Found missing_datum flag in projection vector passed to fill: {}",
@@ -112,16 +114,16 @@ HistFrame::find_bin(std::vector<double> const &projections) const {
     return npos;
   }
 
-  return binning.find_bin(projections);
+  return binning->find_bin(projections);
 }
 
-Binning::Index HistFrame::find_bin(double proj) const {
+Binning::index_t HistFrame::find_bin(double proj) const {
   return find_bin(std::vector<double>{
       proj,
   });
 }
 
-void HistFrame::fill_bin(Binning::Index i, double weight,
+void HistFrame::fill_bin(Binning::index_t i, double weight,
                          HistFrame::column_t col) {
 
 #ifndef NDEBUG
@@ -178,20 +180,18 @@ void HistFrame::fill(double projection, double weight,
 
 void HistFrame::set_value_is_content_density() {
   bin_weights =
-      Eigen::ArrayXd::Constant(binning.bins.size(), 1) / binning.bin_sizes();
+      Eigen::ArrayXd::Constant(binning->bins.size(), 1) / binning->bin_sizes();
 }
 
 void HistFrame::set_value_is_content() {
-  bin_weights = Eigen::ArrayXd::Constant(binning.bins.size(), 1);
+  bin_weights = Eigen::ArrayXd::Constant(binning->bins.size(), 1);
 }
 
 void HistFrame::reset() {
-  contents = Eigen::ArrayXXd::Zero(binning.bins.size(), column_info.size());
-  variance = Eigen::ArrayXXd::Zero(binning.bins.size(), column_info.size());
+  contents = Eigen::ArrayXXd::Zero(binning->bins.size(), column_info.size());
+  variance = Eigen::ArrayXXd::Zero(binning->bins.size(), column_info.size());
   nfills = 0;
 }
-
-} // namespace nuis
 
 std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
 
@@ -199,76 +199,72 @@ std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter fp) {
 
   auto const &f = fp.fr.get();
 
-  if (fp.format == "table") {
+  std::vector<size_t> col_widths(f.contents.cols() * 2, 0);
 
-    std::vector<size_t> col_widths(f.contents.cols() * 2, 0);
+  // check up to the first 20 rows to guess how wide we need each column
+  for (int ri = 0; ri < f.contents.rows(); ++ri) {
+    for (int ci = 0; ci < (f.contents.cols() * 2); ++ci) {
 
-    // check up to the first 20 rows to guess how wide we need each column
-    for (int ri = 0; ri < f.contents.rows(); ++ri) {
-      for (int ci = 0; ci < (f.contents.cols() * 2); ++ci) {
+      double v = (ci & 1) ? std::sqrt(f.variance(ri, ci / 2))
+                          : (f.contents(ri, ci / 2));
+      std::string test = fmt::format("{:>.4}", v);
 
-        double v = (ci & 1) ? std::sqrt(f.variance(ri, ci / 2))
-                            : (f.contents(ri, ci / 2));
-        std::string test = fmt::format("{:>.4}", v);
-
-        size_t len = test.size() - test.find_first_not_of(" ");
-        col_widths[ci] = std::min(std::max(col_widths[ci], len), abs_max_width);
-      }
-      if (ri >= 20) {
-        break;
-      }
+      size_t len = test.size() - test.find_first_not_of(" ");
+      col_widths[ci] = std::min(std::max(col_widths[ci], len), abs_max_width);
     }
-
-    std::stringstream hdr;
-    std::vector<std::string> fmtstrs;
-    hdr << " | bin |";
-
-    for (size_t ci = 0; ci < (f.column_info.size() * 2); ++ci) {
-      std::string cfull =
-          (ci & 1) ? std::string("err") : f.column_info[ci / 2].name;
-      std::string cn = (cfull.size() > abs_max_width)
-                           ? cfull.substr(0, abs_max_width - 1) + "$"
-                           : cfull;
-
-      col_widths[ci] = std::max(col_widths[ci], cn.size());
-
-      hdr << fmt::format(" {:>" + std::to_string(col_widths[ci]) + "} |", cn);
-      fmtstrs.push_back(" {:>" + std::to_string(col_widths[ci]) + ".4} |");
+    if (ri >= 20) {
+      break;
     }
+  }
 
-    std::string hdrs = hdr.str();
+  std::stringstream hdr;
+  std::vector<std::string> fmtstrs;
+  hdr << " | bin |";
 
-    std::vector<char> line(hdrs.size() + 1, '-');
-    line[hdrs.size() - 1] = '\0';
-    os << " " << line.data() << std::endl;
-    os << hdrs << std::endl;
-    os << " " << line.data() << std::endl;
+  for (size_t ci = 0; ci < (f.column_info.size() * 2); ++ci) {
+    std::string cfull =
+        (ci & 1) ? std::string("err") : f.column_info[ci / 2].name;
+    std::string cn = (cfull.size() > abs_max_width)
+                         ? cfull.substr(0, abs_max_width - 1) + "$"
+                         : cfull;
 
-    for (int ri = 0; ri < f.contents.rows(); ++ri) {
-      os << fmt::format(" | {:>3} |", ri);
+    col_widths[ci] = std::max(col_widths[ci], cn.size());
+
+    hdr << fmt::format(" {:>" + std::to_string(col_widths[ci]) + "} |", cn);
+    fmtstrs.push_back(" {:>" + std::to_string(col_widths[ci]) + ".4} |");
+  }
+
+  std::string hdrs = hdr.str();
+
+  std::vector<char> line(hdrs.size() + 1, '-');
+  line[hdrs.size() - 1] = '\0';
+  os << " " << line.data() << std::endl;
+  os << hdrs << std::endl;
+  os << " " << line.data() << std::endl;
+
+  for (int ri = 0; ri < f.contents.rows(); ++ri) {
+    os << fmt::format(" | {:>3} |", ri);
+    for (int ci = 0; ci < (f.contents.cols() * 2); ++ci) {
+      double v = (ci & 1) ? std::sqrt(f.variance(ri, ci / 2))
+                          : (f.contents(ri, ci / 2));
+      os << fmt::format(fmtstrs[ci], v);
+    }
+    os << std::endl;
+    if (ri >= fp.max_rows) {
+      os << " |";
       for (int ci = 0; ci < (f.contents.cols() * 2); ++ci) {
-        double v = (ci & 1) ? std::sqrt(f.variance(ri, ci / 2))
-                            : (f.contents(ri, ci / 2));
-        os << fmt::format(fmtstrs[ci], v);
+        os << fmt::format(fmtstrs[ci], "...");
       }
       os << std::endl;
-      if (ri >= fp.max_rows) {
-        os << " |";
-        for (int ci = 0; ci < (f.contents.cols() * 2); ++ci) {
-          os << fmt::format(fmtstrs[ci], "...");
-        }
-        os << std::endl;
-        break;
-      }
+      break;
     }
-
-    return os << " " << line.data();
-  } else if (fp.format == "json") {
-    return os << boost::json::serialize(boost::json::value_from(f));
   }
-  return os << f.contents.topRows(fp.max_rows);
+
+  return os << " " << line.data();
 }
 
 std::ostream &operator<<(std::ostream &os, nuis::HistFrame const &f) {
   return os << nuis::HistFramePrinter(f);
 }
+
+} // namespace nuis

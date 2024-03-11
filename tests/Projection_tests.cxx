@@ -1,7 +1,7 @@
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_floating_point.hpp"
 
-#include "nuis/histframe/HistProjector.h"
+#include "nuis/histframe/utility.h"
 
 #include "spdlog/spdlog.h"
 
@@ -16,11 +16,11 @@ TEST_CASE("2D->1D", "[Projection]") {
   for (size_t yi = 0; yi < 3; ++yi) {
     for (size_t xi = 0; xi < 3; ++xi) {
       in_bins.emplace_back();
-      in_bins.back().push_back(nuis::Binning::SingleExtent{
+      in_bins.back().push_back(nuis::SingleExtent{
           xmin + xi * 1,
           xmin + (xi + 1) * 1,
       });
-      in_bins.back().push_back(nuis::Binning::SingleExtent{
+      in_bins.back().push_back(nuis::SingleExtent{
           ymin + yi * 1,
           ymin + (yi + 1) * 1,
       });
@@ -79,11 +79,11 @@ TEST_CASE("2D swap", "[Projection]") {
   for (size_t yi = 0; yi < 3; ++yi) {
     for (size_t xi = 0; xi < 3; ++xi) {
       in_bins.emplace_back();
-      in_bins.back().push_back(nuis::Binning::SingleExtent{
+      in_bins.back().push_back(nuis::SingleExtent{
           xmin + xi * 1,
           xmin + (xi + 1) * 1,
       });
-      in_bins.back().push_back(nuis::Binning::SingleExtent{
+      in_bins.back().push_back(nuis::SingleExtent{
           ymin + yi * 1,
           ymin + (yi + 1) * 1,
       });
@@ -102,8 +102,8 @@ TEST_CASE("2D swap", "[Projection]") {
 
   nuis::HistFrame hfp = Project(hf, {1, 0});
 
-  REQUIRE(hfp.binning.axis_labels[0] == "y");
-  REQUIRE(hfp.binning.axis_labels[1] == "x");
+  REQUIRE(hfp.binning->axis_labels[0] == "y");
+  REQUIRE(hfp.binning->axis_labels[1] == "x");
 
   auto bin1s = hfp.find_bin({0, 0});
   auto bin2s = hfp.find_bin({0, 1});
@@ -127,15 +127,15 @@ TEST_CASE("3D->2D", "[Projection]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t xi = 0; xi < 3; ++xi) {
         in_bins.emplace_back();
-        in_bins.back().push_back(nuis::Binning::SingleExtent{
+        in_bins.back().push_back(nuis::SingleExtent{
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        in_bins.back().push_back(nuis::Binning::SingleExtent{
+        in_bins.back().push_back(nuis::SingleExtent{
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        in_bins.back().push_back(nuis::Binning::SingleExtent{
+        in_bins.back().push_back(nuis::SingleExtent{
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
@@ -197,15 +197,15 @@ TEST_CASE("3D->1D", "[Projection]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t xi = 0; xi < 3; ++xi) {
         in_bins.emplace_back();
-        in_bins.back().push_back(nuis::Binning::SingleExtent{
+        in_bins.back().push_back(nuis::SingleExtent{
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        in_bins.back().push_back(nuis::Binning::SingleExtent{
+        in_bins.back().push_back(nuis::SingleExtent{
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        in_bins.back().push_back(nuis::Binning::SingleExtent{
+        in_bins.back().push_back(nuis::SingleExtent{
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
@@ -269,36 +269,36 @@ TEST_CASE("3D->2D: random", "[Projection]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t xi = 0; xi < 3; ++xi) {
         in_bins3D.emplace_back();
-        in_bins3D.back().push_back(nuis::Binning::SingleExtent{
+        in_bins3D.back().push_back(nuis::SingleExtent{
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        in_bins3D.back().push_back(nuis::Binning::SingleExtent{
+        in_bins3D.back().push_back(nuis::SingleExtent{
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        in_bins3D.back().push_back(nuis::Binning::SingleExtent{
+        in_bins3D.back().push_back(nuis::SingleExtent{
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
 
         if (zi == 0) {
           in_bins2D.emplace_back();
-          in_bins2D.back().push_back(nuis::Binning::SingleExtent{
+          in_bins2D.back().push_back(nuis::SingleExtent{
               xmin + xi * 1,
               xmin + (xi + 1) * 1,
           });
-          in_bins2D.back().push_back(nuis::Binning::SingleExtent{
+          in_bins2D.back().push_back(nuis::SingleExtent{
               ymin + yi * 1,
               ymin + (yi + 1) * 1,
           });
 
           in_bins2Dswap.emplace_back();
-          in_bins2Dswap.back().push_back(nuis::Binning::SingleExtent{
+          in_bins2Dswap.back().push_back(nuis::SingleExtent{
               ymin + yi * 1,
               ymin + (yi + 1) * 1,
           });
-          in_bins2Dswap.back().push_back(nuis::Binning::SingleExtent{
+          in_bins2Dswap.back().push_back(nuis::SingleExtent{
               xmin + xi * 1,
               xmin + (xi + 1) * 1,
           });
@@ -351,10 +351,10 @@ TEST_CASE("3D->2D: random", "[Projection]") {
     // do not guarantee bin ordering after projection, so have to search for bin
     // after swap
     auto bin_it =
-        std::find(hf2Dswap.binning.bins.begin(), hf2Dswap.binning.bins.end(),
-                  hfpswap.binning.bins[i]);
-    REQUIRE(bin_it != hf2Dswap.binning.bins.end());
-    auto bin_index = std::distance(hf2Dswap.binning.bins.begin(), bin_it);
+        std::find(hf2Dswap.binning->bins.begin(), hf2Dswap.binning->bins.end(),
+                  hfpswap.binning->bins[i]);
+    REQUIRE(bin_it != hf2Dswap.binning->bins.end());
+    auto bin_index = std::distance(hf2Dswap.binning->bins.begin(), bin_it);
 
     if (hfpswap.contents(i, 0) != hf2Dswap.contents(bin_index, 0)) {
       spdlog::critical("bin {} didn't match.", i);
@@ -382,29 +382,29 @@ TEST_CASE("3D->1D: random", "[Projection]") {
     for (size_t yi = 0; yi < 3; ++yi) {
       for (size_t xi = 0; xi < 3; ++xi) {
         in_bins3D.emplace_back();
-        in_bins3D.back().push_back(nuis::Binning::SingleExtent{
+        in_bins3D.back().push_back(nuis::SingleExtent{
             xmin + xi * 1,
             xmin + (xi + 1) * 1,
         });
-        in_bins3D.back().push_back(nuis::Binning::SingleExtent{
+        in_bins3D.back().push_back(nuis::SingleExtent{
             ymin + yi * 1,
             ymin + (yi + 1) * 1,
         });
-        in_bins3D.back().push_back(nuis::Binning::SingleExtent{
+        in_bins3D.back().push_back(nuis::SingleExtent{
             zmin + zi * 1,
             zmin + (zi + 1) * 1,
         });
 
         if ((zi == 0) && (yi == 0)) {
           in_bins1Dx.emplace_back();
-          in_bins1Dx.back().push_back(nuis::Binning::SingleExtent{
+          in_bins1Dx.back().push_back(nuis::SingleExtent{
               xmin + xi * 1,
               xmin + (xi + 1) * 1,
           });
         }
         if ((zi == 0) && (xi == 0)) {
           in_bins1Dy.emplace_back();
-          in_bins1Dy.back().push_back(nuis::Binning::SingleExtent{
+          in_bins1Dy.back().push_back(nuis::SingleExtent{
               ymin + yi * 1,
               ymin + (yi + 1) * 1,
           });

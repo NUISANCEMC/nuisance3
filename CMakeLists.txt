@@ -209,13 +209,7 @@ else()
 endif()
 target_compile_definitions(nuis_options INTERFACE NUISANCE_LOG_ENABLED)
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/eventinput)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/frame)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/histframe)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/weightcalc)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/python)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis/record)
-
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/examples/c++)
 

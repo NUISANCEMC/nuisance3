@@ -12,6 +12,8 @@ Use `auto` where you can. Type deduction is 👌.
 * `ClassNames`
 * `method_names`
 * `MACRO_NAMES`
+* `ClassDefinition.h`
+* `utilities.h`
 
 Rationale for method/free function naming style is to homogenise C++ and python interfaces.
 
@@ -39,6 +41,30 @@ This guideline is pure style, we won't get too upset if you order them different
 ### Don't use C headers directly, use C++ Versions
 
 e.g. `#include <cmath>` instead of `#include <math.h>`
+
+## Exceptions
+
+Declare new exception types and throw them when exceptional things happen.
+
+Only throw an exception if execution cannot reasonably continue. Being forced to otherwise make assumptions in possibly confusing ways and masking user errors counts as not being able to reasonably continue.
+
+```c++
+#include "nuis/except.h"
+
+namespace nuis {
+NEW_NUISANCE_EXCEPT(MyTypedException);
+}
+
+void myfunc(){
+  if (something.isbad()) {
+    throw MyTypedException()
+        << "write an error message to be displayed by the runtime if the "
+           "exception is not caught."; // don't use std::endl, it will cause a
+                                       // compiler error
+  }
+}
+
+```
 
 ## Logging
 
@@ -160,6 +186,14 @@ using mytrace = named_log_trace("mytrace");
 mytrace::set_log_level(log_level::warn); // sets the mytrace named trace log level
 set_log_level(log_level::error);
 set_log_level(log_level::critical);
+```
+
+### With Scope Guards
+
+If you want to set a new logging level temporarily and have it set back after the current scope ends you can use a `log_level_scopeguard` like:
+
+```c++
+auto scopeguard = myclass::log_level_scopeguard(log_level::trace); //set myclass logger level to trace until scopeguard falls out of scope
 ```
 
 ### Compile Time Log Levels

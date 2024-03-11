@@ -1,6 +1,5 @@
 #pragma once
 
-#include "nuis/histframe/Binning.h"
 #include "nuis/histframe/HistFrame.h"
 
 #include <string>
@@ -17,7 +16,7 @@ struct Comparison {
   HistFrame mc;
   HistFrame data;
 
-  Comparison(Binning bindef) {
+  Comparison(BinningPtr bindef) {
     mc = HistFrame(bindef, "mc");
     data = HistFrame(bindef, "data");
   }
