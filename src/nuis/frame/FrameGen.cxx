@@ -12,7 +12,7 @@ FrameGen::FrameGen(INormalizedEventSourcePtr evs, size_t block_size)
     : source(evs), chunk_size{block_size},
       progress_report_every{std::numeric_limits<size_t>::max()},
       nevents{std::numeric_limits<size_t>::max()}, ev_it(nullptr) {
-  auto run_info = evs->first().value().evt.run_info();
+  auto run_info = evs->first().value().evt->run_info();
   if (run_info && NuHepMC::GC1::SignalsConvention(run_info, "G.C.2")) {
     nevents = NuHepMC::GC2::ReadExposureNEvents(run_info);
   }
@@ -95,7 +95,7 @@ Frame FrameGen::next() {
 
     bool cut = false;
     for (auto &filt : filters) {
-      if (!filt(ev)) {
+      if (!filt(*ev)) {
         cut = true;
         break;
       }
@@ -110,12 +110,12 @@ Frame FrameGen::next() {
       continue;
     }
 
-    chunk(chunk_row, 0) = ev.event_number();
+    chunk(chunk_row, 0) = ev->event_number();
     chunk(chunk_row, 1) = cvw;
 
     size_t col_id = 2;
     for (auto &[head, proj] : projections) {
-      auto projs = proj(ev);
+      auto projs = proj(*ev);
       for (size_t i = 0; i < head.size(); ++i) {
 
         if (i < projs.size()) {

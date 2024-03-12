@@ -18,8 +18,8 @@ class HepMC3EventSource : public IEventSource {
 public:
   HepMC3EventSource(std::filesystem::path const &fp);
 
-  std::optional<HepMC3::GenEvent> first();
-  std::optional<HepMC3::GenEvent> next();
+  std::shared_ptr<HepMC3::GenEvent> first();
+  std::shared_ptr<HepMC3::GenEvent> next();
 
   virtual ~HepMC3EventSource();
 };

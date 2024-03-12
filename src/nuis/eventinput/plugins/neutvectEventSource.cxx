@@ -1,7 +1,7 @@
 #include "nuis/eventinput/plugins/neutvectEventSource.h"
 
-#include "nuis/log.txx"
 #include "nuis/except.h"
+#include "nuis/log.txx"
 
 #include "nuis/eventinput/plugins/ROOTUtils.h"
 
@@ -34,10 +34,10 @@ neutvectEventSource::neutvectEventSource(YAML::Node const &cfg) {
   }
 };
 
-std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
+std::shared_ptr<HepMC3::GenEvent> neutvectEventSource::first() {
 
   if (!filepaths.size()) {
-    return std::optional<HepMC3::GenEvent>();
+    return nullptr;
   }
 
   chin = std::make_unique<TChain>("neuttree");
@@ -46,7 +46,7 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
     if (!chin->Add(ftr.c_str(), 0)) {
       log_warn("Could not find neuttree in {}", ftr.native());
       chin.reset();
-      return std::optional<HepMC3::GenEvent>();
+      return nullptr;
     }
   }
 
@@ -54,7 +54,7 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
   ient = 0;
 
   if (ch_ents == 0) {
-    return std::optional<HepMC3::GenEvent>();
+    return nullptr;
   }
 
   nv = nullptr;
@@ -97,16 +97,16 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
   ch_fuid = chin->GetFile()->GetUUID();
   ient = 0;
   auto ge = nvconv::ToGenEvent(nv, gri);
-  ge.set_event_number(ient);
-  ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+  ge->set_event_number(ient);
+  ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
   return ge;
 }
 
-std::optional<HepMC3::GenEvent> neutvectEventSource::next() {
+std::shared_ptr<HepMC3::GenEvent> neutvectEventSource::next() {
   ient++;
 
   if (ient >= ch_ents) {
-    return std::optional<HepMC3::GenEvent>();
+    return nullptr;
   }
 
   chin->GetEntry(ient);
@@ -116,9 +116,8 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::next() {
   }
 
   auto ge = nvconv::ToGenEvent(nv, gri);
-  ge.set_event_number(ient);
-  ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
-
+  ge->set_event_number(ient);
+  ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
   return ge;
 }
 
