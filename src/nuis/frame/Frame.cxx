@@ -19,7 +19,7 @@ Frame::column_t Frame::find_column_index(std::string const &cn) const {
 Eigen::ArrayXdRef Frame::col(std::string const &cn) {
   auto cid = find_column_index(cn);
   if (cid == Frame::npos) {
-    log_critical(
+    nuis_named_log("Frame")::log_critical(
         "Tried to get column, named {} from frame. But no such column exists.",
         cn);
     throw InvalidFrameColumnName();
@@ -32,9 +32,10 @@ Frame::cols(std::vector<std::string> const &cns) {
   for (size_t i = 0; i < cns.size(); ++i) {
     auto cid = find_column_index(cns[i]);
     if (cid == Frame::npos) {
-      log_critical("Tried to get column, named {} from frame. But no such "
-                   "column exists.",
-                   cns[i]);
+      nuis_named_log("Frame")::log_critical(
+          "Tried to get column, named {} from frame. But no such "
+          "column exists.",
+          cns[i]);
       throw InvalidFrameColumnName();
     }
     rtn.push_back(table.col(cid));

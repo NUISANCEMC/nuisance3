@@ -2,12 +2,14 @@
 
 #include "nuis/frame/Frame.h"
 
+#include "nuis/log.h"
+
 #include <functional>
 #include <numeric>
 
 namespace nuis {
 
-class FrameGen {
+class FrameGen : public nuis_named_log("Frame") {
 
 public:
   using FilterFunc = std::function<int(HepMC3::GenEvent const &)>;
@@ -19,7 +21,7 @@ public:
   // requiring a lambda to build it) LP Is add_column("name",
   // func).add_column("name", func).add_column("name", func) not okay?
 
-  FrameGen(INormalizedEventSourcePtr evs, size_t block_size = 50000);
+  FrameGen(INormalizedEventSourcePtr evs, size_t block_size = 500000);
 
   FrameGen filter(FilterFunc filt);
   FrameGen add_columns(std::vector<std::string> col_names,
@@ -51,7 +53,7 @@ private:
   size_t nevents;
 
   size_t GetNCols();
-
+  
   // first/next state
   std::vector<std::string> column_names;
   size_t n_total_rows;

@@ -45,6 +45,7 @@ FrameGen FrameGen::limit(size_t nmax) {
 }
 FrameGen FrameGen::progress(size_t every) {
   progress_report_every = every;
+  nuis_named_log("Frame")::set_log_level(log_level::info);
   return *this;
 }
 
@@ -84,7 +85,7 @@ Frame FrameGen::next() {
 
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
-      log_info("GenFrame has selected {}{} from {} processed events.",
+      log_info("FrameGen has selected {}{} from {} processed events.",
                n_total_rows,
                ((nmaxloop != std::numeric_limits<size_t>::max())
                     ? fmt::format("/{}", nmaxloop)
@@ -149,8 +150,21 @@ Frame FrameGen::next() {
 
 Frame FrameGen::all() {
 
+  log_info("FrameGen::all Chunk shape: {} rows {} cols, {} KB.", chunk_size,
+           GetNCols(), ((chunk_size * GetNCols()) * sizeof(double)) / 1024);
+
   Eigen::ArrayXXd builder = first().table;
   Eigen::ArrayXXd next_chunk = next().table;
+
+  size_t last_report_size = 0;
+  if ((neventsprocessed - last_report_size) > progress_report_every) {
+    log_info("FrameGen::all() is using ~{} MB of memory. Output frame will "
+             "be {} MB.",
+             ((builder.size() * 2 + next_chunk.size()) * sizeof(double)) /
+                 (1024 * 1024),
+             (builder.size() * sizeof(double)) / (1024 * 1024));
+    last_report_size = builder.rows() + next_chunk.rows();
+  }
 
   while (next_chunk.rows()) {
 
@@ -162,6 +176,15 @@ Frame FrameGen::all() {
     builder = new_builder;
 
     next_chunk = next().table;
+
+    if ((neventsprocessed - last_report_size) > progress_report_every) {
+      log_info("FrameGen::all() is using ~{} MB of memory. Output frame will "
+               "be {} MB.",
+               ((builder.size() * 2 + next_chunk.size()) * sizeof(double)) /
+                   (1024 * 1024),
+               (builder.size() * sizeof(double)) / (1024 * 1024));
+      last_report_size = builder.rows() + next_chunk.rows();
+    }
   }
 
   return {column_names, builder, source->norm_info()};

@@ -2,47 +2,17 @@
 
 Always a good place to start is the [CppCoreGuidelines](https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#gsl-guidelines-support-library). We won't enforce them rigourously, but they are useful to internalise during your lunch breaks.
 
-## Prefer `auto`
+* [Developer Tips](#nuisancev3-developer-tips)
+  * [Exceptions](#exceptions)
+  * [Logging](#logging)
+* [Diagnostics](#diagnostics)
+  * [Profiling](#profiling)
+  * [Sanitizers](#sanitizers)
+* [Style](#style)
 
-Use `auto` where you can. Type deduction is 👌.
+## NUISANCEv3 Developer Tips
 
-## Naming Conventions
-
-* `free_function_names`
-* `ClassNames`
-* `method_names`
-* `MACRO_NAMES`
-* `ClassDefinition.h`
-* `utilities.h`
-
-Rationale for method/free function naming style is to homogenise C++ and python interfaces.
-
-## Headers
-
-### include Guards
-
-Prefer `#pragma once` over include guards, for reasons of pure laziness.
-
-### include Statement Ordering
-
-Bloomberg style guide: Broadly, order in ascending order of stability.
-
-1. Corresponding header for current implementation, if applicable
-1. NUISANCEv3 headers
-1. 3rd party headers
-1. Standard headers
-
-Empty lines between include groups.
-
-This guideline is pure style, we won't get too upset if you order them differently.
-
-### Prefer quoted includes for non-system headers
-
-### Don't use C headers directly, use C++ Versions
-
-e.g. `#include <cmath>` instead of `#include <math.h>`
-
-## Exceptions
+### Exceptions
 
 Declare new exception types and throw them when exceptional things happen.
 
@@ -66,7 +36,7 @@ void myfunc(){
 
 ```
 
-## Logging
+### Logging
 
 Logging in NUISANCEv3 code should be done like:
 
@@ -87,17 +57,17 @@ For hot code path logging that should be compiled out in release builds, see [Co
 
 These functions can be called in any NUISANCEv3 implementation file that includes `"nuis/log.txx"`. Implementations should be kept out of header files so that we do not bleed our internal dependencies into user code.
 
-### Named Loggers
+#### Named Loggers
 
-We implement automatic logging to named loggers by providing the `nuis_named_log` macro, which should be used to subclass a class with static member functions templated over the logger name. We then take advantage of C++ name overload resolution ordering to have the static member functions be called, which forward to the named logger instances, rather than free functions with the same name, which forward to the default `spdlog` logger. Practically, this means that all logging should be done via the `log_<level>` functions above, but when logging from member functions of classes that subclass `nuis_named_log`, specific loggers will be transparently used.
+We implement automatic logging to named loggers by providing the `nuis_named_log` macro, which defines a class template with static member logging functions templated over the logger name. We then take advantage of C++ name overload resolution ordering to have the static member functions be called, in `nuis_named_log` subclasses, which forward to the named logger instances, rather than free functions with the same name, which forward to the default `spdlog` logger. Practically, this means that all logging should be done via the `log_<level>` functions above, but when logging from member functions of classes that subclass `nuis_named_log`, specific loggers will be transparently used.
 
-An example of a new class which uses an automatically named trace:
+An example of a new class which uses an automatically named logger:
 
 ```c++
 //myclass.h
 #include "nuis/log.h"
 
-class myclass : public named_log_trace("mytrace") {
+class myclass : public named_log_trace("mylogger") {
   void saysomething();
 };
 
@@ -105,7 +75,7 @@ class myclass : public named_log_trace("mytrace") {
 #include "nuis/log.txx"
 
 void myclass::saysomething(){ 
-  log_info("some information"); //logs to the "mytrace" logger
+  log_info("some information"); //logs to the "mylogger" logger
 }
 
 void saysomethingfree(){
@@ -118,14 +88,14 @@ If myclass is not a subclass of `named_log_trace`, then the overload resolution 
 If you would like to explicitly log to a named logger you can instead call:
 
 ```c++
-named_log_trace("mytrace")::log_info("logging directly to mytrace");
+named_log_trace("mylogger")::log_info("logging directly to mylogger");
 ```
 
-from any execution block. If you are using a named trace a lot, it might improve compile times if you declare a using alias to the named trace type.
+from any execution block. It can improve readability if you declare a `using` alias to the named logger type.
 
 ```c++
-using mytrace = named_log_trace("mytrace");
-mytrace::log_info("logging directly to mytrace");
+using mylogger = named_log_trace("mylogger");
+mylogger::log_info("logging directly to mylogger");
 ```
 
 New trace names will be automatically registered with spdlog on first use.
@@ -133,18 +103,20 @@ New trace names will be automatically registered with spdlog on first use.
 If you would like to use the same logger as a known class, you can call it as a static function on that class, like:
 
 ```c++
-void saysomethingfree(){
-  myclass::log_info("some information"); //logs to the "mytrace" logger as myclass subclasses nuis_named_log("mytrace")
+void saysomethingfree2(){
+  myclass::log_info("some information"); //logs to the "mylogger" logger as myclass subclasses nuis_named_log("mylogger")
 }
 ```
 
-#### A Pitfall
+This will cause a compiler error if `myclass` does not publicly inherit from `named_log_trace`.
 
-If the logging call is fully qualified with the `nuis::` namespace, then this will stop the name overload resolution considering the static member functions. Write logging calls like without namespace qualification for the intended effect.
+##### A Pitfall
 
-### Controlling the Log Level
+If the logging call is fully qualified with the `nuis::` namespace, then this will stop the name overload resolution considering the static member functions. Write logging calls without namespace qualification for the intended effect. Use `using namespace nuis` if you have to (but not in a header file).
 
-#### With Environment Variables
+#### Controlling the Log Level
+
+##### With Environment Variables
 
 ```bash
 NUIS_LOG_LEVEL_EventInput=trace
@@ -157,7 +129,7 @@ For example, running:
 $ nuis-example-dumpevents test.hepmc3.gz
 ```
 
-may not log any information about the attempts to parse the input file. If you would like the `"EventInput"` trace to be verbose, you might instead run:
+may not log any information about the attempts to parse the input file. If you would like the `"EventInput"` logger to be verbose, you might instead run:
 
 ```bash
 $ NUIS_LOG_LEVEL_EventInput=trace nuis-example-dumpevents test.hepmc3.gz 
@@ -168,9 +140,9 @@ $ NUIS_LOG_LEVEL_EventInput=trace nuis-example-dumpevents test.hepmc3.gz
 [EventInput:debug]: Reading file test.hepmc3.gz with native HepMC3EventInput
 ```
 
-#### With Function Calls
+##### With Function Calls
 
-The trace log level is automatically set on first use from the environment, it can be changed at any time with:
+The logger level is automatically set on first use from the environment, it can be changed at any time with:
 
 ```c++
 
@@ -179,16 +151,16 @@ void myfreefunc(){
 }
 
 myclass::mymethod(){
-  set_log_level(log_level::debug); // sets the myclass named trace log level if myclass is a named_log_trace subclass, or the default log level if not
+  set_log_level(log_level::debug); // sets the myclass named logger level if myclass is a named_log_trace subclass, or the default log level if not
 }
-named_log_trace("mytrace")::set_log_level(log_level::info); // sets the mytrace named trace log level
-using mytrace = named_log_trace("mytrace");
-mytrace::set_log_level(log_level::warn); // sets the mytrace named trace log level
+named_log_trace("mylogger")::set_log_level(log_level::info); // sets the mylogger named logger level
+using mylogger = named_log_trace("mylogger");
+mylogger::set_log_level(log_level::warn); // sets the mylogger named logger level
 set_log_level(log_level::error);
-set_log_level(log_level::critical);
+myclass::set_log_level(log_level::critical); // sets the myclass named logger level if myclass is a named_log_trace subclass, or causes a a compiler error if not
 ```
 
-### With Scope Guards
+#### With Scope Guards
 
 If you want to set a new logging level temporarily and have it set back after the current scope ends you can use a `log_level_scopeguard` like:
 
@@ -196,7 +168,7 @@ If you want to set a new logging level temporarily and have it set back after th
 auto scopeguard = myclass::log_level_scopeguard(log_level::trace); //set myclass logger level to trace until scopeguard falls out of scope
 ```
 
-### Compile Time Log Levels
+#### Compile Time Log Levels
 
 Compile-time switchable logging macros can be used:
 
@@ -204,8 +176,8 @@ Compile-time switchable logging macros can be used:
 #include "nuis/log.txx"
 
 NUIS_LOG_TRACE("Some trace message with param {}", 42);
-NUIS_LOG_DEBUG("Some debug message"); // logs to the default or named trace subclass logger at the debug level
-NUIS_LOGGER_INFO("some_trace","Some debug message"); // logs to the "some_trace" named trace logger at the info level
+NUIS_LOG_DEBUG("Some debug message"); // uses the default logger or named logger subclass logger at the debug level
+NUIS_LOGGER_INFO("some_logger","Some debug message"); // logs to the "some_logger" named loggerger at the info level
 ```
 
 The level of logging calls that are compiled in is set by:
@@ -227,3 +199,75 @@ Get the current compile-time level with like:
 
 nuis::get_macro_log_level();
 ```
+
+## Diagnostics
+
+### Profiling
+
+Make sure you have gperftools set up, preferably via the system package manager: e.g. `dnf install -y gperftools`.
+
+Link NUISANCE to gperftools by configuring the build like:
+
+```bash
+cmake .. -DNUISANCE_ENABLE_GPERFTOOLS=ON
+```
+
+#### CPU Profiling
+
+#### HEAP Profiling
+
+#### Sanitizers
+
+Make sure you have ASAN and UBSAN set up, preferably via the system package manager: e.g. `dnf install -y libasan libubsan`.
+
+Link NUISANCE to the sanitizers by configuring the build like:
+
+```bash
+cmake .. -DNUISANCE_ENABLE_SANITIZERS=ON
+```
+
+Then run your code as normal, it will take somewhat longer to run (say 2-3x as long), but will be able to notify you of many possible problems in your code.
+
+Interpreting the reports is the next challenge though...
+
+## Style
+
+### Prefer `auto`
+
+Use `auto` where you can. Type deduction is 👌.
+
+### Naming Conventions
+
+* `free_function_names`
+* `ClassNames`
+* `method_names`
+* `MACRO_NAMES`
+* `ClassDefinition.h`
+* `utilities.h`
+
+Rationale for method/free function naming style is to homogenise C++ and python interfaces.
+
+### Headers
+
+#### include Guards
+
+Prefer `#pragma once` over include guards, for reasons of pure laziness.
+
+#### include Statement Ordering
+
+Bloomberg style guide: Broadly, order in ascending order of stability.
+
+1. Corresponding header for current implementation, if applicable
+1. NUISANCEv3 headers
+1. 3rd party headers
+1. Standard headers
+
+Empty lines between include groups.
+
+This guideline is pure style, we won't get too upset if you order them differently.
+
+#### Prefer quoted includes for non-system headers
+
+#### Don't use C headers directly, use C++ Versions
+
+e.g. `#include <cmath>` instead of `#include <math.h>`

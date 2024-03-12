@@ -58,6 +58,11 @@ std::optional<HepMC3::GenEvent> neutvectEventSource::first() {
   }
 
   nv = nullptr;
+  chin->SetAutoDelete(true);
+  chin->UseCache(100000);
+  chin->SetCacheSize(100000);
+  chin->SetBranchStatus("*", 0);
+  chin->SetBranchStatus("vectorbranch", 1);
   auto branch_status = chin->SetBranchAddress("vectorbranch", &nv);
   // should check this
   (void)branch_status;

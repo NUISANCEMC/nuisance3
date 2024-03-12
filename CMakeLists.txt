@@ -41,16 +41,19 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
            CACHE PATH "default install path" FORCE)
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "")
-  set(CMAKE_BUILD_TYPE RelWithDebInfo)
-elseif(NOT DEFINED CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RelWithDebInfo)
-endif()
-
 option(BUILTIN_NuWro "Whether to use build our own version of NuWro" ON)
 option(NUISANCE_ENABLE_TESTS "Whether to enable test suite" OFF)
-option(NUISANCE_ENABLE_SANITIZERS_CLI "Whether to enable ASAN LSAN and UBSAN" OFF)
-option(NUISANCE_ENABLE_GCOV_CLI "Whether to enable GCOV" OFF)
+option(NUISANCE_ENABLE_SANITIZERS "Whether to enable ASAN LSAN and UBSAN" OFF)
+option(NUISANCE_ENABLE_GCOV "Whether to enable GCOV" OFF)
+option(NUISANCE_ENABLE_GPERFTOOLS "Whether to enable GPERFTOOLS" OFF)
+
+if(NOT DEFINED CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
+  if(NUISANCE_ENABLE_TESTS)
+    set(CMAKE_BUILD_TYPE Debug)
+  else()
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
+  endif()
+endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
 
@@ -179,6 +182,10 @@ endif()
 if(NUISANCE_ENABLE_GCOV)
   target_compile_options(nuis_options INTERFACE -fprofile-arcs -ftest-coverage)
   target_link_options(nuis_options INTERFACE -fprofile-arcs -ftest-coverage)
+endif()
+
+if(NUISANCE_ENABLE_GPERFTOOLS)
+  target_link_options(nuis_options INTERFACE -ltcmalloc_and_profiler)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo OR CMAKE_BUILD_TYPE STREQUAL Release)
