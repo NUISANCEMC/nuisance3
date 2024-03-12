@@ -14,39 +14,23 @@
 
 namespace nuis {
 
-struct HistFrame : nuis_named_log("HistFrame") {
-
-  // --- types
-  struct ColumnInfo {
-    std::string name;
-    std::string dependent_axis_label;
-  };
-
-  using column_t = uint32_t;
-  constexpr static column_t const npos = std::numeric_limits<column_t>::max();
+struct HistFrame : public BinnedValuesBase {
 
   // --- data members
-
-  // independent variables
-  BinningPtr binning;
-
-  // dependent variables
-  std::vector<ColumnInfo> column_info;
 
   // sum of weights and variance in bins
   Eigen::ArrayXXd sumweights, variances;
 
   size_t num_fills;
 
+  // --- constructors
+
   HistFrame(BinningPtr binop, std::string const &def_col_name = "mc",
-            std::string const &def_col_label = "");
-
+            std::string const &def_col_label = "")
+      : BinnedValuesBase(binop, def_col_name, def_col_label) {
+    reset();
+  }
   HistFrame(){};
-
-  column_t add_column(std::string const &name, std::string const &label = "");
-  column_t find_column_index(std::string const &name) const;
-
-  Binning::index_t find_bin(std::vector<double> const &projections) const;
 
   struct column_view {
     Eigen::ArrayXdRef count;
@@ -72,7 +56,6 @@ struct HistFrame : nuis_named_log("HistFrame") {
                            double weight, column_t col = 0);
 
   // convenience for 1D histograms
-  Binning::index_t find_bin(double projection) const;
   void fill(double projection, double weight, column_t col = 0);
   void fill_with_selection(int sel_int, double projection, double weight,
                            column_t col = 0);
@@ -82,18 +65,15 @@ struct HistFrame : nuis_named_log("HistFrame") {
   BinnedValues finalise(bool divide_by_bin_sizes = true) const;
 
   void reset();
+
+  // adjusts the shape of BinnedValues::values and BinnedValues::errors so that
+  // they are at least big enough to hold the binned values for
+  // column_info.size(). Will not remove or overwrite data.
+  void resize();
+
+  Eigen::ArrayXXdCRef get_bin_contents() const { return sumweights; }
+  Eigen::ArrayXXd get_bin_uncertainty() const { return variances.sqrt(); }
+  Eigen::ArrayXXd get_bin_uncertainty_squared() const { return variances; }
 };
-
-struct HistFramePrinter {
-  std::reference_wrapper<HistFrame const> fr;
-  int max_rows;
-  size_t max_col_width;
-
-  explicit HistFramePrinter(HistFrame const &f, int mr = 20, size_t mcw = 12)
-      : fr{f}, max_rows{mr}, max_col_width{mcw} {}
-};
-
-std::ostream &operator<<(std::ostream &os, nuis::HistFrame const &);
-std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter);
 
 } // namespace nuis

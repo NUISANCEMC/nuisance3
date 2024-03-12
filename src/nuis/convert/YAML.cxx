@@ -102,7 +102,7 @@ template <> struct convert<nuis::BinnedValues> {
     out["independent_variables"] = rhs.binning;
 
     YAML::Node header;
-    header["name"] = rhs.column_info[0].dependent_axis_label;
+    header["name"] = rhs.column_info[0].column_label;
 
     YAML::Node dvar;
     dvar["header"] = header;

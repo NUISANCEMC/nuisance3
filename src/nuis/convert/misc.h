@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nuis/histframe/HistFrame.h"
+#include "nuis/histframe/BinnedValues.h"
 
 #include "Eigen/Dense"
 
@@ -8,12 +8,10 @@
 #include <string>
 
 namespace nuis {
-std::string to_plotly1D(HistFrame const &hf);
-std::string to_plotly1D(BinnedValues const &hf);
+std::string to_plotly1D(BinnedValuesBase const &);
 
 std::map<std::string, Eigen::ArrayXXd>
-to_mpl_pcolormesh(HistFrame const &hf, HistFrame::column_t colid = 0);
-std::map<std::string, Eigen::ArrayXXd>
-to_mpl_pcolormesh(BinnedValues const &hf, BinnedValues::column_t colid = 0);
+to_mpl_pcolormesh(BinnedValuesBase const &,
+                  BinnedValuesBase::column_t colid = 0);
 
 } // namespace nuis

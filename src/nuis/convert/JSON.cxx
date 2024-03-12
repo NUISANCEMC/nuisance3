@@ -17,7 +17,7 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
     bins_arr[i] = ax_exts;
   }
 
-  jv = {{"independent_axis_labels", boost::json::value_from(bi.axis_labels)},
+  jv = {{"incolumn_labels", boost::json::value_from(bi.axis_labels)},
         {"bins", bins_arr}};
 }
 
@@ -35,9 +35,9 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
             : (std::string("column_") + std::to_string(i));
 
     boost::json::object column;
-    column["dependent_axis_label"] =
+    column["column_label"] =
         bv.column_info.size() > size_t(i)
-            ? bv.column_info[i].dependent_axis_label
+            ? bv.column_info[i].column_label
             : "";
 
     boost::json::array values, errors;

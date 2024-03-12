@@ -38,8 +38,8 @@ void pyHistFrameInit(py::module &m) {
   py::class_<HistFrame::ColumnInfo>(m, "ColumnInfo")
       .def_readonly("name", &HistFrame::ColumnInfo::name,
                     py::return_value_policy::reference_internal)
-      .def_readonly("dependent_axis_label",
-                    &HistFrame::ColumnInfo::dependent_axis_label,
+      .def_readonly("column_label",
+                    &HistFrame::ColumnInfo::column_label,
                     py::return_value_policy::reference_internal);
 
   py::class_<HistFrame>(m, "HistFrame")
@@ -96,8 +96,8 @@ void pyHistFrameInit(py::module &m) {
   py::class_<BinnedValues::ColumnInfo>(m, "ColumnInfo")
       .def_readonly("name", &BinnedValues::ColumnInfo::name,
                     py::return_value_policy::reference_internal)
-      .def_readonly("dependent_axis_label",
-                    &BinnedValues::ColumnInfo::dependent_axis_label,
+      .def_readonly("column_label",
+                    &BinnedValues::ColumnInfo::column_label,
                     py::return_value_policy::reference_internal);
 
   py::class_<BinnedValues>(m, "BinnedValues")
