@@ -22,33 +22,33 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
 }
 
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
-                HistFrame const &hf) {
+                BinnedValues const &bv) {
   boost::json::object hist_frame;
-  hist_frame["binning"] = boost::json::value_from(*hf.binning);
+  hist_frame["binning"] = boost::json::value_from(*bv.binning);
 
-  for (int i = 0; i < hf.contents.cols(); ++i) {
+  for (int i = 0; i < bv.values.cols(); ++i) {
     std::string key_name =
-        hf.column_info.size() > size_t(i)
-            ? hf.column_info[i].name.size()
-                  ? hf.column_info[i].name
+        bv.column_info.size() > size_t(i)
+            ? bv.column_info[i].name.size()
+                  ? bv.column_info[i].name
                   : (std::string("column_") + std::to_string(i))
             : (std::string("column_") + std::to_string(i));
 
     boost::json::object column;
     column["dependent_axis_label"] =
-        hf.column_info.size() > size_t(i)
-            ? hf.column_info[i].dependent_axis_label
+        bv.column_info.size() > size_t(i)
+            ? bv.column_info[i].dependent_axis_label
             : "";
 
-    boost::json::array contents, variance;
-    contents.resize(hf.contents.rows());
-    variance.resize(hf.contents.rows());
-    for (int j = 0; j < hf.contents.rows(); ++j) {
-      contents[j] = hf.contents(j, i);
-      variance[j] = hf.variance(j, i);
+    boost::json::array values, errors;
+    values.resize(bv.values.rows());
+    errors.resize(bv.values.rows());
+    for (int j = 0; j < bv.values.rows(); ++j) {
+      values[j] = bv.values(j, i);
+      errors[j] = bv.errors(j, i);
     }
-    column["contents"] = contents;
-    column["variance"] = variance;
+    column["values"] = values;
+    column["errors"] = errors;
     hist_frame[key_name] = column;
   }
   jv = hist_frame;

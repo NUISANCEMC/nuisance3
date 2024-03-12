@@ -75,32 +75,58 @@ std::ostream &operator<<(std::ostream &os, nuis::ProjectionMap const &pm) {
 
 namespace nuis {
 
-HistFrame Project(HistFrame const &hf,
-                  std::vector<size_t> const &proj_to_axes) {
-  auto const &pm = BuildProjectionMap(hf.binning, proj_to_axes);
+template <typename T>
+T Project_impl(T const &histlike, std::vector<size_t> const &proj_to_axes) {
+  auto const &pm = BuildProjectionMap(histlike.binning, proj_to_axes);
 
   std::vector<std::string> labels;
   for (auto proj_to_axis : proj_to_axes) {
-    labels.push_back(hf.binning->axis_labels[proj_to_axis]);
+    labels.push_back(histlike.binning->axis_labels[proj_to_axis]);
   }
 
-  HistFrame projhf(Binning::from_extents(pm.projected_extents, labels));
-  projhf.column_info = hf.column_info;
-  projhf.reset();
+  T projhf(Binning::from_extents(pm.projected_extents, labels));
+  projhf.column_info = histlike.column_info;
+  if constexpr (std::is_same_v<T, HistFrame>) {
+    projhf.reset();
+  } else {
+    projhf.values = Eigen::ArrayXXd::Zero(projhf.binning->bins.size(),
+                                          projhf.column_info.size());
+    projhf.errors = Eigen::ArrayXXd::Zero(projhf.binning->bins.size(),
+                                          projhf.column_info.size());
+  }
 
   for (size_t row_i = 0; row_i < pm.projected_extents.size(); ++row_i) {
     for (Binning::index_t bi_it : pm.bin_columns[row_i]) {
-      projhf.contents.row(row_i) += hf.contents.row(bi_it);
-      projhf.variance.row(row_i) += hf.variance.row(bi_it);
+      if constexpr (std::is_same_v<T, HistFrame>) {
+        projhf.sumweights.row(row_i) += histlike.sumweights.row(bi_it);
+        projhf.variances.row(row_i) += histlike.variances.row(bi_it);
+      } else {
+        projhf.values.row(row_i) += histlike.values.row(bi_it);
+        projhf.errors.row(row_i) += histlike.errors.row(bi_it);
+      }
     }
   }
 
-  projhf.nfills = hf.nfills;
+  if constexpr (std::is_same_v<T, HistFrame>) {
+    projhf.num_fills = histlike.num_fills;
+  }
 
   return projhf;
 }
 
+HistFrame Project(HistFrame const &hf,
+                  std::vector<size_t> const &proj_to_axes) {
+  return Project_impl<HistFrame>(hf, proj_to_axes);
+}
 HistFrame Project(HistFrame const &hf, size_t proj_to_axis) {
+  return Project(hf, std::vector<size_t>{proj_to_axis});
+}
+
+BinnedValues Project(BinnedValues const &hf,
+                     std::vector<size_t> const &proj_to_axes) {
+  return Project_impl<BinnedValues>(hf, proj_to_axes);
+}
+BinnedValues Project(BinnedValues const &hf, size_t proj_to_axis) {
   return Project(hf, std::vector<size_t>{proj_to_axis});
 }
 

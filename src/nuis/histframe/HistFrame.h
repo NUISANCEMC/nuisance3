@@ -2,6 +2,8 @@
 
 #include "nuis/binning/Binning.h"
 
+#include "nuis/histframe/BinnedValues.h"
+
 #include "nuis/log.h"
 
 #include "Eigen/Dense"
@@ -10,15 +12,11 @@
 #include <string>
 #include <vector>
 
-namespace Eigen {
-using ArrayXXdRef = Ref<ArrayXXd, 0, Stride<Dynamic, Dynamic>>;
-using ArrayXdRef = Ref<ArrayXd, 0, Stride<Dynamic, Dynamic>>;
-} // namespace Eigen
-
 namespace nuis {
 
 struct HistFrame : nuis_named_log("HistFrame") {
 
+  // --- types
   struct ColumnInfo {
     std::string name;
     std::string dependent_axis_label;
@@ -27,27 +25,18 @@ struct HistFrame : nuis_named_log("HistFrame") {
   using column_t = uint32_t;
   constexpr static column_t const npos = std::numeric_limits<column_t>::max();
 
-  constexpr static double const missing_datum = 0xdeadbeef;
+  // --- data members
 
-  struct column_view {
-    Eigen::ArrayXdRef content;
-    Eigen::ArrayXdRef variance;
-    Eigen::ArrayXdRef const bin_weights;
-  };
+  // independent variables
+  BinningPtr binning;
 
-  struct column_valerr {
-    Eigen::ArrayXd values;
-    Eigen::ArrayXd errors;
-  };
-
+  // dependent variables
   std::vector<ColumnInfo> column_info;
 
-  BinningPtr binning;
-  Eigen::ArrayXd bin_weights;
+  // sum of weights and variance in bins
+  Eigen::ArrayXXd sumweights, variances;
 
-  Eigen::ArrayXXd contents, variance;
-
-  size_t nfills;
+  size_t num_fills;
 
   HistFrame(BinningPtr binop, std::string const &def_col_name = "mc",
             std::string const &def_col_label = "");
@@ -59,12 +48,21 @@ struct HistFrame : nuis_named_log("HistFrame") {
 
   Binning::index_t find_bin(std::vector<double> const &projections) const;
 
-  Eigen::ArrayXd get_values(column_t col = 0) const;
-  Eigen::ArrayXd get_errors(column_t col = 0) const;
-  column_valerr get_column(column_t col = 0) const;
+  struct column_view {
+    Eigen::ArrayXdRef count;
+    Eigen::ArrayXdRef variance;
+  };
+
+  struct column_view_const {
+    Eigen::ArrayXdCRef count;
+    Eigen::ArrayXdCRef variance;
+  };
 
   column_view operator[](column_t col);
   column_view operator[](std::string const &name);
+
+  column_view_const operator[](column_t col) const;
+  column_view_const operator[](std::string const &name) const;
 
   void fill(std::vector<double> const &projections, double weight,
             column_t col = 0);
@@ -81,9 +79,7 @@ struct HistFrame : nuis_named_log("HistFrame") {
 
   void fill_bin(Binning::index_t bini, double weight, column_t col = 0);
 
-  // when
-  void set_value_is_content_density();
-  void set_value_is_content();
+  BinnedValues finalise(bool divide_by_bin_sizes = true) const;
 
   void reset();
 };

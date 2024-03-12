@@ -166,12 +166,15 @@ which might output:
 
 ### Missing Entries
 
-Missing datum should be signalled with `nuis::Frame::missing_datum`, e.g.
+Missing datum should be signalled with `nuis::kMissingDatum`, e.g.
 
 ```c++
 double hmprotmom(HepMC3::GenEvent const &ev) {
-  auto hmprot = NuHepMC::Event::GetParticle_HighestMomentumRealFinalState(ev,{2212,});
-  return hmprot ? hmprot->momentum().p3mod() : nuis::Frame::missing_datum;
+  auto hmprot =
+      NuHepMC::Event::GetParticle_HighestMomentumRealFinalState(ev, {
+                                                                        2212,
+                                                                    });
+  return hmprot ? hmprot->momentum().p3mod() : nuis::kMissingDatum;
 }
 ```
 
@@ -183,7 +186,7 @@ Preselections can also be made with callables. If an event fails the selection, 
 struct single_procid_selector {
   int proc_id;
   single_procid_selector(int pid) : proc_id(pid) {}
-  bool operator()(HepMC3::GenEvent const &ev){
+  bool operator()(HepMC3::GenEvent const &ev) {
     return (NuHepMC::ER3::ReadProcessID(ev) == proc_id);
   }
 };
@@ -241,7 +244,8 @@ You can also add cross section reweights to a Frame using a wrapping lambda, as 
           .add_column("procid", NuHepMC::ER3::ReadProcessID)
           .add_columns({"enu", "nupid"}, enu_nupid)
           .add_column("Zexp1Wght",
-                     [=](auto const &ev) { return wgt->CalcWeight(ev); })
+                     [=](auto const &ev) {
+  return wgt->CalcWeight(ev); })
           .filter(single_procid_selector(200))
           .all();
   std::cout << frame << std::endl;
@@ -291,7 +295,8 @@ nuis::WeightCalcFactory wfact;
           .add_column("procid", NuHepMC::ER3::ReadProcessID)
           .add_columns({"enu", "nupid"}, enu_nupid)
           .add_column({"Zexp1Wght_up","Zexp1Wght_down"},
-                     [=](auto const &ev) { return {wgt1->CalcWeight(ev), wgt2->CalcWeight(ev)}; })
+                     [=](auto const &ev) {
+  return {wgt1->CalcWeight(ev), wgt2->CalcWeight(ev)}; })
           .filter(single_procid_selector(200))
           .all();
   std::cout << frame << std::endl;

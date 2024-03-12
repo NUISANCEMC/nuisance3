@@ -121,7 +121,7 @@ Frame FrameGen::next() {
         if (i < projs.size()) {
           chunk(chunk_row, col_id) = projs[i];
         } else {
-          chunk(chunk_row, col_id) = Frame::missing_datum;
+          chunk(chunk_row, col_id) = kMissingDatum;
         }
 
         col_id++;
