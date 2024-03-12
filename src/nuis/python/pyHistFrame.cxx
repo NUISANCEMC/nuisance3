@@ -1,5 +1,3 @@
-#include "nuis/frame/missing_datum.h"
-
 #include "nuis/histframe/HistFrame.h"
 #include "nuis/histframe/utility.h"
 
@@ -35,32 +33,26 @@ binnedvalues_gettattr(BinnedValues &s, std::string const &column) {
 
 void pyHistFrameInit(py::module &m) {
 
-  py::class_<HistFrame::ColumnInfo>(m, "ColumnInfo")
-      .def_readonly("name", &HistFrame::ColumnInfo::name,
-                    py::return_value_policy::reference_internal)
-      .def_readonly("column_label",
-                    &HistFrame::ColumnInfo::column_label,
-                    py::return_value_policy::reference_internal);
+  py::class_<BinnedValuesBase>(m, "BinnedValuesBase")
+      .def_readonly_static("npos", &BinnedValuesBase::npos)
+      .def_readonly("binning", &BinnedValuesBase::binning)
+      .def_readonly("column_info", &BinnedValuesBase::column_info)
+      .def("add_column", &BinnedValuesBase::add_column, py::arg("name"),
+           py::arg("label") = "")
+      .def("find_bin", py::overload_cast<std::vector<double> const &>(
+                           &BinnedValuesBase::find_bin, py::const_))
+      .def("find_bin",
+           py::overload_cast<double>(&BinnedValuesBase::find_bin, py::const_));
 
-  py::class_<HistFrame>(m, "HistFrame")
+  py::class_<HistFrame, BinnedValuesBase>(m, "HistFrame")
       .def(py::init<BinningPtr, std::string const &, std::string const &>(),
            py::arg("binop"), py::arg("def_col_name") = "mc",
            py::arg("def_col_label") = "")
-      .def_readonly_static("npos", &HistFrame::npos)
-      .def_readonly_static("missing_datum", &kMissingDatum)
-      .def_readonly("binning", &HistFrame::binning)
       .def_readwrite("sumweights", &HistFrame::sumweights,
                      py::return_value_policy::reference_internal)
       .def_readwrite("variances", &HistFrame::variances,
                      py::return_value_policy::reference_internal)
-      .def_readonly("column_info", &HistFrame::column_info)
       .def_readonly("num_fills", &HistFrame::num_fills)
-      .def("add_column", &HistFrame::add_column, py::arg("name"),
-           py::arg("label") = "")
-      .def("find_bin", py::overload_cast<std::vector<double> const &>(
-                           &HistFrame::find_bin, py::const_))
-      .def("find_bin",
-           py::overload_cast<double>(&HistFrame::find_bin, py::const_))
       .def("fill_bin", &HistFrame::fill_bin, py::arg("bini"), py::arg("weight"),
            py::arg("col") = 0)
       .def("fill",
@@ -82,6 +74,8 @@ void pyHistFrameInit(py::module &m) {
                &HistFrame::fill_with_selection),
            py::arg("selection"), py::arg("projection"), py::arg("weight"),
            py::arg("col") = 0)
+      .def("finalise", &HistFrame::finalise,
+           py::arg("divide_by_bin_sizes") = true)
       .def("reset", &HistFrame::reset)
       .def("__getattr__", &histframe_gettattr)
       .def("__getitem__", &histframe_gettattr)
@@ -93,31 +87,15 @@ void pyHistFrameInit(py::module &m) {
       .def_static("project",
                   py::overload_cast<HistFrame const &, size_t>(&Project));
 
-  py::class_<BinnedValues::ColumnInfo>(m, "ColumnInfo")
-      .def_readonly("name", &BinnedValues::ColumnInfo::name,
-                    py::return_value_policy::reference_internal)
-      .def_readonly("column_label",
-                    &BinnedValues::ColumnInfo::column_label,
-                    py::return_value_policy::reference_internal);
-
-  py::class_<BinnedValues>(m, "BinnedValues")
+  py::class_<BinnedValues, BinnedValuesBase>(m, "BinnedValues")
       .def(py::init<BinningPtr, std::string const &, std::string const &>(),
            py::arg("binop"), py::arg("def_col_name") = "mc",
            py::arg("def_col_label") = "")
-      .def_readonly_static("npos", &BinnedValues::npos)
-      .def_readonly_static("missing_datum", &kMissingDatum)
-      .def_readonly("binning", &BinnedValues::binning)
       .def_readwrite("values", &BinnedValues::values,
                      py::return_value_policy::reference_internal)
       .def_readwrite("errors", &BinnedValues::errors,
                      py::return_value_policy::reference_internal)
-      .def_readonly("column_info", &BinnedValues::column_info)
-      .def("add_column", &BinnedValues::add_column, py::arg("name"),
-           py::arg("label") = "")
-      .def("find_bin", py::overload_cast<std::vector<double> const &>(
-                           &BinnedValues::find_bin, py::const_))
-      .def("find_bin",
-           py::overload_cast<double>(&BinnedValues::find_bin, py::const_))
+      .def("make_HistFrame", &BinnedValues::make_HistFrame, py::arg("col") = 0)
       .def("__getattr__", &binnedvalues_gettattr)
       .def("__getitem__", &binnedvalues_gettattr)
       .def("__repr__", &str_via_ss<BinnedValues>)
