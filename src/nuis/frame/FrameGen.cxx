@@ -10,6 +10,7 @@ namespace nuis {
 
 FrameGen::FrameGen(INormalizedEventSourcePtr evs, size_t block_size)
     : source(evs), chunk_size{block_size},
+      max_events_to_loop{std::numeric_limits<size_t>::max()},
       progress_report_every{std::numeric_limits<size_t>::max()},
       nevents{std::numeric_limits<size_t>::max()}, ev_it(nullptr) {
   auto run_info = evs->first().value().evt->run_info();
@@ -67,6 +68,8 @@ Frame FrameGen::first() {
 }
 
 Frame FrameGen::next() {
+  log_trace("FrameGen::next() neventsprocessed: {}, max_events_to_loop: {}",
+            neventsprocessed, max_events_to_loop);
 
   if (neventsprocessed >= max_events_to_loop) {
     return {column_names, Eigen::ArrayXXd(0, column_names.size()), norm_info};
@@ -83,6 +86,8 @@ Frame FrameGen::next() {
   while (ev_it != end_it) {
     auto const &[ev, cvw] = *ev_it;
 
+    NUIS_LOG_TRACE("FrameGen::next() chunk_row: {} ", chunk_row);
+
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
       log_info("FrameGen has selected {}{} from {} processed events.",
@@ -96,6 +101,7 @@ Frame FrameGen::next() {
     bool cut = false;
     for (auto &filt : filters) {
       if (!filt(*ev)) {
+        NUIS_LOG_TRACE("FrameGen::next() chunk_row: {} was cut ", chunk_row);
         cut = true;
         break;
       }
@@ -112,6 +118,9 @@ Frame FrameGen::next() {
 
     chunk(chunk_row, 0) = ev->event_number();
     chunk(chunk_row, 1) = cvw;
+
+    NUIS_LOG_TRACE("FrameGen::next() chunk_row: {} was kept, event_number: {} ",
+                   ev->event_number());
 
     size_t col_id = 2;
     for (auto &[head, proj] : projections) {
@@ -141,6 +150,11 @@ Frame FrameGen::next() {
     }
     ++ev_it;
   }
+
+  log_trace("FrameGen::next() done looping  n_total_rows: {} neventsprocessed: "
+            "{} chunk_row: {}",
+            n_total_rows, neventsprocessed, chunk_row);
+
   // grab the norm_info before reading the next event for the start of the next
   // loop
   norm_info = source->norm_info();
@@ -154,7 +168,9 @@ Frame FrameGen::all() {
            GetNCols(), ((chunk_size * GetNCols()) * sizeof(double)) / 1024);
 
   Eigen::ArrayXXd builder = first().table;
+  log_trace("FrameGen::all() first with nrows {}", builder.rows());
   Eigen::ArrayXXd next_chunk = next().table;
+  log_trace("FrameGen::all() got chunk with nrows {}", next_chunk.rows());
 
   size_t last_report_size = 0;
   if ((neventsprocessed - last_report_size) > progress_report_every) {
@@ -167,6 +183,7 @@ Frame FrameGen::all() {
   }
 
   while (next_chunk.rows()) {
+    log_trace("FrameGen::all() got chunk with nrows {}", next_chunk.rows());
 
     Eigen::ArrayXXd new_builder(builder.rows() + next_chunk.rows(),
                                 builder.cols());
@@ -186,6 +203,8 @@ Frame FrameGen::all() {
       last_report_size = builder.rows() + next_chunk.rows();
     }
   }
+
+  log_trace("FrameGen::all() done: nrows {}", builder.rows());
 
   return {column_names, builder, source->norm_info()};
 }

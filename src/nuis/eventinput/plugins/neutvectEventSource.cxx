@@ -61,8 +61,8 @@ std::shared_ptr<HepMC3::GenEvent> neutvectEventSource::first() {
   chin->SetAutoDelete(true);
   chin->UseCache(100000);
   chin->SetCacheSize(100000);
-  chin->SetBranchStatus("*", 0);
-  chin->SetBranchStatus("vectorbranch", 1);
+  chin->SetBranchStatus("vertexbranch", false);
+  chin->SetBranchStatus("vectorbranch", true);
   auto branch_status = chin->SetBranchAddress("vectorbranch", &nv);
   // should check this
   (void)branch_status;
