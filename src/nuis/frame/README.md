@@ -166,7 +166,7 @@ which might output:
 
 ### Missing Entries
 
-Missing datum should be signalled with `nuis::kMissingDatum`, e.g.
+Missing datum should be signalled with `nuis::kMissingDatum<double>`, e.g.
 
 ```c++
 double hmprotmom(HepMC3::GenEvent const &ev) {
@@ -174,7 +174,7 @@ double hmprotmom(HepMC3::GenEvent const &ev) {
       NuHepMC::Event::GetParticle_HighestMomentumRealFinalState(ev, {
                                                                         2212,
                                                                     });
-  return hmprot ? hmprot->momentum().p3mod() : nuis::kMissingDatum;
+  return hmprot ? hmprot->momentum().p3mod() : nuis::kMissingDatum<double>;
 }
 ```
 

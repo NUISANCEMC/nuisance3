@@ -23,14 +23,14 @@ struct pyFrameGen {
   }
 
   pyFrameGen add_columns(std::vector<std::string> const &col_names,
-                         FrameGen::ProjectionsFunc proj) {
-    *gen = gen->add_columns(col_names, proj);
+                         FrameGen::ProjectionsFunc<double> proj) {
+    *gen = gen->add_columns<double>(col_names, proj);
     return *this;
   }
 
   pyFrameGen add_column(std::string const &col_name,
-                        FrameGen::ProjectionFunc proj) {
-    *gen = gen->add_column(col_name, proj);
+                        FrameGen::ProjectionFunc<double> proj) {
+    *gen = gen->add_column<double>(col_name, proj);
     return *this;
   }
 
@@ -76,7 +76,7 @@ void pyFrameInit(py::module &m) {
       .def("nevents", [](Frame const &s) { return s.norm_info.nevents; })
       .def("rows", [](Frame const &s) { return s.table.rows(); })
       .def_readonly_static("npos", &Frame::npos)
-      .def_readonly_static("missing_datum", &kMissingDatum)
+      .def_readonly_static("missing_datum", &kMissingDatum<double>)
       .def("__getattr__", &frame_gettattr)
       .def("__setattr__", &frame_settattr)
       .def("__getitem__", &frame_gettattr)

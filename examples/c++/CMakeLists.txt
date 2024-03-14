@@ -12,10 +12,9 @@ add_executable(nuis-example-frame nuis-example-frame.cxx)
 target_link_libraries(nuis-example-frame eventinput frame)
 install(TARGETS nuis-example-frame DESTINATION bin)
 
-find_package(Arrow REQUIRED)
-if(${Arrow_FOUND})
+if(NUIS_ARROW_ENABLED)
   add_executable(nuis-example-arrow nuis-example-arrow.cxx)
-  target_link_libraries(nuis-example-arrow eventinput frame Arrow::arrow_shared)
+  target_link_libraries(nuis-example-arrow eventinput frame)
   install(TARGETS nuis-example-arrow DESTINATION bin)
 endif()
 

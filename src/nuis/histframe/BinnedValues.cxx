@@ -48,7 +48,7 @@ BinnedValuesBase::find_bin(std::vector<double> const &projections) const {
 
   // can't search too far as we use a possibly oversized static local vector
   auto end = projections.begin() + binning->number_of_axes();
-  if (std::find(projections.begin(), end, kMissingDatum) != end) {
+  if (std::find(projections.begin(), end, kMissingDatum<double>) != end) {
     NUIS_LOG_DEBUG("Found kMissingDatum flag in projection vector passed to "
                    "BinnedValuesBase::find_bin: {}",
                    projections);

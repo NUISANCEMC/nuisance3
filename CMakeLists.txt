@@ -162,6 +162,13 @@ CPMFindPackage(
     GITHUB_REPOSITORY pybind/pybind11
     GIT_TAG "v2.9.2"
 )
+
+find_package(Arrow REQUIRED)
+set(NUIS_ARROW_ENABLED FALSE)
+if(Arrow_FOUND)
+  set(NUIS_ARROW_ENABLED TRUE)
+endif()
+
 # PYTHON PATHS
 set(NUISANCE_PYSITEARCH "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
 set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
@@ -186,6 +193,14 @@ endif()
 
 if(NUISANCE_ENABLE_GPERFTOOLS)
   target_link_options(nuis_options INTERFACE -ltcmalloc_and_profiler)
+endif()
+
+if(NUIS_ARROW_ENABLED)
+  if(NOT TARGET arrow_shared)
+    message(FATAL_ERROR "NUIS_ARROW_ENABLED: ${NUIS_ARROW_ENABLED}, Arrow_FOUND: ${Arrow_FOUND}. AWDUJJWDQIOJDIOJ")
+  endif()
+  target_compile_definitions(nuis_options INTERFACE NUIS_ARROW_ENABLED)
+  target_link_libraries(nuis_options INTERFACE arrow_shared)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo OR CMAKE_BUILD_TYPE STREQUAL Release)
@@ -318,9 +333,9 @@ string(REPLACE "$" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
 
 string(REPLACE "-D$<$<NOT $<BOOL ON>> YAML_CPP_STATIC_DEFINE>" "" GLOBAL_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS}")
 
-#message("COMPILEDEF ${GLOBAL_COMPILE_DEFS}")
-#message("COMPILEDIR ${GLOBAL_INCLUDE_DIRS}")
-#message("COMPILELOC ${GLOBAL_LOCATION}")
+# message("COMPILEDEF ${GLOBAL_COMPILE_DEFS}")
+# message("COMPILEDIR ${GLOBAL_INCLUDE_DIRS}")
+# message("COMPILELOC ${GLOBAL_LOCATION}")
 
 set(NUISANCE_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS}")
 set(NUISANCE_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
