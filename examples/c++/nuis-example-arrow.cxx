@@ -126,8 +126,8 @@ arrow::Status RunMain(int, char const *argv[]) {
 
   auto frame = nuis::FrameGen(evs, 2.5E5);
 
-  frame.add_columns<int>(int_cols_names, int_cols);
-  frame.add_columns<double>(double_cols_names, double_cols);
+  frame.add_typed_columns<int>(int_cols_names, int_cols);
+  frame.add_typed_columns<double>(double_cols_names, double_cols);
 
   frame.limit(1E6);
 

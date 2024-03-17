@@ -171,10 +171,9 @@ Frame FrameGen::all() {
   log_info("FrameGen::all Chunk shape: {} rows {} cols, {} KB.", chunk_size,
            GetNCols(), ((chunk_size * GetNCols()) * sizeof(double)) / 1024);
 
-  Eigen::ArrayXXd builder = first().table;
+  Eigen::ArrayXXd builder;
+  Eigen::ArrayXXd next_chunk = first().table;
   log_trace("FrameGen::all() first with nrows {}", builder.rows());
-  Eigen::ArrayXXd next_chunk = next().table;
-  log_trace("FrameGen::all() got chunk with nrows {}", next_chunk.rows());
 
   size_t last_report_size = 0;
   if ((neventsprocessed - last_report_size) > progress_report_every) {
@@ -190,7 +189,7 @@ Frame FrameGen::all() {
     log_trace("FrameGen::all() got chunk with nrows {}", next_chunk.rows());
 
     Eigen::ArrayXXd new_builder(builder.rows() + next_chunk.rows(),
-                                builder.cols());
+                                next_chunk.cols());
     new_builder.topRows(builder.rows()) = builder;
     new_builder.bottomRows(next_chunk.rows()) = next_chunk;
 

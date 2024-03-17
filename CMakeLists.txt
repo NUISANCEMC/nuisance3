@@ -163,10 +163,11 @@ CPMFindPackage(
     GIT_TAG "v2.9.2"
 )
 
-find_package(Arrow REQUIRED)
+find_package(Arrow)
 set(NUIS_ARROW_ENABLED FALSE)
 if(Arrow_FOUND)
   set(NUIS_ARROW_ENABLED TRUE)
+  find_package(ArrowPython REQUIRED HINTS ${Arrow_DIR})
 endif()
 
 # PYTHON PATHS
@@ -196,11 +197,8 @@ if(NUISANCE_ENABLE_GPERFTOOLS)
 endif()
 
 if(NUIS_ARROW_ENABLED)
-  if(NOT TARGET arrow_shared)
-    message(FATAL_ERROR "NUIS_ARROW_ENABLED: ${NUIS_ARROW_ENABLED}, Arrow_FOUND: ${Arrow_FOUND}. AWDUJJWDQIOJDIOJ")
-  endif()
   target_compile_definitions(nuis_options INTERFACE NUIS_ARROW_ENABLED)
-  target_link_libraries(nuis_options INTERFACE arrow_shared)
+  target_link_libraries(nuis_options INTERFACE arrow_python_shared arrow_shared)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo OR CMAKE_BUILD_TYPE STREQUAL Release)

@@ -33,8 +33,8 @@ public:
   FrameGen filter(FilterFunc filt);
 
   template <typename RT = double>
-  FrameGen add_columns(std::vector<std::string> col_names,
-                       ProjectionsFunc<RT> proj) {
+  FrameGen add_typed_columns(std::vector<std::string> col_names,
+                             ProjectionsFunc<RT> proj) {
 
     auto &projs = get_proj_functions<RT>();
     columns.push_back(
@@ -45,8 +45,8 @@ public:
   }
 
   template <typename RT = double>
-  FrameGen add_column(std::string col_name, ProjectionFunc<RT> proj) {
-    add_columns<RT>(
+  FrameGen add_typed_column(std::string col_name, ProjectionFunc<RT> proj) {
+    add_typed_columns<RT>(
         {
             col_name,
         },
@@ -57,6 +57,15 @@ public:
         });
 
     return *this;
+  }
+
+  FrameGen add_columns(std::vector<std::string> col_names,
+                       ProjectionsFunc<double> proj) {
+    return add_typed_columns<double>(col_names, proj);
+  }
+
+  FrameGen add_column(std::string col_name, ProjectionFunc<double> proj) {
+    return add_typed_column<double>(col_name, proj);
   }
 
   FrameGen limit(size_t nmax);
