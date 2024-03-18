@@ -93,11 +93,14 @@ T Project_impl(T const &histlike, std::vector<size_t> const &proj_to_axes) {
       if constexpr (std::is_same_v<T, HistFrame>) {
         projhl.sumweights.row(row_i) += histlike.sumweights.row(bi_it);
         projhl.variances.row(row_i) += histlike.variances.row(bi_it);
-      } else {
+      } else if (std::is_same_v<T, BinnedValues>) {
         projhl.values.row(row_i) += histlike.values.row(bi_it);
-        projhl.errors.row(row_i) += histlike.errors.row(bi_it);
+        projhl.errors.row(row_i) += histlike.errors.row(bi_it).square();
       }
     }
+  }
+  if constexpr (std::is_same_v<T, BinnedValues>) {
+    projhl.errors.sqrt();
   }
 
   if constexpr (std::is_same_v<T, HistFrame>) {
