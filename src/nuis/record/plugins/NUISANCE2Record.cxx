@@ -29,68 +29,55 @@ namespace nuis {
 
 class NUISANCERecord : public IRecordPlugin {
 public:
-  explicit NUISANCERecord(YAML::Node const &cfg) {
-    node = cfg;
+  // this RAII's the NUISANCE2 measurement instance and we store value copies of
+  // instances of this in the select and project lambda's captures. Everything
+  // is declared mutable because lambdas are by default const wrt value captures
+  //
+  // It's a hack, but this whole class is a hack
+  struct nuis2mblob {
+    mutable std::shared_ptr<MeasurementBase> measurement;
+    mutable std::shared_ptr<NuHepMCInputHandler> inputhandler;
+    mutable std::shared_ptr<FitEvent> fitevent;
+
+    FitEvent *to_fit_event(HepMC3::GenEvent const &ev) const {
+      inputhandler->fHepMC3Evt = ev;
+      inputhandler->CalcNUISANCEKinematics();
+      return fitevent.get();
+    }
+
+    template <typename T> T *measurement_as() const {
+      return dynamic_cast<T *>(measurement.get());
+    }
+  };
+
+  explicit NUISANCERecord(YAML::Node const &cfg) { node = cfg; }
+
+  TablePtr table(std::string const &name) {
+    auto tbl = std::make_shared<Table>();
 
     Config::SetPar("EventManager", false);
+    Config::SetPar("UseSVDInverse", true);
 
-    nuis2measurement = std::unique_ptr<MeasurementBase>(
-        SampleUtils::CreateSample(node["name"].as<std::string>(),
-                                  "Dummy:dummy.file", "", "", nullptr));
-
-    // // Make an InputHandler
-    nuis2inputhandler = std::make_unique<NuHepMCInputHandler>();
-    nuis2fitevent = std::make_unique<FitEvent>();
-    nuis2inputhandler->fNUISANCEEvent = nuis2fitevent.get();
-    nuis2inputhandler->fNUISANCEEvent->HardReset();
-    nuis2inputhandler->fToMeV = 1;
-  }
-
-  FitEvent *to_fit_event(HepMC3::GenEvent const &ev) {
-    nuis2inputhandler->fHepMC3Evt = ev;
-    nuis2inputhandler->CalcNUISANCEKinematics();
-    return nuis2fitevent.get();
-  }
-
-  TablePtr table(std::string) {
-    auto tbl = std::make_shared<Table>();
+    nuis2mblob mblob{std::shared_ptr<MeasurementBase>(SampleUtils::CreateSample(
+                         name, "Dummy:dummy.file", "", "", nullptr)),
+                     std::make_shared<NuHepMCInputHandler>(),
+                     std::make_shared<FitEvent>()};
+    mblob.inputhandler->fNUISANCEEvent = mblob.fitevent.get();
+    mblob.inputhandler->fNUISANCEEvent->HardReset();
+    mblob.inputhandler->fToMeV = 1;
 
     BinningPtr binning;
 
-    if (auto meas1d = dynamic_cast<Measurement1D *>(nuis2measurement.get())) {
+    if (auto meas1d = mblob.measurement_as<Measurement1D>()) {
 
       auto bv = BinnedValues_from_ROOT<TH1>(*meas1d->GetDataHistogram());
       tbl->blueprint = std::make_shared<Comparison>(bv.binning);
       tbl->blueprint->data = bv;
 
-      tbl->project = [this](HepMC3::GenEvent const &ev) -> std::vector<double> {
-        // allows us to call project on samples that may not be careful with
-        // their projection functions
-        auto fe = this->to_fit_event(ev);
-        if (!nuis2measurement->isSignal(fe)) {
-          return {nuis::kMissingDatum<double>};
-        }
-        this->nuis2measurement->FillEventVariables(fe);
-        return {this->nuis2measurement->GetXVar()};
-      };
-
-    } else if (auto meas2d =
-                   dynamic_cast<Measurement2D *>(nuis2measurement.get())) {
+    } else if (auto meas2d = mblob.measurement_as<Measurement2D>()) {
       auto bv = BinnedValues_from_ROOT<TH2>(*meas2d->GetDataHistogram());
       tbl->blueprint = std::make_shared<Comparison>(bv.binning);
       tbl->blueprint->data = bv;
-
-      tbl->project = [this](HepMC3::GenEvent const &ev) -> std::vector<double> {
-        // allows us to call project on samples that may not be careful with
-        // their projection functions
-        auto fe = this->to_fit_event(ev);
-        if (!nuis2measurement->isSignal(fe)) {
-          return {nuis::kMissingDatum<double>, nuis::kMissingDatum<double>};
-        }
-        this->nuis2measurement->FillEventVariables(fe);
-        return {this->nuis2measurement->GetXVar(),
-                this->nuis2measurement->GetYVar()};
-      };
     }
 
     tbl->clear = nuis::clear::DefaultClear;
@@ -98,8 +85,23 @@ public:
     tbl->finalize = nuis::finalize::FATXNormalizedByBinWidth;
     tbl->likeihood = nuis::likelihood::Chi2;
 
-    tbl->select = [&](HepMC3::GenEvent const &ev) -> int {
-      return nuis2measurement->isSignal(this->to_fit_event(ev));
+    tbl->select = [mblob](HepMC3::GenEvent const &ev) -> int {
+      return mblob.measurement->isSignal(mblob.to_fit_event(ev));
+    };
+
+    // always return a vector of three, it is up to users to know how many they
+    // need to listen for
+    tbl->project = [mblob](HepMC3::GenEvent const &ev) -> std::vector<double> {
+      // allows us to call project on samples that may not be careful with
+      // their projection functions
+      auto fe = mblob.to_fit_event(ev);
+      if (!mblob.measurement->isSignal(fe)) {
+        return {nuis::kMissingDatum<double>, nuis::kMissingDatum<double>,
+                nuis::kMissingDatum<double>};
+      }
+      mblob.measurement->FillEventVariables(fe);
+      return {mblob.measurement->GetXVar(), mblob.measurement->GetYVar(),
+              mblob.measurement->GetZVar()};
     };
 
     return tbl;
@@ -112,10 +114,6 @@ public:
   }
 
   virtual ~NUISANCERecord() {}
-
-  std::unique_ptr<MeasurementBase> nuis2measurement;
-  std::unique_ptr<FitEvent> nuis2fitevent;
-  std::unique_ptr<NuHepMCInputHandler> nuis2inputhandler;
 };
 
 BOOST_DLL_ALIAS(nuis::NUISANCERecord::Make, Make);

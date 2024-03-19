@@ -73,7 +73,7 @@ std::filesystem::path PathResolver::resolve(std::string const &filepath) {
 }
 
 EventSourceFactory::EventSourceFactory() : resolv() {
-  auto NUISANCE = std::getenv("NUISANCE_ROOT");
+  auto NUISANCE = std::getenv("NUISANCE3_ROOT");
 
   if (!NUISANCE) {
     log_critical("NUISANCE_ROOT environment variable not defined");
