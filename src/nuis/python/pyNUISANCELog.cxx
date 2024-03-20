@@ -27,7 +27,7 @@ std::shared_ptr<spdlog::logger> get_ensure_logger(std::string const &name) {
   return logger;
 }
 
-void pyNUISANCELog(py::module &m) {
+void pyNUISANCELogInit(py::module &m) {
 
   py::module logmod = m.def_submodule("log", "Logging functions");
 

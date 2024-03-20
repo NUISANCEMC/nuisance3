@@ -1,20 +1,22 @@
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_floating_point.hpp"
 
-#include "nuis/histframe/Binning.h"
+#include "nuis/binning/Binning.h"
+#include "nuis/binning/exceptions.h"
+#include "nuis/log.txx"
 
 #include <cassert>
 
 TEST_CASE("SingleExtent::width", "[Binning]") {
-  nuis::Binning::SingleExtent se{1, 2};
+  nuis::SingleExtent se{1, 2};
 
   REQUIRE(se.width() == 1);
 }
 
 TEST_CASE("SingleExtent::operator==", "[Binning]") {
-  nuis::Binning::SingleExtent se1{1, 2};
-  nuis::Binning::SingleExtent se2{1, 2};
-  nuis::Binning::SingleExtent se3{0.9, 2};
+  nuis::SingleExtent se1{1, 2};
+  nuis::SingleExtent se2{1, 2};
+  nuis::SingleExtent se3{0.9, 2};
 
   REQUIRE(se1 == se1);
   REQUIRE(se1 == se2);
@@ -22,12 +24,12 @@ TEST_CASE("SingleExtent::operator==", "[Binning]") {
 }
 
 TEST_CASE("SingleExtent::operator<", "[Binning]") {
-  nuis::Binning::SingleExtent se1{1, 2};
-  nuis::Binning::SingleExtent se2{1, 2};
-  nuis::Binning::SingleExtent se3{0.9, 2};
-  nuis::Binning::SingleExtent se4{0.9, 1.8};
-  nuis::Binning::SingleExtent se5{1, 2.2};
-  nuis::Binning::SingleExtent se6{1.1, 2.2};
+  nuis::SingleExtent se1{1, 2};
+  nuis::SingleExtent se2{1, 2};
+  nuis::SingleExtent se3{0.9, 2};
+  nuis::SingleExtent se4{0.9, 1.8};
+  nuis::SingleExtent se5{1, 2.2};
+  nuis::SingleExtent se6{1.1, 2.2};
 
   REQUIRE_FALSE(se1 < se1);
   REQUIRE_FALSE(se1 < se2);
@@ -41,14 +43,14 @@ TEST_CASE("SingleExtent::operator<", "[Binning]") {
 }
 
 TEST_CASE("SingleExtent::overlaps", "[Binning]") {
-  nuis::Binning::SingleExtent se1{1, 2};
-  nuis::Binning::SingleExtent se2{1, 2};
-  nuis::Binning::SingleExtent se3{0.9, 2};
-  nuis::Binning::SingleExtent se4{0.9, 1.8};
-  nuis::Binning::SingleExtent se5{1, 2.2};
-  nuis::Binning::SingleExtent se6{1.1, 2.2};
-  nuis::Binning::SingleExtent se7{0, 1};
-  nuis::Binning::SingleExtent se8{2, 3};
+  nuis::SingleExtent se1{1, 2};
+  nuis::SingleExtent se2{1, 2};
+  nuis::SingleExtent se3{0.9, 2};
+  nuis::SingleExtent se4{0.9, 1.8};
+  nuis::SingleExtent se5{1, 2.2};
+  nuis::SingleExtent se6{1.1, 2.2};
+  nuis::SingleExtent se7{0, 1};
+  nuis::SingleExtent se8{2, 3};
 
   REQUIRE(se1.overlaps(se1));
   REQUIRE(se1.overlaps(se2));
@@ -67,7 +69,7 @@ TEST_CASE("SingleExtent::overlaps", "[Binning]") {
 }
 
 TEST_CASE("SingleExtent::contains", "[Binning]") {
-  nuis::Binning::SingleExtent se{1, 2};
+  nuis::SingleExtent se{1, 2};
 
   REQUIRE(se.contains(1));
   REQUIRE(se.contains(1.5));
@@ -102,139 +104,141 @@ TEST_CASE("BinExtents::operator< mismatched axis count", "[Binning]") {
 
 TEST_CASE("lin_space::axis_labels", "[Binning]") {
   auto ls = nuis::Binning::lin_space(0, 5, 5, "x");
-  REQUIRE(ls.axis_labels.size() == 1);
-  REQUIRE(ls.axis_labels[0] == "x");
+  REQUIRE(ls->axis_labels.size() == 1);
+  REQUIRE(ls->axis_labels[0] == "x");
 }
 
 TEST_CASE("lin_space::bins", "[Binning]") {
   auto ls = nuis::Binning::lin_space(0, 5, 5);
-  auto bins = ls.bins;
+  auto bins = ls->bins;
 
   REQUIRE(bins.size() == 5);
   REQUIRE(bins.front().size() == 1);
-  REQUIRE(bins.front().front().min == 0);
-  REQUIRE(bins.front().front().max == 1);
+  REQUIRE(bins.front().front().low == 0);
+  REQUIRE(bins.front().front().high == 1);
   REQUIRE(bins.back().size() == 1);
-  REQUIRE(bins.back().front().min == 4);
-  REQUIRE(bins.back().front().max == 5);
+  REQUIRE(bins.back().front().low == 4);
+  REQUIRE(bins.back().front().high == 5);
 }
 
 TEST_CASE("lin_space::func", "[Binning]") {
   auto ls = nuis::Binning::lin_space(0, 5, 5);
 
-  REQUIRE(ls(-1) == nuis::Binning::npos);
-  REQUIRE(ls(-0.000001) == nuis::Binning::npos);
-  REQUIRE(ls(0) == 0);
-  REQUIRE(ls(1) == 1);
-  REQUIRE(ls(5) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(-1) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(-0.000001) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(0) == 0);
+  REQUIRE(ls->find_bin(1) == 1);
+  REQUIRE(ls->find_bin(5) == nuis::Binning::npos);
 }
 
 TEST_CASE("lin_spaceND::axis_labels", "[Binning]") {
   auto ls = nuis::Binning::lin_spaceND({{0, 3, 3}, {3, 6, 3}, {6, 9, 3}},
                                        {"x", "y", "z"});
-  REQUIRE(ls.axis_labels.size() == 3);
-  REQUIRE(ls.axis_labels[0] == "x");
-  REQUIRE(ls.axis_labels[2] == "z");
+  REQUIRE(ls->axis_labels.size() == 3);
+  REQUIRE(ls->axis_labels[0] == "x");
+  REQUIRE(ls->axis_labels[2] == "z");
 }
 
 TEST_CASE("lin_spaceND::bins", "[Binning]") {
   auto ls = nuis::Binning::lin_spaceND({{0, 3, 3}, {3, 6, 3}, {6, 9, 3}},
                                        {"x", "y", "z"});
-  auto bins = ls.bins;
+  auto bins = ls->bins;
 
   REQUIRE(bins.size() == 27);
   REQUIRE(bins.front().size() == 3);
-  REQUIRE(bins.front().front().min == 0);
-  REQUIRE(bins.front().front().max == 1);
-  REQUIRE(bins.front().back().min == 6);
-  REQUIRE(bins.front().back().max == 7);
+  REQUIRE(bins.front().front().low == 0);
+  REQUIRE(bins.front().front().high == 1);
+  REQUIRE(bins.front().back().low == 6);
+  REQUIRE(bins.front().back().high == 7);
 
   REQUIRE(bins.back().size() == 3);
-  REQUIRE(bins.back().front().min == 2);
-  REQUIRE(bins.back().front().max == 3);
-  REQUIRE(bins.back().back().min == 8);
-  REQUIRE(bins.back().back().max == 9);
+  REQUIRE(bins.back().front().low == 2);
+  REQUIRE(bins.back().front().high == 3);
+  REQUIRE(bins.back().back().low == 8);
+  REQUIRE(bins.back().back().high == 9);
 }
 
 TEST_CASE("lin_spaceND::func", "[Binning]") {
   auto ls = nuis::Binning::lin_spaceND({{0, 3, 3}, {3, 6, 3}, {6, 9, 3}},
                                        {"x", "y", "z"});
 
-  REQUIRE(ls({0, 3, 6}) == 0);
-  REQUIRE(ls({1, 3, 6}) == 1);
-  REQUIRE(ls({1, 3, 7}) == 10);
-  REQUIRE(ls({1, 4, 7}) == 13);
-  REQUIRE(ls({2, 5, 8}) == 26);
+  REQUIRE(ls->find_bin({0, 3, 6}) == 0);
+  REQUIRE(ls->find_bin({1, 3, 6}) == 1);
+  REQUIRE(ls->find_bin({1, 3, 7}) == 10);
+  REQUIRE(ls->find_bin({1, 4, 7}) == 13);
+  REQUIRE(ls->find_bin({2, 5, 8}) == 26);
 
   // OOR above
-  REQUIRE(ls({3, 3, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 6, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 3, 9}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({3, 3, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 6, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 3, 9}) == nuis::Binning::npos);
 
   // OOR below
-  REQUIRE(ls({-0.1, 3, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 2.9, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 3, 5.9}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({-0.1, 3, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 2.9, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 3, 5.9}) == nuis::Binning::npos);
 }
 
 TEST_CASE("log10_space::axis_labels", "[Binning]") {
   auto ls = nuis::Binning::log10_space(1, 1E3, 3, "lx");
-  REQUIRE(ls.axis_labels.size() == 1);
-  REQUIRE(ls.axis_labels[0] == "lx");
+  REQUIRE(ls->axis_labels.size() == 1);
+  REQUIRE(ls->axis_labels[0] == "lx");
 }
 
 TEST_CASE("log10_space::bins", "[Binning]") {
   auto ls = nuis::Binning::log10_space(1, 1E3, 3, "lx");
-  auto bins = ls.bins;
+  auto bins = ls->bins;
 
   REQUIRE(bins.size() == 3);
   REQUIRE(bins.front().size() == 1);
-  REQUIRE_THAT(bins.front().front().min, Catch::Matchers::WithinRel(1, 1E-8));
-  REQUIRE_THAT(bins.front().front().max, Catch::Matchers::WithinRel(10, 1E-8));
-  REQUIRE_THAT(bins.back().front().min, Catch::Matchers::WithinRel(100, 1E-8));
-  REQUIRE_THAT(bins.back().front().max, Catch::Matchers::WithinRel(1000, 1E-8));
+  REQUIRE_THAT(bins.front().front().low, Catch::Matchers::WithinRel(1, 1E-8));
+  REQUIRE_THAT(bins.front().front().high, Catch::Matchers::WithinRel(10, 1E-8));
+  REQUIRE_THAT(bins.back().front().low, Catch::Matchers::WithinRel(100, 1E-8));
+  REQUIRE_THAT(bins.back().front().high,
+               Catch::Matchers::WithinRel(1000, 1E-8));
 }
 
 TEST_CASE("log10_space::func", "[Binning]") {
   auto ls = nuis::Binning::log10_space(1, 1E3, 3, "lx");
 
-  REQUIRE(ls(0) == nuis::Binning::npos);
-  REQUIRE(ls(0.1) == nuis::Binning::npos);
-  REQUIRE(ls(1) == 0);
-  REQUIRE(ls(10) == 1);
-  REQUIRE(ls(100) == 2);
-  REQUIRE(ls(1000) == nuis::Binning::npos);
+  REQUIRE_THROWS_AS(ls->find_bin(0), nuis::UnbinnableNumber);
+  REQUIRE(ls->find_bin(0.1) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(1) == 0);
+  REQUIRE(ls->find_bin(10) == 1);
+  REQUIRE(ls->find_bin(10) == 1);
+  REQUIRE(ls->find_bin(100) == 2);
+  REQUIRE(ls->find_bin(1000) == nuis::Binning::npos);
 }
 
 TEST_CASE("contiguous::axis_labels", "[Binning]") {
   auto ls = nuis::Binning::contiguous({0, 1, 2, 3, 4, 5}, "x");
-  REQUIRE(ls.axis_labels.size() == 1);
-  REQUIRE(ls.axis_labels[0] == "x");
+  REQUIRE(ls->axis_labels.size() == 1);
+  REQUIRE(ls->axis_labels[0] == "x");
 }
 
 TEST_CASE("contiguous::bins", "[Binning]") {
   auto ls = nuis::Binning::contiguous({0, 1, 2, 3, 4, 5}, "x");
-  auto bins = ls.bins;
+  auto bins = ls->bins;
 
   REQUIRE(bins.size() == 5);
   REQUIRE(bins.front().size() == 1);
-  REQUIRE(bins[0].front().min == 0);
-  REQUIRE(bins[0].front().max == 1);
-  REQUIRE(bins[1].front().min == 1);
-  REQUIRE(bins[1].front().max == 2);
-  REQUIRE(bins[4].front().min == 4);
-  REQUIRE(bins[4].front().max == 5);
+  REQUIRE(bins[0].front().low == 0);
+  REQUIRE(bins[0].front().high == 1);
+  REQUIRE(bins[1].front().low == 1);
+  REQUIRE(bins[1].front().high == 2);
+  REQUIRE(bins[4].front().low == 4);
+  REQUIRE(bins[4].front().high == 5);
 }
 
 TEST_CASE("contiguous::func", "[Binning]") {
   auto ls = nuis::Binning::contiguous({0, 1, 2, 3, 4, 5}, "lx");
 
-  REQUIRE(ls(-0.1) == nuis::Binning::npos);
-  REQUIRE(ls(-0) == 0);
-  REQUIRE(ls(0) == 0);
-  REQUIRE(ls(1) == 1);
-  REQUIRE(ls(4) == 4);
-  REQUIRE(ls(5) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(-0.1) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(-0) == 0);
+  REQUIRE(ls->find_bin(0) == 0);
+  REQUIRE(ls->find_bin(1) == 1);
+  REQUIRE(ls->find_bin(4) == 4);
+  REQUIRE(ls->find_bin(5) == nuis::Binning::npos);
 }
 
 TEST_CASE("contiguous::unsorted", "[Binning]") {
@@ -276,9 +280,9 @@ TEST_CASE("from_extents::axis_labels", "[Binning]") {
 
   auto ls = nuis::Binning::from_extents(bins, {"x", "y", "z"});
 
-  REQUIRE(ls.axis_labels.size() == 3);
-  REQUIRE(ls.axis_labels[0] == "x");
-  REQUIRE(ls.axis_labels[2] == "z");
+  REQUIRE(ls->axis_labels.size() == 3);
+  REQUIRE(ls->axis_labels[0] == "x");
+  REQUIRE(ls->axis_labels[2] == "z");
 }
 
 TEST_CASE("from_extents::bins", "[Binning]") {
@@ -310,20 +314,20 @@ TEST_CASE("from_extents::bins", "[Binning]") {
 
   auto ls = nuis::Binning::from_extents(in_bins, {"x", "y", "z"});
 
-  auto bins = ls.bins;
+  auto bins = ls->bins;
 
   REQUIRE(bins.size() == 27);
   REQUIRE(bins.front().size() == 3);
-  REQUIRE(bins.front().front().min == 0);
-  REQUIRE(bins.front().front().max == 1);
-  REQUIRE(bins.front().back().min == 6);
-  REQUIRE(bins.front().back().max == 7);
+  REQUIRE(bins.front().front().low == 0);
+  REQUIRE(bins.front().front().high == 1);
+  REQUIRE(bins.front().back().low == 6);
+  REQUIRE(bins.front().back().high == 7);
 
   REQUIRE(bins.back().size() == 3);
-  REQUIRE(bins.back().front().min == 2);
-  REQUIRE(bins.back().front().max == 3);
-  REQUIRE(bins.back().back().min == 8);
-  REQUIRE(bins.back().back().max == 9);
+  REQUIRE(bins.back().front().low == 2);
+  REQUIRE(bins.back().front().high == 3);
+  REQUIRE(bins.back().back().low == 8);
+  REQUIRE(bins.back().back().high == 9);
 }
 
 TEST_CASE("from_extents::func", "[Binning]") {
@@ -355,21 +359,21 @@ TEST_CASE("from_extents::func", "[Binning]") {
 
   auto ls = nuis::Binning::from_extents(bins, {"x", "y", "z"});
 
-  REQUIRE(ls({0, 3, 6}) == 0);
-  REQUIRE(ls({1, 3, 6}) == 1);
-  REQUIRE(ls({1, 3, 7}) == 10);
-  REQUIRE(ls({1, 4, 7}) == 13);
-  REQUIRE(ls({2, 5, 8}) == 26);
+  REQUIRE(ls->find_bin({0, 3, 6}) == 0);
+  REQUIRE(ls->find_bin({1, 3, 6}) == 1);
+  REQUIRE(ls->find_bin({1, 3, 7}) == 10);
+  REQUIRE(ls->find_bin({1, 4, 7}) == 13);
+  REQUIRE(ls->find_bin({2, 5, 8}) == 26);
 
   // OOR above
-  REQUIRE(ls({3, 3, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 6, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 3, 9}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({3, 3, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 6, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 3, 9}) == nuis::Binning::npos);
 
   // OOR below
-  REQUIRE(ls({-0.1, 3, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 2.9, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 3, 5.9}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({-0.1, 3, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 2.9, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 3, 5.9}) == nuis::Binning::npos);
 }
 
 TEST_CASE("from_extents::func -- reversed", "[Binning]") {
@@ -401,21 +405,21 @@ TEST_CASE("from_extents::func -- reversed", "[Binning]") {
 
   auto ls = nuis::Binning::from_extents(bins, {"x", "y", "z"});
 
-  REQUIRE(ls({0, 3, 6}) == 0);
-  REQUIRE(ls({0, 3, 7}) == 1);
-  REQUIRE(ls({1, 3, 7}) == 10);
-  REQUIRE(ls({1, 4, 7}) == 13);
-  REQUIRE(ls({2, 5, 8}) == 26);
+  REQUIRE(ls->find_bin({0, 3, 6}) == 0);
+  REQUIRE(ls->find_bin({0, 3, 7}) == 1);
+  REQUIRE(ls->find_bin({1, 3, 7}) == 10);
+  REQUIRE(ls->find_bin({1, 4, 7}) == 13);
+  REQUIRE(ls->find_bin({2, 5, 8}) == 26);
 
   // OOR above
-  REQUIRE(ls({3, 3, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 6, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 3, 9}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({3, 3, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 6, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 3, 9}) == nuis::Binning::npos);
 
   // OOR below
-  REQUIRE(ls({-0.1, 3, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 2.9, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 3, 5.9}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({-0.1, 3, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 2.9, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 3, 5.9}) == nuis::Binning::npos);
 }
 
 TEST_CASE("from_extents::func -- pyramids", "[Binning]") {
@@ -429,7 +433,7 @@ TEST_CASE("from_extents::func -- pyramids", "[Binning]") {
 
   auto ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
-  REQUIRE(ls({1.5, 1.5}) == 3);
+  REQUIRE(ls->find_bin({1.5, 1.5}) == 3);
 
   bins.clear();
   bins.push_back({{2, 3}, {0, 1}});
@@ -439,7 +443,7 @@ TEST_CASE("from_extents::func -- pyramids", "[Binning]") {
 
   ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
-  REQUIRE(ls({1.5, 1.5}) == 2);
+  REQUIRE(ls->find_bin({1.5, 1.5}) == 2);
 
   bins.clear();
   bins.push_back({{0, 1}, {2, 3}});
@@ -449,7 +453,7 @@ TEST_CASE("from_extents::func -- pyramids", "[Binning]") {
 
   ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
-  REQUIRE(ls({1.5, 1.5}) == 1);
+  REQUIRE(ls->find_bin({1.5, 1.5}) == 1);
 
   bins.clear();
   bins.push_back({{1, 2}, {1, 2}});
@@ -459,7 +463,7 @@ TEST_CASE("from_extents::func -- pyramids", "[Binning]") {
 
   ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
-  REQUIRE(ls({1.5, 1.5}) == 0);
+  REQUIRE(ls->find_bin({1.5, 1.5}) == 0);
 }
 
 TEST_CASE("from_extents::func -- sea", "[Binning]") {
@@ -471,11 +475,11 @@ TEST_CASE("from_extents::func -- sea", "[Binning]") {
                                                   "x",
                                               });
 
-  REQUIRE(ls(0.5) == 0);
-  REQUIRE(ls(0) == nuis::Binning::npos);
-  REQUIRE(ls(1) == nuis::Binning::npos);
-  REQUIRE(ls(2) == nuis::Binning::npos);
-  REQUIRE(ls(3) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(0.5) == 0);
+  REQUIRE(ls->find_bin(0) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(1) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(2) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin(3) == nuis::Binning::npos);
 
   bins.clear();
   bins = {{{0, 1}, {0, 1}},
@@ -486,11 +490,11 @@ TEST_CASE("from_extents::func -- sea", "[Binning]") {
 
   ls = nuis::Binning::from_extents(bins, {"x", "y"});
 
-  REQUIRE(ls({1.5, 1.5}) == 4);
-  REQUIRE(ls({0.5, 1.5}) == nuis::Binning::npos);
-  REQUIRE(ls({1.5, 0.5}) == nuis::Binning::npos);
-  REQUIRE(ls({2.5, 1.5}) == nuis::Binning::npos);
-  REQUIRE(ls({1.5, 2.5}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({1.5, 1.5}) == 4);
+  REQUIRE(ls->find_bin({0.5, 1.5}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({1.5, 0.5}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({2.5, 1.5}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({1.5, 2.5}) == nuis::Binning::npos);
 }
 
 TEST_CASE("from_extents::func input vector too short", "[Binning]") {
@@ -522,7 +526,7 @@ TEST_CASE("from_extents::func input vector too short", "[Binning]") {
 
   auto ls = nuis::Binning::from_extents(bins, {"x", "y", "z"});
 
-  REQUIRE_THROWS_AS(ls({0, 3}), nuis::MismatchedAxisCount);
+  REQUIRE_THROWS_AS(ls->find_bin({0, 3}), nuis::MismatchedAxisCount);
 }
 
 TEST_CASE("from_extents::bins not unique", "[Binning]") {
@@ -622,9 +626,9 @@ TEST_CASE("product::axis_labels", "[Binning]") {
 
   auto ls = nuis::Binning::product({lsx, lsy, lsz});
 
-  REQUIRE(ls.axis_labels.size() == 3);
-  REQUIRE(ls.axis_labels[0] == "x");
-  REQUIRE(ls.axis_labels[2] == "z");
+  REQUIRE(ls->axis_labels.size() == 3);
+  REQUIRE(ls->axis_labels[0] == "x");
+  REQUIRE(ls->axis_labels[2] == "z");
 }
 
 TEST_CASE("product::bins", "[Binning]") {
@@ -635,20 +639,20 @@ TEST_CASE("product::bins", "[Binning]") {
 
   auto ls = nuis::Binning::product({lsx, lsy, lsz});
 
-  auto bins = ls.bins;
+  auto bins = ls->bins;
 
   REQUIRE(bins.size() == 27);
   REQUIRE(bins.front().size() == 3);
-  REQUIRE(bins.front().front().min == 0);
-  REQUIRE(bins.front().front().max == 1);
-  REQUIRE(bins.front().back().min == 6);
-  REQUIRE(bins.front().back().max == 7);
+  REQUIRE(bins.front().front().low == 0);
+  REQUIRE(bins.front().front().high == 1);
+  REQUIRE(bins.front().back().low == 6);
+  REQUIRE(bins.front().back().high == 7);
 
   REQUIRE(bins.back().size() == 3);
-  REQUIRE(bins.back().front().min == 2);
-  REQUIRE(bins.back().front().max == 3);
-  REQUIRE(bins.back().back().min == 8);
-  REQUIRE(bins.back().back().max == 9);
+  REQUIRE(bins.back().front().low == 2);
+  REQUIRE(bins.back().front().high == 3);
+  REQUIRE(bins.back().back().low == 8);
+  REQUIRE(bins.back().back().high == 9);
 }
 
 TEST_CASE("product::func", "[Binning]") {
@@ -659,19 +663,19 @@ TEST_CASE("product::func", "[Binning]") {
 
   auto ls = nuis::Binning::product({lsx, lsy, lsz});
 
-  REQUIRE(ls({0, 3, 6}) == 0);
-  REQUIRE(ls({1, 3, 6}) == 1);
-  REQUIRE(ls({1, 3, 7}) == 10);
-  REQUIRE(ls({1, 4, 7}) == 13);
-  REQUIRE(ls({2, 5, 8}) == 26);
+  REQUIRE(ls->find_bin({0, 3, 6}) == 0);
+  REQUIRE(ls->find_bin({1, 3, 6}) == 1);
+  REQUIRE(ls->find_bin({1, 3, 7}) == 10);
+  REQUIRE(ls->find_bin({1, 4, 7}) == 13);
+  REQUIRE(ls->find_bin({2, 5, 8}) == 26);
 
   // OOR above
-  REQUIRE(ls({3, 3, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 6, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 3, 9}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({3, 3, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 6, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 3, 9}) == nuis::Binning::npos);
 
   // OOR below
-  REQUIRE(ls({-0.1, 3, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 2.9, 6}) == nuis::Binning::npos);
-  REQUIRE(ls({0, 3, 5.9}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({-0.1, 3, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 2.9, 6}) == nuis::Binning::npos);
+  REQUIRE(ls->find_bin({0, 3, 5.9}) == nuis::Binning::npos);
 }

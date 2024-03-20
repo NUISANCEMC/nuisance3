@@ -1,4 +1,4 @@
-#include "nuis/histframe/Binning.h"
+#include "nuis/binning/Binning.h"
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -12,5 +12,5 @@ int main(int argc, char const *argv[]) {
   auto linbin = Binning::lin_space(0, 10, 100);
 
   std::cout << linbin << std::endl;
-  std::cout << "find_bin(1) = " << linbin(1) << std::endl;
+  std::cout << "find_bin->find_bin(1) = " << linbin->find_bin(1) << std::endl;
 }

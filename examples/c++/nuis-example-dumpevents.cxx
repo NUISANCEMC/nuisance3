@@ -33,39 +33,39 @@ int main(int argc, char const *argv[]) {
   size_t ctr = 0;
   for (auto const &[ev, w] : evs) {
 
-    auto beamp = NuHepMC::Event::GetBeamParticle(ev);
-    auto tgtp = NuHepMC::Event::GetTargetParticle(ev);
+    auto beamp = NuHepMC::Event::GetBeamParticle(*ev);
+    auto tgtp = NuHepMC::Event::GetTargetParticle(*ev);
     auto nprot = NuHepMC::Event::GetParticles_All(
-                     ev, NuHepMC::ParticleStatus::UndecayedPhysical,
+                     *ev, NuHepMC::ParticleStatus::UndecayedPhysical,
                      {
                          2212,
                      })
                      .size();
     auto npip = NuHepMC::Event::GetParticles_All(
-                    ev, NuHepMC::ParticleStatus::UndecayedPhysical,
+                    *ev, NuHepMC::ParticleStatus::UndecayedPhysical,
                     {
                         211,
                     })
                     .size();
     auto npim = NuHepMC::Event::GetParticles_All(
-                    ev, NuHepMC::ParticleStatus::UndecayedPhysical,
+                    *ev, NuHepMC::ParticleStatus::UndecayedPhysical,
                     {
                         -211,
                     })
                     .size();
     auto npi0 = NuHepMC::Event::GetParticles_All(
-                    ev, NuHepMC::ParticleStatus::UndecayedPhysical,
+                    *ev, NuHepMC::ParticleStatus::UndecayedPhysical,
                     {
                         111,
                     })
                     .size();
 
-    auto procid = NuHepMC::ER3::ReadProcessID(ev);
+    auto procid = NuHepMC::ER3::ReadProcessID(*ev);
 
     mylogger::log_info("Enu {}",
-                       NuHepMC::Event::GetBeamParticle(ev)->momentum().e());
+                       NuHepMC::Event::GetBeamParticle(*ev)->momentum().e());
 
-    mylogger::log_info("Event {}: Procid: {} = {}", ev.event_number(), procid,
+    mylogger::log_info("Event {}: Procid: {} = {}", ev->event_number(), procid,
                        procids[procid].first);
     mylogger::log_info("\tBeam particle: id = {}, E = {}", beamp->pid(),
                        beamp->momentum().e());

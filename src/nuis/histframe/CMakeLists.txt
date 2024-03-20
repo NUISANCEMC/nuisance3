@@ -1,5 +1,5 @@
-add_library(histframe SHARED Binning.cxx BinningUtility.cxx HistFrame.cxx HistProjector.cxx Utility.cxx)
+add_library(histframe SHARED HistFrame.cxx BinnedValues.cxx utility.cxx)
 
-target_link_libraries(histframe PUBLIC nuis_options)
+target_link_libraries(histframe PUBLIC binning nuis_options)
 
 install(TARGETS histframe DESTINATION lib)

@@ -1,10 +1,13 @@
-#include "nuis/histframe/Binning.h"
+#include "nuis/binning/Binning.h"
+
 #include "nuis/record/Utility.h"
 #include "nuis/record/plugins/IRecordPlugin.h"
 
 #include "boost/dll/alias.hpp"
 
 #include "nuis/record/plugins/HEPDataVariables.h"
+
+#include "nuis/record/hook_types.h"
 
 #include "nuis/record/ClearFunctions.h"
 #include "nuis/record/FinalizeFunctions.h"
@@ -24,48 +27,52 @@ using namespace nuis;
 // need to label these as the efficient implementations and some simple
 // examples. For now to make sure things are working I'm adding a HEPData brute
 // force search one so we can be sure its working.
-nuis::Binning from_hepdata_extents(std::vector<Variables> &axes) {
+nuis::BinningPtr from_hepdata_extents(std::vector<Variables> &axes) {
 
-  nuis::Binning bin_info;
+  nuis::BinningPtr bin_info = std::make_shared<nuis::Binning>();
   for (auto const &ax : axes) {
-    bin_info.axis_labels.push_back(ax.name);
+    bin_info->axis_labels.push_back(ax.name);
   }
 
   // Make the containers as its transposed I think
+  std::vector<Binning::BinExtents> bins;
   for (size_t j = 0; j < axes[0].n; j++) {
-    bin_info.bins.emplace_back();
+    bins.emplace_back();
   }
 
   // HEPData format is in vector<x>, vector<y>
   for (size_t i = 0; i < axes.size(); i++) {
     for (size_t j = 0; j < axes[i].n; j++) {
-      Binning::SingleExtent vp = {axes[i].low[j], axes[i].high[j]};
-      bin_info.bins[j].emplace_back(vp);
+      bins[j].emplace_back(axes[i].low[j], axes[i].high[j]);
     }
   }
 
-  bin_info.find_bin = [=](std::vector<double> const &x) -> Binning::Index {
-    for (size_t i = 0; i < bin_info.bins.size(); i++) {
-      const std::vector<Binning::SingleExtent> &bin_info_slice =
-          bin_info.bins[i];
+  // be careful not to let the lambda capture bin_info or it will create a
+  // circular reference and a memory leak
+  bin_info->binning_function =
+      [=](std::vector<double> const &x) -> Binning::index_t {
+    for (size_t i = 0; i < bins.size(); i++) {
+      auto const &bin_info_slice = bins[i];
 
       bool goodbin = true;
       for (size_t j = 0; j < bin_info_slice.size(); j++) {
-        if (x[j] < bin_info_slice[j].min) {
+        if (x[j] < bin_info_slice[j].low) {
           goodbin = false;
           break;
         }
-        if (x[j] >= bin_info_slice[j].max) {
+        if (x[j] >= bin_info_slice[j].high) {
           goodbin = false;
           break;
         }
       }
-      if (!goodbin)
+      if (!goodbin) {
         continue;
+      }
       return i;
     }
     return Binning::npos;
   };
+  bin_info->bins = bins;
   return bin_info;
 }
 
@@ -76,19 +83,6 @@ NEW_NUISANCE_EXCEPT(InvalidTableForRecord);
 NEW_NUISANCE_EXCEPT(ProSelectaLoadFileFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetFilterFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetProjectionFailure);
-
-using ClearFunc = std::function<void(ComparisonFrame &)>;
-
-using ProjectFunc = std::function<double(HepMC3::GenEvent const &)>;
-
-using WeightFunc = std::function<double(HepMC3::GenEvent const &)>;
-
-using SelectFunc = std::function<int(HepMC3::GenEvent const &)>;
-
-// Don't love that this needs all at once
-using FinalizeFunc = std::function<void(ComparisonFrame &, const double)>;
-
-using LikelihoodFunc = std::function<double(ComparisonFrame const &)>;
 
 class HEPDataRecord : public IRecordPlugin {
 public:
@@ -104,7 +98,7 @@ public:
 
   HEPDataRecord(YAML::Node const &cfg) { node = cfg; }
 
-  TablePtr table(std::string table) {
+  TablePtr table(std::string const &table) {
     YAML::Node cfg = node;
 
     db_path = nuis::database();
@@ -237,17 +231,15 @@ public:
     tab.finalize = nuis::finalize::EventRateScaleToData;
     tab.likeihood = nuis::likelihood::Chi2;
 
-    nuis::Binning binning = from_hepdata_extents(variables_indep);
+    Comparison hist(from_hepdata_extents(variables_indep));
 
-    ComparisonFrame hist(binning);
-
-    hist.data.contents.col(0) = Eigen::Map<Eigen::VectorXd>(
+    hist.data.values.col(0) = Eigen::Map<Eigen::VectorXd>(
         variables_dep[0].values.data(), variables_dep[0].values.size());
 
-    hist.data.variance.col(0) = Eigen::Map<Eigen::VectorXd>(
+    hist.data.errors.col(0) = Eigen::Map<Eigen::VectorXd>(
         variables_dep[0].errors.data(), variables_dep[0].errors.size());
 
-    tab.blueprint = std::make_shared<ComparisonFrame>(hist);
+    tab.blueprint = std::make_shared<Comparison>(hist);
 
     return std::make_shared<Table>(tab);
   }

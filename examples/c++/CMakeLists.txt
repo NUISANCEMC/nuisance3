@@ -8,6 +8,16 @@ add_executable(nuis-example-binning nuis-example-binning.cxx)
 target_link_libraries(nuis-example-binning eventinput histframe)
 install(TARGETS nuis-example-binning DESTINATION bin)
 
+add_executable(nuis-example-frame nuis-example-frame.cxx)
+target_link_libraries(nuis-example-frame eventinput frame)
+install(TARGETS nuis-example-frame DESTINATION bin)
+
+if(NUIS_ARROW_ENABLED)
+  add_executable(nuis-example-arrow nuis-example-arrow.cxx)
+  target_link_libraries(nuis-example-arrow eventinput frame)
+  install(TARGETS nuis-example-arrow DESTINATION bin)
+endif()
+
 #add_executable(nuis-weightcalc-fazexp neut-weightcalc-fazep.cxx)
 #target_link_libraries(nuis-weightcalc-fazexp eventinput histframe weightcalc NReWeight_weightcalc_plugin profiler NEUT::ReWeight nuis_options)
 #install(TARGETS nuis-weightcalc-fazexp DESTINATION bin)

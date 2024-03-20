@@ -2,30 +2,36 @@
 
 #include "nuis/eventinput/INormalizedEventSource.h"
 
+#include "nuis/frame/missing_datum.h"
+
+#include "nuis/except.h"
+
 #include "Eigen/Dense"
 
 #include <iostream>
 #include <string>
 #include <vector>
 
+namespace Eigen {
+using ArrayXdRef = Ref<ArrayXd, 0, Stride<Dynamic, Dynamic>>;
+} // namespace Eigen
+
 namespace nuis {
+
+NEW_NUISANCE_EXCEPT(InvalidFrameColumnName);
 
 struct Frame {
   std::vector<std::string> column_names;
   Eigen::ArrayXXd table;
   NormInfo norm_info;
 
-  constexpr static double const missing_datum = 0xdeadbeef;
-
   using column_t = uint32_t;
   constexpr static column_t const npos = std::numeric_limits<column_t>::max();
 
   column_t find_column_index(std::string const &name) const;
 
-  // get a copy of a column, if you want to set a column, access the table
-  // directly
-  Eigen::ArrayXd col(std::string const &cn) const;
-  Eigen::ArrayXXd cols(std::vector<std::string> const &cns) const;
+  Eigen::ArrayXdRef col(std::string const &cn);
+  std::vector<Eigen::ArrayXdRef> cols(std::vector<std::string> const &cns);
 };
 
 struct FramePrinter {

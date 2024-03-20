@@ -1,6 +1,10 @@
 #pragma once
 
-#include "nuis/histframe/Binning.h"
+#include "nuis/binning/Binning.h"
+
+#include "nuis/histframe/BinnedValues.h"
+
+#include "nuis/log.h"
 
 #include "Eigen/Dense"
 
@@ -10,103 +14,66 @@
 
 namespace nuis {
 
-struct HistColumn_View {
-  Eigen::ArrayXd content;
-  Eigen::ArrayXd variance;
-  Eigen::ArrayXd binwidth;
+struct HistFrame : public BinnedValuesBase {
 
-  // Need bin width options (don't love this)
-  // Can we have some change with a visitor/reduction?
-  Eigen::ArrayXd getcv(bool get_by_bin_width = false) {
-    if (get_by_bin_width)
-      return content / binwidth;
-    return content;
+  // --- data members
+
+  // sum of weights and variance in bins
+  Eigen::ArrayXXd sumweights, variances;
+
+  size_t num_fills;
+
+  // --- constructors
+
+  HistFrame(BinningPtr binop, std::string const &def_col_name = "mc",
+            std::string const &def_col_label = "")
+      : BinnedValuesBase(binop, def_col_name, def_col_label) {
+    reset();
   }
-
-  void setcv(const Eigen::ArrayXd &incol, bool is_by_bin_width = false) {
-    if (is_by_bin_width)
-      content = incol * binwidth;
-    content = incol;
-  }
-
-  Eigen::ArrayXd geter(bool get_by_bin_width = false) {
-    if (get_by_bin_width)
-      return variance / binwidth;
-    return variance;
-  }
-
-  void seter(const Eigen::ArrayXd &incol, bool is_by_bin_width = false) {
-    if (is_by_bin_width)
-      variance = incol * binwidth;
-    variance = incol;
-  }
-};
-
-struct HistFrame {
-
-  Binning binning;
-
-  struct ColumnInfo {
-    std::string name;
-    std::string dependent_axis_label;
-  };
-
-  std::vector<ColumnInfo> column_info;
-
-  Eigen::ArrayXXd contents, variance;
-  size_t nfills;
-
-  HistFrame(Binning binop, std::string const &def_col_name = "mc",
-            std::string const &def_col_label = "");
-
   HistFrame(){};
 
-  using column_t = uint32_t;
-  constexpr static column_t const npos = std::numeric_limits<column_t>::max();
+  struct column_view {
+    Eigen::ArrayXdRef count;
+    Eigen::ArrayXdRef variance;
+  };
 
-  column_t add_column(std::string const &name, std::string const &label = "");
-  column_t find_column_index(std::string const &name) const;
+  struct column_view_const {
+    Eigen::ArrayXdCRef count;
+    Eigen::ArrayXdCRef variance;
+  };
 
-  Eigen::ArrayXd get_content(column_t col = 0,
-                             bool divide_by_bin_sizes = false) const;
-  Eigen::ArrayXd get_error(column_t col = 0,
-                           bool divide_by_bin_sizes = false) const;
+  column_view operator[](column_t col);
+  column_view operator[](std::string const &name);
 
-  Binning::Index find_bin(std::vector<double> const &projections) const;
-
-  HistColumn_View operator[](std::string const &name) const;
-  HistColumn_View operator[](column_t const &colid) const;
+  column_view_const operator[](column_t col) const;
+  column_view_const operator[](std::string const &name) const;
 
   void fill(std::vector<double> const &projections, double weight,
             column_t col = 0);
-  // A semantically meaningful helper find_bintion for passing a selection
+  // A semantically meaningful helper function for passing a selection
   // integer as the first projection axis
   void fill_with_selection(int sel_int, std::vector<double> const &projections,
                            double weight, column_t col = 0);
 
   // convenience for 1D histograms
-  Binning::Index find_bin(double projection) const;
   void fill(double projection, double weight, column_t col = 0);
   void fill_with_selection(int sel_int, double projection, double weight,
                            column_t col = 0);
 
-  void fill_bin(Binning::Index bini, double weight, column_t col = 0);
+  void fill_bin(Binning::index_t bini, double weight, column_t col = 0);
+
+  BinnedValues finalise(bool divide_by_bin_sizes = true) const;
 
   void reset();
-};
 
-struct HistFramePrinter {
-  std::reference_wrapper<HistFrame const> fr;
-  std::string format;
-  int max_rows;
-  size_t max_col_width;
+  // adjusts the shape of BinnedValues::values and BinnedValues::errors so that
+  // they are at least big enough to hold the binned values for
+  // column_info.size(). Will not remove or overwrite data.
+  void resize();
 
-  explicit HistFramePrinter(HistFrame const &f, std::string fmt = "table",
-                            int mr = 20, size_t mcw = 12)
-      : fr{f}, format{fmt}, max_rows{mr}, max_col_width{mcw} {}
+  Eigen::ArrayXXdCRef get_bin_contents() const { return sumweights; }
+  Eigen::ArrayXXd get_bin_uncertainty() const { return variances.sqrt(); }
+  Eigen::ArrayXXd get_bin_uncertainty_squared() const { return variances; }
 };
 
 } // namespace nuis
-
-std::ostream &operator<<(std::ostream &os, nuis::HistFrame const &);
-std::ostream &operator<<(std::ostream &os, nuis::HistFramePrinter);

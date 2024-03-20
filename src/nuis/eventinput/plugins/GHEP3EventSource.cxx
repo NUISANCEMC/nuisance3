@@ -385,13 +385,13 @@ std::string PartToStr(HepMC3::ConstGenParticlePtr pt) {
   return ss.str();
 }
 
-HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
-  HepMC3::GenEvent evt(HepMC3::Units::GEV);
+std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
+  auto evt = std::make_shared<HepMC3::GenEvent>(HepMC3::Units::GEV);
 
   auto proc_id = ConvertGENIEReactionCode(GHep);
-  ::NuHepMC::ER3::SetProcessID(evt, proc_id);
+  ::NuHepMC::ER3::SetProcessID(*evt, proc_id);
 
-  ::NuHepMC::add_attribute(evt, "GENIE.Resonance",
+  ::NuHepMC::add_attribute(*evt, "GENIE.Resonance",
                            int(GHep.Summary()->ExclTagPtr()->Resonance()));
 
   int TargetPDG;
@@ -440,8 +440,8 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
   auto nucsep_vtx = std::make_shared<HepMC3::GenVertex>();
   nucsep_vtx->set_status(::NuHepMC::VertexStatus::NucleonSeparation);
 
-  evt.add_vertex(primary_vtx);
-  evt.add_vertex(fsi_vtx);
+  evt->add_vertex(primary_vtx);
+  evt->add_vertex(fsi_vtx);
 
   // Loop over all particles
   for (auto const &po : GHep) {
@@ -496,13 +496,13 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
   }
 
   if (nucsep_vtx->particles_in().size()) {
-    evt.add_vertex(nucsep_vtx);
+    evt->add_vertex(nucsep_vtx);
   }
 
-  auto beamp = ::NuHepMC::Event::GetBeamParticle(evt);
-  auto tgtp = ::NuHepMC::Event::GetTargetParticle(evt);
+  auto beamp = ::NuHepMC::Event::GetBeamParticle(*evt);
+  auto tgtp = ::NuHepMC::Event::GetTargetParticle(*evt);
   auto nfs = ::NuHepMC::Event::GetParticles_All(
-                 evt, ::NuHepMC::ParticleStatus::UndecayedPhysical)
+                 *evt, ::NuHepMC::ParticleStatus::UndecayedPhysical)
                  .size();
 
   if (!beamp) {
@@ -539,7 +539,7 @@ HepMC3::GenEvent ToGenEvent(genie::GHepRecord const &GHep) {
              tgtp->pid(), TargetPDG, IsFree);
   }
 
-  evt.weights().push_back(1);
+  evt->weights().push_back(1);
 
   return evt;
 }
@@ -623,10 +623,10 @@ GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
   }
 }
 
-std::optional<HepMC3::GenEvent> GHEP3EventSource::first() {
+std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
 
   if (!filepaths.size()) {
-    return std::optional<HepMC3::GenEvent>();
+    return nullptr;
   }
 
   chin = std::make_unique<TChain>("gtree");
@@ -635,7 +635,7 @@ std::optional<HepMC3::GenEvent> GHEP3EventSource::first() {
     if (!chin->Add(ftr.c_str(), 0)) {
       log_warn("Could not find gtree in {}", ftr.native());
       chin.reset();
-      return std::optional<HepMC3::GenEvent>();
+      return nullptr;
     }
   }
 
@@ -643,7 +643,7 @@ std::optional<HepMC3::GenEvent> GHEP3EventSource::first() {
   ient = 0;
 
   if (ch_ents == 0) {
-    return std::optional<HepMC3::GenEvent>();
+    return nullptr;
   }
 
   ntpl = NULL;
@@ -657,33 +657,34 @@ std::optional<HepMC3::GenEvent> GHEP3EventSource::first() {
   auto ge = ghepconv::ToGenEvent(
       static_cast<genie::GHepRecord const &>(*ntpl->event));
 
-  auto tpart = NuHepMC::Event::GetTargetParticle(ge);
-  auto bpart = NuHepMC::Event::GetBeamParticle(ge);
+  auto tpart = NuHepMC::Event::GetTargetParticle(*ge);
+  auto bpart = NuHepMC::Event::GetBeamParticle(*ge);
 
   auto xspline = GetSpline(tpart->pid(), bpart->pid());
 
   gri = ghepconv::BuildRunInfo(chin->GetEntries(), xspline);
 
-  ge.set_event_number(ient);
-  ge.set_run_info(gri);
-  ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+  ge->set_event_number(ient);
+  ge->set_run_info(gri);
+  ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
 
   if (xspline) {
     NuHepMC::EC2::SetTotalCrossSection(
-        ge,
+        *ge,
         xspline->Evaluate(bpart->momentum().e()) / genie::units::pb); // in GeV
   }
 
   return ge;
 }
 
-std::optional<HepMC3::GenEvent> GHEP3EventSource::next() {
+std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
   ient++;
 
   if (ient >= ch_ents) {
-    return std::optional<HepMC3::GenEvent>();
+    return nullptr;
   }
 
+  ntpl->Clear(); // this stops catastrophic memory leaks
   chin->GetEntry(ient);
 
   if (chin->GetFile()->GetUUID() != ch_fuid) {
@@ -692,16 +693,16 @@ std::optional<HepMC3::GenEvent> GHEP3EventSource::next() {
 
   auto ge = ghepconv::ToGenEvent(
       static_cast<genie::GHepRecord const &>(*ntpl->event));
-  ge.set_event_number(ient);
-  ge.set_run_info(gri);
-  ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
-  auto tpart = NuHepMC::Event::GetTargetParticle(ge);
-  auto bpart = NuHepMC::Event::GetBeamParticle(ge);
+  ge->set_event_number(ient);
+  ge->set_run_info(gri);
+  ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+  auto tpart = NuHepMC::Event::GetTargetParticle(*ge);
+  auto bpart = NuHepMC::Event::GetBeamParticle(*ge);
 
   auto xspline = GetSpline(tpart->pid(), bpart->pid());
   if (xspline) {
     NuHepMC::EC2::SetTotalCrossSection(
-        ge,
+        *ge,
         xspline->Evaluate(bpart->momentum().e()) / genie::units::pb); // in GeV
   }
   return ge;

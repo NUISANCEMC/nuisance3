@@ -15,7 +15,7 @@
 namespace nuis {
 
 RecordFactory::RecordFactory() {
-  auto NUISANCE = std::getenv("NUISANCE_ROOT");
+  auto NUISANCE = std::getenv("NUISANCE3_ROOT");
 
   if (!NUISANCE) {
     log_critical("NUISANCE_ROOT environment variable not defined");
@@ -28,7 +28,7 @@ RecordFactory::RecordFactory() {
   for (auto const &dir_entry :
        std::filesystem::directory_iterator{shared_library_dir}) {
     if (std::regex_match(dir_entry.path().filename().native(), plugin_re)) {
-      log_info("Found record plugin: {}", dir_entry.path().native());
+      log_debug("Found record plugin: {}", dir_entry.path().native());
       pluginfactories.emplace(dir_entry.path(),
                               boost::dll::import_alias<IRecord_PluginFactory_t>(
                                   dir_entry.path().native(), "Make"));
@@ -38,15 +38,11 @@ RecordFactory::RecordFactory() {
 
 IRecordPtr RecordFactory::make(YAML::Node cfg) {
 
-  std::cout << cfg["type"] << std::endl;
   std::string record_type =
       "nuisplugin-record-" + cfg["type"].as<std::string>() + ".so";
 
   for (auto &[pluginso, plugin] : pluginfactories) {
     std::string fullpath = std::string(pluginso);
-    std::cout << fullpath << std::endl;
-    std::cout << "Finding " << record_type << " "
-              << (fullpath.find(record_type) != std::string::npos) << std::endl;
     if (fullpath.find(record_type) != std::string::npos) {
       auto es = plugin(cfg);
       return es;

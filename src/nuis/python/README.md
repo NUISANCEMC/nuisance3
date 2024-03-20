@@ -1,6 +1,25 @@
 # NUISANCE python interface
 
-## EventInput
+## Jupyter Notebook Tutorial
+
+You can follow the notebook tutorial that covers the main features of the python API over the following notebooks:
+
+1. [Opening Event Files](../../../notebooks/opening_event_files.ipynb)
+1. [HepMC3 Binding Interoperability](../../../notebooks/HepMC3_binding_interop.ipynb)
+1. [Basic Event Loops](../../../notebooks/basing_loops.ipynb)
+1. [Advanced Event Loops](../../../notebooks/advanced_looping.ipynb)
+1. [HistFrames](../../../notebooks/histframes.ipynb)
+
+There are also a few short notebooks for miscellania:
+
+1. [Getting NuHepMC Flux Information](../../../notebooks/flux_info.ipynb)
+1. [Simple Oscillation Weighting](../../../notebooks/osc.ipynb)
+1. [Altering Logging Levels](../../../notebooks/logging.ipynb)
+1. [Serializing HistFrames to/from YAML](../../../notebooks/hfyaml.ipynb)
+
+## API Walking Tour
+
+### EventInput
 
 The `pyNUISANCE.EventSource` interface wraps the NUISANCE event reading functionality.
 
@@ -33,7 +52,7 @@ flux_averaged_total_xs_estimate = evs.fatx()
 sum_cvweights = evs.sumw()
 ```
 
-You do not need to loop over all events in a file and breaking early will leave the FATX accumulator in a good state, which lets you prototype accurately with a smaller number of events, and scale up to more events without any special handling of any cross-section normalizations. You can even print out the current FATX estimate and the sumw as you go:
+You do not need to loop over all events in a file and breaking early will leave the FATX accumulator in a good state, which lets you prototype accurately with a smaller number of events, and scale up to more events without any special handling of the cross-section scaling. You can print out the current FATX estimate and the sumw as you go:
 
 ```python
 for i, (ev, cvw) in enumerate(evs):

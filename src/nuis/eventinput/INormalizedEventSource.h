@@ -23,13 +23,13 @@ class INormalizedEventSource : public IEventSourceWrapper {
 
   std::shared_ptr<NuHepMC::FATX::Accumulator> xs_acc;
 
-  std::optional<EventCVWeightPair> process(std::optional<HepMC3::GenEvent> ev);
+  std::optional<EventCVWeightPair>
+  process(std::shared_ptr<HepMC3::GenEvent> ev);
 
 public:
   INormalizedEventSource(std::shared_ptr<IEventSource> evs);
 
   std::optional<EventCVWeightPair> first();
-
   std::optional<EventCVWeightPair> next();
 
   NormInfo norm_info();

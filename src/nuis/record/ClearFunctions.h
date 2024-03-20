@@ -1,10 +1,10 @@
 #pragma once
-#include "nuis/record/ComparisonFrame.h"
+#include "nuis/record/Comparison.h"
 
 namespace nuis {
 namespace clear {
 // Fix these for full covariance estimates
-void DefaultClear(ComparisonFrame& fr) {
+void DefaultClear(Comparison& fr) {
     fr.mc.reset();
     return;
 }

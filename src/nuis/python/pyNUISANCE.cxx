@@ -12,11 +12,13 @@
 namespace py = pybind11;
 using namespace nuis;
 
-void pyFrameInit(py::module &m);
-void pyHistFrameInit(py::module &m);
-void pyRecordInit(py::module &m);
-void pyWeightCalcInit(py::module &m);
-void pyNUISANCELog(py::module &m);
+void pyFrameInit(py::module &);
+void pyBinningInit(py::module &);
+void pyHistFrameInit(py::module &);
+void pyRecordInit(py::module &);
+void pyWeightCalcInit(py::module &);
+void pyNUISANCELogInit(py::module &);
+void pyConvertInit(py::module &);
 
 PYBIND11_MODULE(pyNUISANCE, m) {
 
@@ -39,8 +41,10 @@ PYBIND11_MODULE(pyNUISANCE, m) {
 
   pyEventInputInit(m);
   pyFrameInit(m);
+  pyBinningInit(m);
   pyHistFrameInit(m);
   pyRecordInit(m);
   pyWeightCalcInit(m);
-  pyNUISANCELog(m);
+  pyNUISANCELogInit(m);
+  pyConvertInit(m);
 }

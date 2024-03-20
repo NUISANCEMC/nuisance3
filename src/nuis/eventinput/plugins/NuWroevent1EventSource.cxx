@@ -47,10 +47,10 @@ public:
     }
   };
 
-  std::optional<HepMC3::GenEvent> first() {
+  std::shared_ptr<HepMC3::GenEvent> first() {
 
     if (!filepaths.size()) {
-      return std::optional<HepMC3::GenEvent>();
+      return nullptr;
     }
 
     chin = std::make_unique<TChain>("treeout");
@@ -59,7 +59,7 @@ public:
       if (!chin->Add(ftr.c_str(), 0)) {
         log_warn("Could not find treeout in {}", ftr.native());
         chin.reset();
-        return std::optional<HepMC3::GenEvent>();
+        return nullptr;
       }
     }
 
@@ -67,7 +67,7 @@ public:
     ient = 0;
 
     if (ch_ents == 0) {
-      return std::optional<HepMC3::GenEvent>();
+      return nullptr;
     }
 
     ev = nullptr;
@@ -83,17 +83,16 @@ public:
     ch_fuid = chin->GetFile()->GetUUID();
     ient = 0;
     auto ge = nuwroconv::ToGenEvent(*ev, gri);
-    ge.set_event_number(ient);
-    ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
-
+    ge->set_event_number(ient);
+    ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
     return ge;
   }
 
-  std::optional<HepMC3::GenEvent> next() {
+  std::shared_ptr<HepMC3::GenEvent> next() {
     ient++;
 
     if (ient >= ch_ents) {
-      return std::optional<HepMC3::GenEvent>();
+      return nullptr;
     }
 
     chin->GetEntry(ient);
@@ -103,9 +102,8 @@ public:
     }
 
     auto ge = nuwroconv::ToGenEvent(*ev, gri);
-    ge.set_event_number(ient);
-    ge.set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
-
+    ge->set_event_number(ient);
+    ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
     return ge;
   }
 

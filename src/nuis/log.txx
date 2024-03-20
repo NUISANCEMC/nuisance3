@@ -1,3 +1,5 @@
+#pragma once
+
 #include "nuis/log.h"
 
 #ifndef NUISANCE_LOG_ENABLED
@@ -13,6 +15,71 @@
 #include <iostream>
 
 namespace nuis {
+
+inline log_level to_nuis_log_level(spdlog::level::level_enum sl) {
+  switch (sl) {
+  case spdlog::level::trace: {
+    return log_level::trace;
+  }
+  case spdlog::level::debug: {
+    return log_level::debug;
+  }
+  case spdlog::level::info: {
+    return log_level::info;
+  }
+  case spdlog::level::warn: {
+    return log_level::warn;
+  }
+  case spdlog::level::err: {
+    return log_level::error;
+  }
+  case spdlog::level::critical: {
+    return log_level::critical;
+  }
+  default:
+  case spdlog::level::off: {
+    return log_level::off;
+  }
+  }
+}
+
+inline spdlog::level::level_enum to_spdlog_level(log_level ll) {
+  switch (ll) {
+  case log_level::trace: {
+    return spdlog::level::trace;
+  }
+  case log_level::debug: {
+    return spdlog::level::debug;
+  }
+  case log_level::info: {
+    return spdlog::level::info;
+  }
+  case log_level::warn: {
+    return spdlog::level::warn;
+  }
+  case log_level::error: {
+    return spdlog::level::err;
+  }
+  case log_level::critical: {
+    return spdlog::level::critical;
+  }
+  default:
+  case log_level::off: {
+    return spdlog::level::off;
+  }
+  }
+}
+
+inline log_level_scopeguard_impl::log_level_scopeguard_impl(
+    std::shared_ptr<spdlog::logger> lgr, log_level new_level)
+    : logger(lgr) {
+  old_level = to_nuis_log_level(logger->level());
+  logger->set_level(to_spdlog_level(new_level));
+}
+
+inline log_level_scopeguard_impl::~log_level_scopeguard_impl() {
+  logger->set_level(to_spdlog_level(old_level));
+}
 
 template <typename TN>
 std::shared_ptr<spdlog::logger> nuis_named_log_impl<TN>::logger = nullptr;
@@ -84,64 +151,12 @@ void nuis_named_log_impl<TN>::log_critical(Args &&...args) {
 template <typename TN>
 void nuis_named_log_impl<TN>::set_log_level(log_level ll) {
   ensure_logger();
-  switch (ll) {
-  case log_level::trace: {
-    logger->set_level(spdlog::level::trace);
-    break;
-  }
-  case log_level::debug: {
-    logger->set_level(spdlog::level::debug);
-    break;
-  }
-  case log_level::info: {
-    logger->set_level(spdlog::level::info);
-    break;
-  }
-  case log_level::warn: {
-    logger->set_level(spdlog::level::warn);
-    break;
-  }
-  case log_level::error: {
-    logger->set_level(spdlog::level::err);
-    break;
-  }
-  case log_level::critical: {
-    logger->set_level(spdlog::level::critical);
-    break;
-  }
-  case log_level::off: {
-    logger->set_level(spdlog::level::off);
-    break;
-  }
-  }
+  logger->set_level(to_spdlog_level(ll));
 }
 
 template <typename TN> log_level nuis_named_log_impl<TN>::get_log_level() {
   ensure_logger();
-  switch (logger->level()) {
-  case spdlog::level::trace: {
-    return log_level::trace;
-  }
-  case spdlog::level::debug: {
-    return log_level::debug;
-  }
-  case spdlog::level::info: {
-    return log_level::info;
-  }
-  case spdlog::level::warn: {
-    return log_level::warn;
-  }
-  case spdlog::level::err: {
-    return log_level::error;
-  }
-  case spdlog::level::critical: {
-    return log_level::critical;
-  }
-  default:
-  case spdlog::level::off: {
-    return log_level::off;
-  }
-  }
+  return to_nuis_log_level(logger->level());
 }
 
 template <typename TN> void nuis_named_log_impl<TN>::envcfg() {
@@ -174,6 +189,13 @@ template <typename TN> void nuis_named_log_impl<TN>::envcfg() {
   }
 }
 
+template <typename TN>
+log_level_scopeguard_impl
+nuis_named_log_impl<TN>::log_level_scopeguard(log_level ll) {
+  ensure_logger();
+  return log_level_scopeguard_impl(logger, ll);
+}
+
 template <typename... Args> void log_trace(Args &&...args) {
   nuis_named_log("default")::log_trace(std::forward<Args>(args)...);
 }
@@ -198,6 +220,10 @@ inline void set_log_level(log_level ll) {
 
 inline log_level get_log_level() {
   return nuis_named_log("default")::get_log_level();
+}
+
+inline log_level_scopeguard_impl log_level_scopeguard(log_level ll) {
+  return nuis_named_log("default")::log_level_scopeguard(ll);
 }
 
 } // namespace nuis
