@@ -98,7 +98,7 @@ public:
 
   HEPDataRecord(YAML::Node const &cfg) { node = cfg; }
 
-  TablePtr table(std::string table) {
+  TablePtr table(std::string const &table) {
     YAML::Node cfg = node;
 
     db_path = nuis::database();
