@@ -13,6 +13,10 @@ namespace nuis {
 // RecordFactory output with the functions needed to project
 struct Table {
 
+  Table()
+      : blueprint{}, clear{}, select{}, weight{}, projections{}, project{},
+        finalize{}, likeihood{} {}
+
   // Here we purposefully keep a full template so that people can change the
   // binning/data on the fly and all others get propagated.
 
@@ -24,8 +28,10 @@ struct Table {
   ClearFunc clear;
   SelectFunc select;
   WeightFunc weight;
+
   std::vector<ProjectFunc> projections;
   FullProjectFunc project;
+
   FinalizeFunc finalize;
   LikelihoodFunc likeihood;
 
@@ -38,5 +44,7 @@ struct Table {
   template <typename... TS> auto find_column_index(TS &&...args) {
     return blueprint->find_column_index(std::forward<TS>(args)...);
   };
+
+  ~Table() {}
 };
 } // namespace nuis

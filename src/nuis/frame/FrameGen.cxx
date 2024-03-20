@@ -53,10 +53,10 @@ Frame FrameGen::first() {
 template <typename T>
 size_t FrameGen::fill_row_columns(Eigen::ArrayXdRef row,
                                   HepMC3::GenEvent const &ev, size_t proj_index,
-                                  size_t first_col) {
+                                  size_t first_col, size_t ncols_to_fill) {
   auto const &projs = get_proj_functions<T>()[proj_index](ev);
 
-  for (size_t i = 0; i < projs.size(); ++i) {
+  for (size_t i = 0; i < std::min(projs.size(), ncols_to_fill); ++i) {
     row[first_col++] = projs[i];
   }
 
@@ -126,12 +126,12 @@ Frame FrameGen::next() {
 
       switch (typenum) {
       case column_type<int>::id:
-        next_col_id =
-            fill_row_columns<int>(chunk.row(chunk_row), ev, proj_index, col_id);
+        next_col_id = fill_row_columns<int>(
+            chunk.row(chunk_row), ev, proj_index, col_id, column_names.size());
         break;
       case column_type<double>::id:
-        next_col_id = fill_row_columns<double>(chunk.row(chunk_row), ev,
-                                               proj_index, col_id);
+        next_col_id = fill_row_columns<double>(
+            chunk.row(chunk_row), ev, proj_index, col_id, column_names.size());
         break;
       }
 

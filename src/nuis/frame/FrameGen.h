@@ -103,7 +103,8 @@ private:
   }
   template <typename T>
   size_t fill_row_columns(Eigen::ArrayXdRef row, HepMC3::GenEvent const &ev,
-                          size_t proj_index, size_t first_col);
+                          size_t proj_index, size_t first_col,
+                          size_t ncols_to_fill);
 
   std::vector<ProjectionsFunc<int>> projectors_int;
   std::vector<ProjectionsFunc<double>> projectors_double;

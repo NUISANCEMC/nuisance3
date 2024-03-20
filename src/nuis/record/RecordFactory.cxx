@@ -15,7 +15,7 @@
 namespace nuis {
 
 RecordFactory::RecordFactory() {
-  auto NUISANCE = std::getenv("NUISANCE_ROOT");
+  auto NUISANCE = std::getenv("NUISANCE3_ROOT");
 
   if (!NUISANCE) {
     log_critical("NUISANCE_ROOT environment variable not defined");
@@ -38,15 +38,11 @@ RecordFactory::RecordFactory() {
 
 IRecordPtr RecordFactory::make(YAML::Node cfg) {
 
-  std::cout << cfg["type"] << std::endl;
   std::string record_type =
       "nuisplugin-record-" + cfg["type"].as<std::string>() + ".so";
 
   for (auto &[pluginso, plugin] : pluginfactories) {
     std::string fullpath = std::string(pluginso);
-    std::cout << fullpath << std::endl;
-    std::cout << "Finding " << record_type << " "
-              << (fullpath.find(record_type) != std::string::npos) << std::endl;
     if (fullpath.find(record_type) != std::string::npos) {
       auto es = plugin(cfg);
       return es;

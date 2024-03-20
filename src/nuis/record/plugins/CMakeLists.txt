@@ -1,5 +1,5 @@
 add_library(hepdata_record_plugin SHARED HEPDATARecord.cxx)
-target_link_libraries(hepdata_record_plugin PUBLIC nuis_options)
+target_link_libraries(hepdata_record_plugin PUBLIC histframe nuis_options)
 
 set_target_properties(hepdata_record_plugin PROPERTIES PREFIX "nuisplugin-record-")
 set_target_properties(hepdata_record_plugin PROPERTIES OUTPUT_NAME "hepdata")
@@ -7,10 +7,19 @@ set_target_properties(hepdata_record_plugin PROPERTIES OUTPUT_NAME "hepdata")
 install(TARGETS hepdata_record_plugin DESTINATION lib/plugins)
 
 
-#add_library(nuisance_record_plugin SHARED NUISANCERecord.cxx)
-#target_link_libraries(nuisance_record_plugin PUBLIC nuis_options)
+if(NUISANCE_LEGACY_INTERFACE)
+  if(NOT DEFINED ENV{NUISANCE})
+    message(FATAL_ERROR "NUISANCE_LEGACY_INTERFACE: ${NUISANCE_LEGACY_INTERFACE} is enabled but ENV{NUISANCE} is not defined.")
+  endif()
 
-#set_target_properties(nuisance_record_plugin PROPERTIES PREFIX "nuisplugin-record-")
-#set_target_properties(nuisance_record_plugin PROPERTIES OUTPUT_NAME "nuisance")
+  LIST(APPEND CMAKE_PREFIX_PATH $ENV{NUISANCE})
+  find_package(NUISANCE REQUIRED)
 
-#install(TARGETS nuisance_record_plugin DESTINATION lib/plugins)
+  add_library(nuisance2_record_plugin SHARED NUISANCE2Record.cxx)
+  target_link_libraries(nuisance2_record_plugin PUBLIC histframe NUIS::FCN)
+
+  set_target_properties(nuisance2_record_plugin PROPERTIES PREFIX "nuisplugin-record-")
+  set_target_properties(nuisance2_record_plugin PROPERTIES OUTPUT_NAME "nuisance2")
+
+  install(TARGETS nuisance2_record_plugin DESTINATION lib/plugins)
+endif()

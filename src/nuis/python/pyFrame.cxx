@@ -66,13 +66,19 @@ struct pyFrameGen {
   auto all() { return gen->all(); }
 
 #ifdef NUIS_ARROW_ENABLED
-  auto firstArrow() {
-    return py::reinterpret_steal<py::object>(
-        arrow::py::wrap_batch(gen->firstArrow()));
+  py::object firstArrow() {
+    auto rb = gen->firstArrow();
+    if (rb) {
+      return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
+    }
+    return py::none();
   }
-  auto nextArrow() {
-    return py::reinterpret_steal<py::object>(
-        arrow::py::wrap_batch(gen->nextArrow()));
+  py::object nextArrow() {
+    auto rb = gen->nextArrow();
+    if (rb) {
+      return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
+    }
+    return py::none();
   }
 #endif
 
@@ -133,6 +139,7 @@ void pyFrameInit(py::module &m) {
       .def("add_double_column", &pyFrameGen::add_double_column)
       .def("add_double_columns", &pyFrameGen::add_double_columns)
       .def("limit", &pyFrameGen::limit)
+      .def("limit", [](pyFrameGen &s, double i) { return s.limit(i); })
       .def("progress", &pyFrameGen::progress, py::arg("every") = 100000)
       .def("first", &pyFrameGen::first)
       .def("next", &pyFrameGen::next)
