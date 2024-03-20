@@ -73,7 +73,7 @@ std::filesystem::path PathResolver::resolve(std::string const &filepath) {
 }
 
 EventSourceFactory::EventSourceFactory() : resolv() {
-  auto NUISANCE = std::getenv("NUISANCE_ROOT");
+  auto NUISANCE = std::getenv("NUISANCE3_ROOT");
 
   if (!NUISANCE) {
     log_critical("NUISANCE_ROOT environment variable not defined");
@@ -125,7 +125,7 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
     if (es->first()) {
       log_debug("Reading file {} with plugin {}",
                 cfg["filepath"].as<std::string>(), pluginso.native());
-      return {es->first().value().run_info(), es};
+      return {es->first()->run_info(), es};
     }
   }
   // try plugins first as there is a bug in HepMC3 root reader that segfaults
@@ -135,7 +135,7 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
   if (es->first()) {
     log_debug("Reading file {} with native HepMC3EventSource",
               cfg["filepath"].as<std::string>());
-    return {es->first().value().run_info(), es};
+    return {es->first()->run_info(), es};
   }
   log_warn("Failed to find plugin capable of reading input file: {}.",
            cfg["filepath"].as<std::string>());

@@ -6,6 +6,8 @@
 
 #include "nuis/python/pyNUISANCE.h"
 
+#include "HepMC3/GenEvent.h"
+
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
 
@@ -52,7 +54,7 @@ void pyRecordInit(py::module &m) {
   // ProSeleca::Get() has been called in this function.
   //  (void)nuis::database();
 
-  py::class_<Comparison>(m, "Comparison")
+  py::class_<Comparison, std::shared_ptr<Comparison>>(m, "Comparison")
       .def_readwrite("mc", &Comparison::mc)
       .def_readwrite("data", &Comparison::data);
 
@@ -65,12 +67,12 @@ void pyRecordInit(py::module &m) {
       .def("table", &pyRecord::table)
       .def("__getattr__", &pyRecord::table);
 
-  py::class_<Table>(m, "Table")
+  py::class_<Table,TablePtr>(m, "Table")
       .def(py::init<>())
       .def_readwrite("blueprint", &Table::blueprint)
-      .def_readwrite("clear", &Table::clear);
-  //      .def_readwrite("select", &Table::select)
-  //      .def_readwrite("project", &Table::finalize)
+      .def_readwrite("clear", &Table::clear)
+      .def_readwrite("select", &Table::select)
+      .def_readwrite("project", &Table::project);
   //      .def_readwrite("likeihood", &Table::likeihood)
   //      .def("add_column", &Table::add_column)
   //      .def("find_column_index", &Table::find_column_index);

@@ -43,6 +43,10 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  auto frame = FrameGen(evs).progress(1E5).all();
+  auto frame = FrameGen(evs)
+                   .add_column("enu", enu)
+                   .add_columns({"enu2", "pid"}, enu_nupid)
+                   .progress(1E5)
+                   .all();
 
 }

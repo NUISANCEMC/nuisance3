@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <memory>
+#include <string>
 
 #include "yaml-cpp/yaml.h"
 
@@ -17,19 +17,16 @@ using TablePtr = std::shared_ptr<Table>;
 
 struct IRecord : public nuis_named_log("Record") {
 
-    IRecord(){};
+  IRecord(){};
 
-    IRecord(YAML::Node /*n*/){
-        std::cout << "Base constructor being called" << std::endl;
-    };
+  IRecord(YAML::Node /*n*/) {
+    std::cout << "Base constructor being called" << std::endl;
+  };
 
-    virtual TablePtr table(std::string name) = 0;
+  virtual TablePtr table(std::string const &name) = 0;
 
-    TablePtr operator[](std::string name) {
-        return table(name);
-    }
+  TablePtr operator[](std::string const &name) { return table(name); }
 
-    YAML::Node node;
-
+  YAML::Node node;
 };
-}
+} // namespace nuis

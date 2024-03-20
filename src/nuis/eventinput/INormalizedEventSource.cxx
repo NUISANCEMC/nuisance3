@@ -1,7 +1,7 @@
 #include "nuis/eventinput/INormalizedEventSource.h"
 
-#include "nuis/log.txx"
 #include "nuis/except.h"
+#include "nuis/log.txx"
 
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/FATXUtils.hxx"
@@ -13,22 +13,22 @@ NEW_NUISANCE_EXCEPT(EventMomentumUnitNotMeV);
 namespace nuis {
 
 std::optional<EventCVWeightPair>
-INormalizedEventSource::process(std::optional<HepMC3::GenEvent> ev) {
+INormalizedEventSource::process(std::shared_ptr<HepMC3::GenEvent> ev) {
   if (!ev) {
     return std::optional<EventCVWeightPair>();
   }
+
 #ifndef NUIS_NDEBUG
-  if (NuHepMC::Event::ToMeVFactor(ev.value()) != 1) {
+  if (NuHepMC::Event::ToMeVFactor(*ev) != 1) {
     log_critical(
         "[INormalizedEventSource]: Processing event not in MeV. This breaks "
         "a critical contract to users, fix the underlying IEventSource.");
     throw EventMomentumUnitNotMeV();
   }
 
-  auto fsprot =
-      NuHepMC::Event::GetParticles_AllRealFinalState(ev.value(), {
-                                                                     2212,
-                                                                 });
+  auto fsprot = NuHepMC::Event::GetParticles_AllRealFinalState(*ev, {
+                                                                        2212,
+                                                                    });
   if (fsprot.size()) {
     if (fsprot.front()->momentum().m() < 10) {
       log_critical(
@@ -41,8 +41,7 @@ INormalizedEventSource::process(std::optional<HepMC3::GenEvent> ev) {
   }
 #endif
 
-  double cvw = xs_acc->process(ev.value());
-  return EventCVWeightPair{std::move(ev.value()), cvw};
+  return EventCVWeightPair{ev, xs_acc->process(*ev)};
 }
 
 INormalizedEventSource::INormalizedEventSource(
@@ -55,8 +54,8 @@ std::optional<EventCVWeightPair> INormalizedEventSource::first() {
   }
 
   try {
-    xs_acc = NuHepMC::FATX::MakeAccumulator(
-        wrapped_ev_source->first().value().run_info());
+    xs_acc =
+        NuHepMC::FATX::MakeAccumulator(wrapped_ev_source->first()->run_info());
   } catch (NuHepMC::except const &ex) {
     return std::optional<EventCVWeightPair>();
   }

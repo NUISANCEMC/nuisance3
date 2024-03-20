@@ -46,9 +46,9 @@ class GHEP3EventSource : public IEventSource {
 public:
   GHEP3EventSource(YAML::Node const &cfg);
 
-  std::optional<HepMC3::GenEvent> first();
+  std::shared_ptr<HepMC3::GenEvent> first();
 
-  std::optional<HepMC3::GenEvent> next();
+  std::shared_ptr<HepMC3::GenEvent> next();
 
   static IEventSourcePtr MakeEventSource(YAML::Node const &cfg);
 

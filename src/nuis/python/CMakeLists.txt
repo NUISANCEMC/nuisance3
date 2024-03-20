@@ -8,7 +8,8 @@ pybind11_add_module(pyNUISANCE SHARED
   pyWeightCalc.cxx 
   pyNUISANCELog.cxx 
   pyBinning.cxx
-  pyConvert.cxx)
+  pyConvert.cxx
+  )
 
 target_link_libraries(pyNUISANCE 
   PRIVATE 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nuis/histframe/HistFrame.h"
+#include "nuis/histframe/BinnedValues.h"
 
 #include "boost/json.hpp"
 
@@ -10,5 +10,5 @@ void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
                 Binning const &bi);
 
 void tag_invoke(boost::json::value_from_tag, boost::json::value &jv,
-                HistFrame const &hf);
+                BinnedValues const &hf);
 } // namespace nuis

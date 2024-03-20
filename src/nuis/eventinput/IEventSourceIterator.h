@@ -2,6 +2,7 @@
 
 #include "HepMC3/GenEvent.h"
 
+#include <memory>
 #include <optional>
 
 // this could be written as a template with some concrete instantiations
@@ -14,7 +15,7 @@ struct IEventSource_sentinel {};
 
 class IEventSource_looper {
   IEventSourcePtr source;
-  std::optional<HepMC3::GenEvent> curr_event;
+  std::shared_ptr<HepMC3::GenEvent> curr_event;
 
 public:
   IEventSource_looper(IEventSourcePtr evs);
@@ -31,7 +32,7 @@ class INormalizedEventSource;
 using INormalizedEventSourcePtr = std::shared_ptr<INormalizedEventSource>;
 
 struct EventCVWeightPair {
-  HepMC3::GenEvent evt;
+  std::shared_ptr<HepMC3::GenEvent> evt;
   double cv_weight;
 };
 

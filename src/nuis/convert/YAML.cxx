@@ -95,24 +95,24 @@ template <> struct convert<nuis::BinningPtr> {
     return true;
   }
 };
-template <> struct convert<nuis::HistFrame> {
-  static Node encode(nuis::HistFrame const &rhs) {
+template <> struct convert<nuis::BinnedValues> {
+  static Node encode(nuis::BinnedValues const &rhs) {
 
     YAML::Node out;
     out["independent_variables"] = rhs.binning;
 
     YAML::Node header;
-    header["name"] = rhs.column_info[0].dependent_axis_label;
+    header["name"] = rhs.column_info[0].column_label;
 
     YAML::Node dvar;
     dvar["header"] = header;
 
     for (size_t i = 0; i < rhs.binning->bins.size(); ++i) {
       YAML::Node val;
-      val["value"] = rhs.contents(i, 0);
+      val["value"] = rhs.values(i, 0);
 
       YAML::Node staterr;
-      staterr["symerror"] = std::sqrt(rhs.variance(i, 0));
+      staterr["symerror"] = rhs.errors(i, 0);
       staterr["label"] = "stat";
       val["errors"].push_back(staterr);
       dvar["values"].push_back(val);
@@ -122,35 +122,36 @@ template <> struct convert<nuis::HistFrame> {
     return out;
   }
 
-  static bool decode(const Node &node, nuis::HistFrame &rhs) {
+  static bool decode(const Node &node, nuis::BinnedValues &rhs) {
     if (!node.IsMap() || !node["independent_variables"] ||
         !node["dependent_variables"]) {
       return false;
     }
 
-    nuis::HistFrame hf;
+    nuis::BinnedValues hf;
 
     hf.binning = node["independent_variables"].as<nuis::BinningPtr>();
-
-    hf.reset();
 
     for (size_t dv_it = 0; dv_it < node["dependent_variables"].size();
          ++dv_it) {
       auto const &dvar = node["dependent_variables"][dv_it];
       hf.add_column(dvar["header"]["name"].as<std::string>());
     }
-    hf.reset();
+
+    hf.values =
+        Eigen::ArrayXXd::Zero(hf.binning->bins.size(), hf.column_info.size());
+    hf.errors =
+        Eigen::ArrayXXd::Zero(hf.binning->bins.size(), hf.column_info.size());
 
     for (size_t dv_it = 0; dv_it < node["dependent_variables"].size();
          ++dv_it) {
       auto const &dvar = node["dependent_variables"][dv_it];
       for (size_t bi = 0; bi < dvar["values"].size(); ++bi) {
         auto const &val = dvar["values"][bi];
-        hf.contents(bi, dv_it) = val["value"].as<double>();
+        hf.values(bi, dv_it) = val["value"].as<double>();
 
         if (val["errors"] && val["errors"].size()) {
-          hf.variance(bi, dv_it) =
-              std::pow(val["errors"][0]["symerror"].as<double>(), 2);
+          hf.errors(bi, dv_it) = val["errors"][0]["symerror"].as<double>();
         }
       }
     }
@@ -163,13 +164,15 @@ template <> struct convert<nuis::HistFrame> {
 } // namespace YAML
 
 namespace nuis {
-YAML::Node to_yaml(HistFrame const &hf) {
-  return YAML::convert<nuis::HistFrame>::encode(hf);
+YAML::Node to_yaml(BinnedValues const &hf) {
+  return YAML::convert<nuis::BinnedValues>::encode(hf);
 }
-std::string to_yaml_str(HistFrame const &hf) { return str_via_ss(to_yaml(hf)); }
+std::string to_yaml_str(BinnedValues const &hf) {
+  return str_via_ss(to_yaml(hf));
+}
 
-HistFrame from_yaml(YAML::Node const &yhf) { return yhf.as<HistFrame>(); }
-HistFrame from_yaml_str(std::string const &shf) {
-  return YAML::Load(shf).as<HistFrame>();
+BinnedValues from_yaml(YAML::Node const &yhf) { return yhf.as<BinnedValues>(); }
+BinnedValues from_yaml_str(std::string const &shf) {
+  return YAML::Load(shf).as<BinnedValues>();
 }
 } // namespace nuis
