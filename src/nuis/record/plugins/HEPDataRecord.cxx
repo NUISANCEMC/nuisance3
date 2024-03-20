@@ -7,6 +7,8 @@
 
 #include "nuis/record/plugins/HEPDataVariables.h"
 
+#include "nuis/record/hook_types.h"
+
 #include "nuis/record/ClearFunctions.h"
 #include "nuis/record/FinalizeFunctions.h"
 #include "nuis/record/LikelihoodFunctions.h"
@@ -82,19 +84,6 @@ NEW_NUISANCE_EXCEPT(ProSelectaLoadFileFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetFilterFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetProjectionFailure);
 
-using ClearFunc = std::function<void(Comparison &)>;
-
-using ProjectFunc = std::function<double(HepMC3::GenEvent const &)>;
-
-using WeightFunc = std::function<double(HepMC3::GenEvent const &)>;
-
-using SelectFunc = std::function<int(HepMC3::GenEvent const &)>;
-
-// Don't love that this needs all at once
-using FinalizeFunc = std::function<void(Comparison &, const double)>;
-
-using LikelihoodFunc = std::function<double(Comparison const &)>;
-
 class HEPDataRecord : public IRecordPlugin {
 public:
   std::string db_path;
@@ -109,7 +98,7 @@ public:
 
   HEPDataRecord(YAML::Node const &cfg) { node = cfg; }
 
-  TablePtr table(std::string table) {
+  TablePtr table(std::string const &table) {
     YAML::Node cfg = node;
 
     db_path = nuis::database();
@@ -244,10 +233,10 @@ public:
 
     Comparison hist(from_hepdata_extents(variables_indep));
 
-    hist.data.contents.col(0) = Eigen::Map<Eigen::VectorXd>(
+    hist.data.values.col(0) = Eigen::Map<Eigen::VectorXd>(
         variables_dep[0].values.data(), variables_dep[0].values.size());
 
-    hist.data.variance.col(0) = Eigen::Map<Eigen::VectorXd>(
+    hist.data.errors.col(0) = Eigen::Map<Eigen::VectorXd>(
         variables_dep[0].errors.data(), variables_dep[0].errors.size());
 
     tab.blueprint = std::make_shared<Comparison>(hist);

@@ -684,6 +684,7 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
     return nullptr;
   }
 
+  ntpl->Clear(); // this stops catastrophic memory leaks
   chin->GetEntry(ient);
 
   if (chin->GetFile()->GetUUID() != ch_fuid) {

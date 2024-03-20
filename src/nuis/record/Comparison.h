@@ -1,24 +1,31 @@
 #pragma once
 
+#include "nuis/histframe/BinnedValues.h"
 #include "nuis/histframe/HistFrame.h"
 
 #include <string>
 #include <utility>
 
 namespace nuis {
+
 struct Comparison {
+
+  struct Finalised {
+    BinnedValues data;
+    BinnedValues mc;
+  };
 
   std::string normalisation_type;
   bool by_bin_width;
 
   Eigen::ArrayXXd correlation;
 
+  BinnedValues data;
   HistFrame mc;
-  HistFrame data;
 
   Comparison(BinningPtr bindef) {
+    data = BinnedValues(bindef, "data");
     mc = HistFrame(bindef, "mc");
-    data = HistFrame(bindef, "data");
   }
 
   // Redirect most function calls down to mc as data is static
@@ -28,18 +35,6 @@ struct Comparison {
 
   template <typename... TS> auto find_column_index(TS &&...args) {
     return mc.find_column_index(std::forward<TS>(args)...);
-  }
-
-  template <typename... TS> auto get_values(TS &&...args) {
-    return mc.get_values(std::forward<TS>(args)...);
-  }
-
-  template <typename... TS> auto get_errors(TS &&...args) {
-    return mc.get_errors(std::forward<TS>(args)...);
-  }
-
-  template <typename... TS> auto get_column(TS &&...args) {
-    return mc.get_column(std::forward<TS>(args)...);
   }
 
   template <typename... TS> void fill(TS &&...args) {
@@ -56,32 +51,31 @@ struct Comparison {
 
   void reset() { return mc.reset(); }
 
-  template <typename... TS> auto get_data_values(TS &&...args) {
-    return data.get_values(std::forward<TS>(args)...);
+  template <typename T> auto get_data_column(T &&args) const {
+    return data[std::forward<T>(args)];
+  }
+  template <typename T> auto get_mc_column(T &&args) const {
+    return mc[std::forward<T>(args)];
   }
 
-  template <typename... TS> auto get_data_errors(TS &&...args) {
-    return data.get_errors(std::forward<TS>(args)...);
+  struct comparison_view {
+    BinnedValues::column_view data;
+    HistFrame::column_view mc;
+  };
+
+  struct comparison_view_const {
+    BinnedValues::column_view_const data;
+    HistFrame::column_view_const mc;
+  };
+
+  template <typename T> auto operator[](T &&args) {
+    return comparison_view{data[std::forward<T>(args)],
+                           mc[std::forward<T>(args)]};
   }
 
-  // LP: Can't remember what we decided about this, but I don't love it maybe
-  // these just forward to the mc, and we say you have to use the get_data_xxx
-  // functions above to get data stuff
-  auto operator[](std::string const &name) {
-    if (name == "data")
-      return data[0];
-    return mc[name];
-  }
-
-  // this also works
-  constexpr static HistFrame::column_t kData = HistFrame::npos - 1;
-
-  // Here DATA will still need its own assigned ID :(
-  auto operator[](HistFrame::column_t const &colid) {
-    if (colid == kData) {
-      return data[0];
-    }
-    return mc[colid];
+  template <typename T> auto operator[](T &&args) const {
+    return comparison_view_const{data[std::forward<T>(args)],
+                                 mc[std::forward<T>(args)]};
   }
 };
 } // namespace nuis

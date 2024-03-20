@@ -1,4 +1,4 @@
-add_library(histframe SHARED HistFrame.cxx utility.cxx)
+add_library(histframe SHARED HistFrame.cxx BinnedValues.cxx utility.cxx)
 
 target_link_libraries(histframe PUBLIC binning nuis_options)
 

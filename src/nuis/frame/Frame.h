@@ -2,6 +2,8 @@
 
 #include "nuis/eventinput/INormalizedEventSource.h"
 
+#include "nuis/frame/missing_datum.h"
+
 #include "nuis/except.h"
 
 #include "Eigen/Dense"
@@ -22,8 +24,6 @@ struct Frame {
   std::vector<std::string> column_names;
   Eigen::ArrayXXd table;
   NormInfo norm_info;
-
-  constexpr static double const missing_datum = 0xdeadbeef;
 
   using column_t = uint32_t;
   constexpr static column_t const npos = std::numeric_limits<column_t>::max();

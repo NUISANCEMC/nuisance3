@@ -34,13 +34,13 @@ TEST_CASE("2D->1D", "[Projection]") {
   hf.fill({2, 0}, 1);
 
   nuis::HistFrame hfp = Project(hf, 0);
-  REQUIRE(hfp.nfills == 3);
-  REQUIRE(hfp.contents(0, 0) == 1);
-  REQUIRE(hfp.contents(1, 0) == 1);
-  REQUIRE(hfp.contents(2, 0) == 1);
-  REQUIRE(hfp.variance(0, 0) == 1);
-  REQUIRE(hfp.variance(1, 0) == 1);
-  REQUIRE(hfp.variance(2, 0) == 1);
+  REQUIRE(hfp.num_fills == 3);
+  REQUIRE(hfp.sumweights(0, 0) == 1);
+  REQUIRE(hfp.sumweights(1, 0) == 1);
+  REQUIRE(hfp.sumweights(2, 0) == 1);
+  REQUIRE(hfp.variances(0, 0) == 1);
+  REQUIRE(hfp.variances(1, 0) == 1);
+  REQUIRE(hfp.variances(2, 0) == 1);
 
   hf.reset();
 
@@ -51,22 +51,22 @@ TEST_CASE("2D->1D", "[Projection]") {
   hf.fill({2, 0}, 1);
 
   hfp = Project(hf, 0);
-  REQUIRE(hfp.nfills == 5);
-  REQUIRE(hfp.contents(0, 0) == 1);
-  REQUIRE(hfp.contents(1, 0) == 3);
-  REQUIRE(hfp.contents(2, 0) == 1);
-  REQUIRE(hfp.variance(0, 0) == 1);
-  REQUIRE(hfp.variance(1, 0) == 3);
-  REQUIRE(hfp.variance(2, 0) == 1);
+  REQUIRE(hfp.num_fills == 5);
+  REQUIRE(hfp.sumweights(0, 0) == 1);
+  REQUIRE(hfp.sumweights(1, 0) == 3);
+  REQUIRE(hfp.sumweights(2, 0) == 1);
+  REQUIRE(hfp.variances(0, 0) == 1);
+  REQUIRE(hfp.variances(1, 0) == 3);
+  REQUIRE(hfp.variances(2, 0) == 1);
 
   hfp = Project(hf, 1);
-  REQUIRE(hfp.nfills == 5);
-  REQUIRE(hfp.contents(0, 0) == 3);
-  REQUIRE(hfp.contents(1, 0) == 1);
-  REQUIRE(hfp.contents(2, 0) == 1);
-  REQUIRE(hfp.variance(0, 0) == 3);
-  REQUIRE(hfp.variance(1, 0) == 1);
-  REQUIRE(hfp.variance(2, 0) == 1);
+  REQUIRE(hfp.num_fills == 5);
+  REQUIRE(hfp.sumweights(0, 0) == 3);
+  REQUIRE(hfp.sumweights(1, 0) == 1);
+  REQUIRE(hfp.sumweights(2, 0) == 1);
+  REQUIRE(hfp.variances(0, 0) == 3);
+  REQUIRE(hfp.variances(1, 0) == 1);
+  REQUIRE(hfp.variances(2, 0) == 1);
 
   hf.reset();
 }
@@ -111,10 +111,10 @@ TEST_CASE("2D swap", "[Projection]") {
 
   REQUIRE(bin1s == bin1);
 
-  REQUIRE(hfp.nfills == 3);
-  REQUIRE(hfp.contents(bin1s, 0) == 1);
-  REQUIRE(hfp.contents(bin2s, 0) == 1);
-  REQUIRE(hfp.contents(bin3s, 0) == 1);
+  REQUIRE(hfp.num_fills == 3);
+  REQUIRE(hfp.sumweights(bin1s, 0) == 1);
+  REQUIRE(hfp.sumweights(bin2s, 0) == 1);
+  REQUIRE(hfp.sumweights(bin3s, 0) == 1);
 }
 
 TEST_CASE("3D->2D", "[Projection]") {
@@ -159,10 +159,10 @@ TEST_CASE("3D->2D", "[Projection]") {
   auto bin2p = hfp.find_bin({1, 1});
   auto bin3p = hfp.find_bin({2, 0});
 
-  REQUIRE(hfp.nfills == 3);
-  REQUIRE(hfp.contents(bin1p, 0) == 1);
-  REQUIRE(hfp.contents(bin2p, 0) == 1);
-  REQUIRE(hfp.contents(bin3p, 0) == 1);
+  REQUIRE(hfp.num_fills == 3);
+  REQUIRE(hfp.sumweights(bin1p, 0) == 1);
+  REQUIRE(hfp.sumweights(bin2p, 0) == 1);
+  REQUIRE(hfp.sumweights(bin3p, 0) == 1);
 
   hfp = Project(hf, {0, 2});
 
@@ -170,10 +170,10 @@ TEST_CASE("3D->2D", "[Projection]") {
   bin2p = hfp.find_bin({1, 0});
   bin3p = hfp.find_bin({2, 2});
 
-  REQUIRE(hfp.nfills == 3);
-  REQUIRE(hfp.contents(bin1p, 0) == 1);
-  REQUIRE(hfp.contents(bin2p, 0) == 1);
-  REQUIRE(hfp.contents(bin3p, 0) == 1);
+  REQUIRE(hfp.num_fills == 3);
+  REQUIRE(hfp.sumweights(bin1p, 0) == 1);
+  REQUIRE(hfp.sumweights(bin2p, 0) == 1);
+  REQUIRE(hfp.sumweights(bin3p, 0) == 1);
 
   hfp = Project(hf, {1, 2});
 
@@ -181,10 +181,10 @@ TEST_CASE("3D->2D", "[Projection]") {
   bin2p = hfp.find_bin({1, 0});
   bin3p = hfp.find_bin({0, 2});
 
-  REQUIRE(hfp.nfills == 3);
-  REQUIRE(hfp.contents(bin1p, 0) == 1);
-  REQUIRE(hfp.contents(bin2p, 0) == 1);
-  REQUIRE(hfp.contents(bin3p, 0) == 1);
+  REQUIRE(hfp.num_fills == 3);
+  REQUIRE(hfp.sumweights(bin1p, 0) == 1);
+  REQUIRE(hfp.sumweights(bin2p, 0) == 1);
+  REQUIRE(hfp.sumweights(bin3p, 0) == 1);
 }
 
 TEST_CASE("3D->1D", "[Projection]") {
@@ -229,10 +229,10 @@ TEST_CASE("3D->1D", "[Projection]") {
   auto bin2p = hfp.find_bin(1);
   auto bin3p = hfp.find_bin(2);
 
-  REQUIRE(hfp.nfills == 3);
-  REQUIRE(hfp.contents(bin1p, 0) == 1);
-  REQUIRE(hfp.contents(bin2p, 0) == 1);
-  REQUIRE(hfp.contents(bin3p, 0) == 1);
+  REQUIRE(hfp.num_fills == 3);
+  REQUIRE(hfp.sumweights(bin1p, 0) == 1);
+  REQUIRE(hfp.sumweights(bin2p, 0) == 1);
+  REQUIRE(hfp.sumweights(bin3p, 0) == 1);
 
   hfp = Project(hf, 1);
 
@@ -240,10 +240,10 @@ TEST_CASE("3D->1D", "[Projection]") {
   bin2p = hfp.find_bin(1);
   bin3p = hfp.find_bin(2);
 
-  REQUIRE(hfp.nfills == 3);
-  REQUIRE(hfp.contents(bin1p, 0) == 2);
-  REQUIRE(hfp.contents(bin2p, 0) == 1);
-  REQUIRE(hfp.contents(bin3p, 0) == 0);
+  REQUIRE(hfp.num_fills == 3);
+  REQUIRE(hfp.sumweights(bin1p, 0) == 2);
+  REQUIRE(hfp.sumweights(bin2p, 0) == 1);
+  REQUIRE(hfp.sumweights(bin3p, 0) == 0);
 
   hfp = Project(hf, 2);
 
@@ -251,10 +251,10 @@ TEST_CASE("3D->1D", "[Projection]") {
   bin2p = hfp.find_bin(1);
   bin3p = hfp.find_bin(2);
 
-  REQUIRE(hfp.nfills == 3);
-  REQUIRE(hfp.contents(bin1p, 0) == 2);
-  REQUIRE(hfp.contents(bin2p, 0) == 0);
-  REQUIRE(hfp.contents(bin3p, 0) == 1);
+  REQUIRE(hfp.num_fills == 3);
+  REQUIRE(hfp.sumweights(bin1p, 0) == 2);
+  REQUIRE(hfp.sumweights(bin2p, 0) == 0);
+  REQUIRE(hfp.sumweights(bin3p, 0) == 1);
 }
 
 TEST_CASE("3D->2D: random", "[Projection]") {
@@ -327,13 +327,13 @@ TEST_CASE("3D->2D: random", "[Projection]") {
   nuis::HistFrame hfp = Project(hf3D, {0, 1});
   nuis::HistFrame hfpswap = Project(hf3D, {1, 0});
 
-  REQUIRE(hf3D.nfills == hf2D.nfills);
-  REQUIRE(hfp.nfills == hf2D.nfills);
-  REQUIRE(hfpswap.nfills == hf2Dswap.nfills);
+  REQUIRE(hf3D.num_fills == hf2D.num_fills);
+  REQUIRE(hfp.num_fills == hf2D.num_fills);
+  REQUIRE(hfpswap.num_fills == hf2Dswap.num_fills);
 
-  for (int i = 0; i < hfp.contents.rows(); ++i) {
+  for (int i = 0; i < hfp.sumweights.rows(); ++i) {
 
-    if (hfp.contents(i, 0) != hf2D.contents(i, 0)) {
+    if (hfp.sumweights(i, 0) != hf2D.sumweights(i, 0)) {
       spdlog::critical("bin {} didn't match.", i);
       std::stringstream ss;
       ss << "\n-----------\nFilled as 2D:\n"
@@ -343,10 +343,10 @@ TEST_CASE("3D->2D: random", "[Projection]") {
       spdlog::critical(ss.str());
     }
 
-    REQUIRE(hfp.contents(i, 0) == hf2D.contents(i, 0));
+    REQUIRE(hfp.sumweights(i, 0) == hf2D.sumweights(i, 0));
   }
 
-  for (int i = 0; i < hfpswap.contents.rows(); ++i) {
+  for (int i = 0; i < hfpswap.sumweights.rows(); ++i) {
 
     // do not guarantee bin ordering after projection, so have to search for bin
     // after swap
@@ -356,7 +356,7 @@ TEST_CASE("3D->2D: random", "[Projection]") {
     REQUIRE(bin_it != hf2Dswap.binning->bins.end());
     auto bin_index = std::distance(hf2Dswap.binning->bins.begin(), bin_it);
 
-    if (hfpswap.contents(i, 0) != hf2Dswap.contents(bin_index, 0)) {
+    if (hfpswap.sumweights(i, 0) != hf2Dswap.sumweights(bin_index, 0)) {
       spdlog::critical("bin {} didn't match.", i);
       std::stringstream ss;
       ss << "\n-----------\nFilled as 2D:\n"
@@ -366,7 +366,7 @@ TEST_CASE("3D->2D: random", "[Projection]") {
       spdlog::critical(ss.str());
     }
 
-    REQUIRE(hfpswap.contents(i, 0) == hf2Dswap.contents(bin_index, 0));
+    REQUIRE(hfpswap.sumweights(i, 0) == hf2Dswap.sumweights(bin_index, 0));
   }
 }
 
@@ -432,14 +432,14 @@ TEST_CASE("3D->1D: random", "[Projection]") {
   nuis::HistFrame hfpx = Project(hf3D, 0);
   nuis::HistFrame hfpy = Project(hf3D, 1);
 
-  REQUIRE(hf3D.nfills == hf1Dx.nfills);
-  REQUIRE(hf3D.nfills == hf1Dy.nfills);
-  REQUIRE(hfpx.nfills == hf1Dx.nfills);
-  REQUIRE(hfpy.nfills == hf1Dy.nfills);
+  REQUIRE(hf3D.num_fills == hf1Dx.num_fills);
+  REQUIRE(hf3D.num_fills == hf1Dy.num_fills);
+  REQUIRE(hfpx.num_fills == hf1Dx.num_fills);
+  REQUIRE(hfpy.num_fills == hf1Dy.num_fills);
 
-  for (int i = 0; i < hfpx.contents.rows(); ++i) {
+  for (int i = 0; i < hfpx.sumweights.rows(); ++i) {
 
-    if (hfpx.contents(i, 0) != hf1Dx.contents(i, 0)) {
+    if (hfpx.sumweights(i, 0) != hf1Dx.sumweights(i, 0)) {
       spdlog::critical("bin {} didn't match.", i);
       std::stringstream ss;
       ss << "\n-----------\nFilled as 2D:\n"
@@ -449,12 +449,12 @@ TEST_CASE("3D->1D: random", "[Projection]") {
       spdlog::critical(ss.str());
     }
 
-    REQUIRE(hfpx.contents(i, 0) == hf1Dx.contents(i, 0));
+    REQUIRE(hfpx.sumweights(i, 0) == hf1Dx.sumweights(i, 0));
   }
 
-  for (int i = 0; i < hfpy.contents.rows(); ++i) {
+  for (int i = 0; i < hfpy.sumweights.rows(); ++i) {
 
-    if (hfpy.contents(i, 0) != hf1Dy.contents(i, 0)) {
+    if (hfpy.sumweights(i, 0) != hf1Dy.sumweights(i, 0)) {
       spdlog::critical("bin {} didn't match.", i);
       std::stringstream ss;
       ss << "\n-----------\nFilled as 2D:\n"
@@ -464,6 +464,6 @@ TEST_CASE("3D->1D: random", "[Projection]") {
       spdlog::critical(ss.str());
     }
 
-    REQUIRE(hfpy.contents(i, 0) == hf1Dy.contents(i, 0));
+    REQUIRE(hfpy.sumweights(i, 0) == hf1Dy.sumweights(i, 0));
   }
 }

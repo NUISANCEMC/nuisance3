@@ -204,7 +204,7 @@ nuis::get_macro_log_level();
 
 ### Profiling
 
-Make sure you have gperftools set up, preferably via the system package manager: e.g. `dnf install -y gperftools`.
+Make sure you have gperftools set up, preferably via the system package manager: e.g. `dnf install -y gperftools pprof`.
 
 Link NUISANCE to gperftools by configuring the build like:
 
@@ -213,6 +213,18 @@ cmake .. -DNUISANCE_ENABLE_GPERFTOOLS=ON
 ```
 
 #### CPU Profiling
+
+Run code like:
+
+```bash
+CPUPROFILE=frame.prof nuis-example-frame ../notebooks/dune_argon_sf_10mega.nuwro.pb.gz 
+```
+
+Make pdf of call graph like:
+
+```bash
+pprof --pdf Linux/bin/nuis-example-frame frame.prof > frame.prof.pdf
+```
 
 #### HEAP Profiling
 
