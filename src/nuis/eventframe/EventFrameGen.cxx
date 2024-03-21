@@ -1,4 +1,4 @@
-#include "nuis/frame/FrameGen.h"
+#include "nuis/eventframe/EventFrameGen.h"
 
 #include "NuHepMC/ReaderUtils.hxx"
 
@@ -6,9 +6,20 @@
 
 #include "nuis/log.txx"
 
+#define COLUMN_TYPE_ITER                                                       \
+  X(bool)                                                                      \
+  X(int)                                                                       \
+  X(uint)                                                                      \
+  X(int16_t)                                                                   \
+  X(uint16_t)                                                                  \
+  X(float)                                                                     \
+  X(double)
+
+NEW_NUISANCE_EXCEPT(InvalidFrameColumnType);
+
 namespace nuis {
 
-FrameGen::FrameGen(INormalizedEventSourcePtr evs, size_t block_size)
+EventFrameGen::EventFrameGen(INormalizedEventSourcePtr evs, size_t block_size)
     : source(evs), chunk_size{block_size},
       max_events_to_loop{std::numeric_limits<size_t>::max()},
       progress_report_every{std::numeric_limits<size_t>::max()},
@@ -19,21 +30,21 @@ FrameGen::FrameGen(INormalizedEventSourcePtr evs, size_t block_size)
   }
 }
 
-FrameGen FrameGen::filter(FilterFunc filt) {
+EventFrameGen EventFrameGen::filter(FilterFunc filt) {
   filters.push_back(filt);
   return *this;
 }
-FrameGen FrameGen::limit(size_t nmax) {
+EventFrameGen EventFrameGen::limit(size_t nmax) {
   max_events_to_loop = nmax;
   return *this;
 }
-FrameGen FrameGen::progress(size_t every) {
+EventFrameGen EventFrameGen::progress(size_t every) {
   progress_report_every = every;
   set_log_level(log_level::info);
   return *this;
 }
 
-Frame FrameGen::first() {
+EventFrame EventFrameGen::first() {
   all_column_names = std::accumulate(columns.begin(), columns.end(),
                                      std::vector<std::string>{"evt#", "cvw"},
                                      [](auto cols, auto const &hcp) {
@@ -51,9 +62,10 @@ Frame FrameGen::first() {
 }
 
 template <typename T>
-size_t FrameGen::fill_row_columns(Eigen::ArrayXdRef row,
-                                  HepMC3::GenEvent const &ev, size_t proj_index,
-                                  size_t first_col, size_t ncols_to_fill) {
+size_t EventFrameGen::fill_row_columns(Eigen::ArrayXdRef row,
+                                       HepMC3::GenEvent const &ev,
+                                       size_t proj_index, size_t first_col,
+                                       size_t ncols_to_fill) {
   auto const &projs = get_proj_functions<T>()[proj_index](ev);
 
   for (size_t i = 0; i < std::min(projs.size(), ncols_to_fill); ++i) {
@@ -63,9 +75,10 @@ size_t FrameGen::fill_row_columns(Eigen::ArrayXdRef row,
   return first_col;
 }
 
-Frame FrameGen::next() {
-  log_trace("FrameGen::next() neventsprocessed: {}, max_events_to_loop: {}",
-            neventsprocessed, max_events_to_loop);
+EventFrame EventFrameGen::next() {
+  log_trace(
+      "EventFrameGen::next() neventsprocessed: {}, max_events_to_loop: {}",
+      neventsprocessed, max_events_to_loop);
 
   if (neventsprocessed >= max_events_to_loop) {
     return {all_column_names, Eigen::ArrayXXd(0, all_column_names.size()),
@@ -84,11 +97,11 @@ Frame FrameGen::next() {
     auto const &[evp, cvw] = *ev_it;
     auto const &ev = *evp;
 
-    NUIS_LOG_TRACE("FrameGen::next() chunk_row: {} ", chunk_row);
+    NUIS_LOG_TRACE("EventFrameGen::next() chunk_row: {} ", chunk_row);
 
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
-      log_info("FrameGen has selected {}{} from {} processed events.",
+      log_info("EventFrameGen has selected {}{} from {} processed events.",
                n_total_rows,
                ((nmaxloop != std::numeric_limits<size_t>::max())
                     ? fmt::format("/{}", nmaxloop)
@@ -99,7 +112,8 @@ Frame FrameGen::next() {
     bool cut = false;
     for (auto &filt : filters) {
       if (!filt(ev)) {
-        NUIS_LOG_TRACE("FrameGen::next() chunk_row: {} was cut ", chunk_row);
+        NUIS_LOG_TRACE("EventFrameGen::next() chunk_row: {} was cut ",
+                       chunk_row);
         cut = true;
         break;
       }
@@ -117,22 +131,24 @@ Frame FrameGen::next() {
     chunk(chunk_row, 0) = ev.event_number();
     chunk(chunk_row, 1) = cvw;
 
-    NUIS_LOG_TRACE("FrameGen::next() chunk_row: {} was kept, event_number: {} ",
-                   ev.event_number());
+    NUIS_LOG_TRACE(
+        "EventFrameGen::next() chunk_row: {} was kept, event_number: {} ",
+        ev.event_number());
 
     size_t col_id = 2;
     for (auto &[column_names, typenum, proj_index] : columns) {
       size_t next_col_id = col_id;
 
       switch (typenum) {
-      case column_type<int>::id:
-        next_col_id = fill_row_columns<int>(
-            chunk.row(chunk_row), ev, proj_index, col_id, column_names.size());
-        break;
-      case column_type<double>::id:
-        next_col_id = fill_row_columns<double>(
-            chunk.row(chunk_row), ev, proj_index, col_id, column_names.size());
-        break;
+#define X(t)                                                                   \
+  case column_type<t>::id:                                                     \
+    next_col_id = fill_row_columns<t>(chunk.row(chunk_row), ev, proj_index,    \
+                                      col_id, column_names.size());            \
+    break;
+
+        COLUMN_TYPE_ITER
+
+#undef X
       }
 
       for (size_t i = next_col_id; i < (col_id + column_names.size()); ++i) {
@@ -155,9 +171,10 @@ Frame FrameGen::next() {
     ++ev_it;
   }
 
-  log_trace("FrameGen::next() done looping  n_total_rows: {} neventsprocessed: "
-            "{} chunk_row: {}",
-            n_total_rows, neventsprocessed, chunk_row);
+  log_trace(
+      "EventFrameGen::next() done looping  n_total_rows: {} neventsprocessed: "
+      "{} chunk_row: {}",
+      n_total_rows, neventsprocessed, chunk_row);
 
   // grab the norm_info before reading the next event for the start of the next
   // loop
@@ -166,19 +183,20 @@ Frame FrameGen::next() {
   return {all_column_names, chunk.topRows(chunk_row), norm_info};
 }
 
-Frame FrameGen::all() {
+EventFrame EventFrameGen::all() {
 
-  log_info("FrameGen::all Chunk shape: {} rows {} cols, {} KB.", chunk_size,
-           GetNCols(), ((chunk_size * GetNCols()) * sizeof(double)) / 1024);
+  log_info("EventFrameGen::all Chunk shape: {} rows {} cols, {} KB.",
+           chunk_size, all_column_names.size(),
+           ((chunk_size * all_column_names.size()) * sizeof(double)) / 1024);
 
   Eigen::ArrayXXd builder;
   Eigen::ArrayXXd next_chunk = first().table;
-  log_trace("FrameGen::all() first with nrows {}", builder.rows());
+  log_trace("EventFrameGen::all() first with nrows {}", builder.rows());
 
   size_t last_report_size = 0;
   if ((neventsprocessed - last_report_size) > progress_report_every) {
-    log_info("FrameGen::all() is using ~{} MB of memory. Output frame will "
-             "be {} MB.",
+    log_info("EventFrameGen::all() is using ~{} MB of memory. Output "
+             "EventFrame will be {} MB.",
              ((builder.size() * 2 + next_chunk.size()) * sizeof(double)) /
                  (1024 * 1024),
              (builder.size() * sizeof(double)) / (1024 * 1024));
@@ -186,7 +204,8 @@ Frame FrameGen::all() {
   }
 
   while (next_chunk.rows()) {
-    log_trace("FrameGen::all() got chunk with nrows {}", next_chunk.rows());
+    log_trace("EventFrameGen::all() got chunk with nrows {}",
+              next_chunk.rows());
 
     Eigen::ArrayXXd new_builder(builder.rows() + next_chunk.rows(),
                                 next_chunk.cols());
@@ -198,8 +217,8 @@ Frame FrameGen::all() {
     next_chunk = next().table;
 
     if ((neventsprocessed - last_report_size) > progress_report_every) {
-      log_info("FrameGen::all() is using ~{} MB of memory. Output frame will "
-               "be {} MB.",
+      log_info("EventFrameGen::all() is using ~{} MB of memory. Output "
+               "EventFrame will be {} MB.",
                ((builder.size() * 2 + next_chunk.size()) * sizeof(double)) /
                    (1024 * 1024),
                (builder.size() * sizeof(double)) / (1024 * 1024));
@@ -207,7 +226,7 @@ Frame FrameGen::all() {
     }
   }
 
-  log_trace("FrameGen::all() done: nrows {}", builder.rows());
+  log_trace("EventFrameGen::all() done: nrows {}", builder.rows());
 
   return {all_column_names, builder, source->norm_info()};
 }
@@ -229,7 +248,7 @@ BuilderAs(std::unique_ptr<arrow::ArrayBuilder> &ab) {
 }
 
 template <typename T>
-void FrameGen::fill_array_builder(
+void EventFrameGen::fill_array_builder(
     std::vector<std::unique_ptr<arrow::ArrayBuilder>> &array_builders,
     HepMC3::GenEvent const &ev, size_t proj_index, size_t first_col,
     size_t ncols_to_fill) {
@@ -246,7 +265,7 @@ void FrameGen::fill_array_builder(
   }
 }
 
-std::shared_ptr<arrow::RecordBatch> FrameGen::firstArrow() {
+std::shared_ptr<arrow::RecordBatch> EventFrameGen::firstArrow() {
   all_column_names = std::accumulate(
       columns.begin(), columns.end(),
       std::vector<std::string>{"event number", "cv weight", "fatx estimate"},
@@ -264,9 +283,9 @@ std::shared_ptr<arrow::RecordBatch> FrameGen::firstArrow() {
   return _nextArrow().ValueOrDie();
 }
 
-arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
+arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
   log_trace(
-      "FrameGen::nextArrow() neventsprocessed: {}, max_events_to_loop: {}",
+      "EventFrameGen::nextArrow() neventsprocessed: {}, max_events_to_loop: {}",
       neventsprocessed, max_events_to_loop);
 
   if (neventsprocessed >= max_events_to_loop) {
@@ -276,7 +295,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
   std::vector<std::shared_ptr<arrow::Field>> schema_list;
   std::vector<std::unique_ptr<arrow::ArrayBuilder>> array_builders;
 
-  log_debug("FrameGen::nextArrow() Building schema: ");
+  log_debug("EventFrameGen::nextArrow() Building schema: ");
 
   for (auto const &[name, typenum] : std::vector<std::pair<std::string, int>>{
            {"event number", nuis::column_type<int>::id},
@@ -289,11 +308,12 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
     log_debug("\t\t col: {}, name: {}, type: {}", schema_list.size(), name,
               column_typenum_as_string(typenum));
 
-    if (typenum == nuis::column_type<int>::id) {
-      std::tie(col, builder) = GetColumnBuilder<int>(name);
-    } else if (typenum == nuis::column_type<double>::id) {
-      std::tie(col, builder) = GetColumnBuilder<double>(name);
-    }
+#define X(t)                                                                   \
+  if (typenum == nuis::column_type<t>::id) {                                   \
+    std::tie(col, builder) = GetColumnBuilder<t>(name);                        \
+  } else
+
+    COLUMN_TYPE_ITER { throw InvalidFrameColumnType(); };
 
     schema_list.push_back(std::move(col));
     array_builders.push_back(std::move(builder));
@@ -304,11 +324,8 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
       std::shared_ptr<arrow::Field> col = nullptr;
       std::unique_ptr<arrow::ArrayBuilder> builder = nullptr;
 
-      if (typenum == nuis::column_type<int>::id) {
-        std::tie(col, builder) = GetColumnBuilder<int>(name);
-      } else if (typenum == nuis::column_type<double>::id) {
-        std::tie(col, builder) = GetColumnBuilder<double>(name);
-      }
+      COLUMN_TYPE_ITER { throw InvalidFrameColumnType(); };
+#undef X
 
       log_debug(
           "\t\t col: {}, name: {}, type: {}, field: {}, array_builder: {}",
@@ -330,11 +347,11 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
     auto const &[evp, cvw] = *ev_it;
     auto const &ev = *evp;
 
-    NUIS_LOG_TRACE("FrameGen::nextArrow() rbatch_row: {} ", rbatch_row);
+    NUIS_LOG_TRACE("EventFrameGen::nextArrow() rbatch_row: {} ", rbatch_row);
 
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
-      log_info("FrameGen has selected {}{} from {} processed events.",
+      log_info("EventFrameGen has selected {}{} from {} processed events.",
                n_total_rows,
                ((nmaxloop != std::numeric_limits<size_t>::max())
                     ? fmt::format("/{}", nmaxloop)
@@ -345,7 +362,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
     bool cut = false;
     for (auto &filt : filters) {
       if (!filt(ev)) {
-        NUIS_LOG_TRACE("FrameGen::nextArrow() event: {} was cut ",
+        NUIS_LOG_TRACE("EventFrameGen::nextArrow() event: {} was cut ",
                        neventsprocessed);
         cut = true;
         break;
@@ -362,7 +379,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
     }
 
     NUIS_LOG_TRACE(
-        "FrameGen::nextArrow() rbatch_row: {} was kept, event_number: {} ",
+        "EventFrameGen::nextArrow() rbatch_row: {} was kept, event_number: {} ",
         ev.event_number());
 
     BuilderAs<int>(array_builders[0]).Append(ev.event_number());
@@ -375,14 +392,15 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
     for (auto &[column_names, typenum, proj_index] : columns) {
 
       switch (typenum) {
-      case column_type<int>::id:
-        fill_array_builder<int>(array_builders, ev, proj_index, col_id,
-                                column_names.size());
-        break;
-      case column_type<double>::id:
-        fill_array_builder<double>(array_builders, ev, proj_index, col_id,
-                                   column_names.size());
-        break;
+
+#define X(t)                                                                   \
+  case column_type<t>::id:                                                     \
+    fill_array_builder<t>(array_builders, ev, proj_index, col_id,              \
+                          column_names.size());                                \
+    break;
+
+        COLUMN_TYPE_ITER
+#undef X
       }
 
       col_id += column_names.size();
@@ -402,10 +420,10 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
     ++ev_it;
   }
 
-  log_trace(
-      "FrameGen::nextArrow() done looping  n_total_rows: {} neventsprocessed: "
-      "{} rbatch_row: {}",
-      n_total_rows, neventsprocessed, rbatch_row);
+  log_trace("EventFrameGen::nextArrow() done looping  n_total_rows: {} "
+            "neventsprocessed: "
+            "{} rbatch_row: {}",
+            n_total_rows, neventsprocessed, rbatch_row);
 
   // grab the norm_info before reading the next event for the start of the next
   // loop
@@ -419,7 +437,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
                         BuilderAs<double>(array_builders[1]).Finish());
   ARROW_ASSIGN_OR_RAISE(arrays[2],
                         BuilderAs<double>(array_builders[2]).Finish());
-  log_debug("FrameGen::nextArrow() building arrays: ");
+  log_debug("EventFrameGen::nextArrow() building arrays: ");
   log_debug("\t\t col: {}, name: {}, type: {}, num: {}", 0, all_column_names[0],
             column_typenum_as_string(column_type<int>::id),
             arrays[0]->length());
@@ -434,20 +452,17 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
   for (auto &[column_names, typenum, proj_index] : columns) {
 
     switch (typenum) {
-    case column_type<int>::id:
-      for (size_t i = 0; i < column_names.size(); ++i) {
-        ARROW_ASSIGN_OR_RAISE(
-            arrays[col_id + i],
-            BuilderAs<int>(array_builders[col_id + i]).Finish());
-      }
-      break;
-    case column_type<double>::id:
-      for (size_t i = 0; i < column_names.size(); ++i) {
-        ARROW_ASSIGN_OR_RAISE(
-            arrays[col_id + i],
-            BuilderAs<double>(array_builders[col_id + i]).Finish());
-      }
-      break;
+#define X(t)                                                                   \
+  case column_type<t>::id:                                                     \
+    for (size_t i = 0; i < column_names.size(); ++i) {                         \
+      ARROW_ASSIGN_OR_RAISE(                                                   \
+          arrays[col_id + i],                                                  \
+          BuilderAs<t>(array_builders[col_id + i]).Finish());                  \
+    }                                                                          \
+    break;
+
+      COLUMN_TYPE_ITER
+#undef X
     }
 
     for (size_t i = 0; i < column_names.size(); ++i) {
@@ -463,17 +478,10 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> FrameGen::_nextArrow() {
       arrow::RecordBatch::Make(schema, arrays.front()->length(), arrays));
 }
 
-std::shared_ptr<arrow::RecordBatch> FrameGen::nextArrow() {
+std::shared_ptr<arrow::RecordBatch> EventFrameGen::nextArrow() {
   return _nextArrow().ValueOrDie();
 }
 
 #endif
-
-size_t FrameGen::GetNCols() {
-  return 2 + std::accumulate(columns.begin(), columns.end(), 0,
-                             [](int acc, auto const &hcp) {
-                               return acc + hcp.column_names.size();
-                             });
-}
 
 } // namespace nuis

@@ -5,7 +5,7 @@
 #include "nuis/record/LikelihoodFunctions.h"
 #include "nuis/record/WeightFunctions.h"
 
-#include "nuis/frame/missing_datum.h"
+#include "nuis/eventframe/missing_datum.h"
 
 #include "nuis/convert/ROOT.h"
 

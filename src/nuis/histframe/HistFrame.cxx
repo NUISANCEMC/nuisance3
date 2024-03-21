@@ -1,6 +1,6 @@
 #include "nuis/histframe/HistFrame.h"
 
-#include "nuis/frame/missing_datum.h"
+#include "nuis/eventframe/missing_datum.h"
 
 #include "nuis/binning/exceptions.h"
 

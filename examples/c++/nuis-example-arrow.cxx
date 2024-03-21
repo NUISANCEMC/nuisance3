@@ -1,8 +1,8 @@
 #include "nuis/eventinput/EventSourceFactory.h"
 
-#include "nuis/frame/FrameGen.h"
-#include "nuis/frame/column_types.h"
-#include "nuis/frame/missing_datum.h"
+#include "nuis/eventframe/EventFrameGen.h"
+#include "nuis/eventframe/column_types.h"
+#include "nuis/eventframe/missing_datum.h"
 
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"
@@ -113,6 +113,18 @@ std::vector<double> double_cols(HepMC3::GenEvent const &ev) {
   // double PhiAdler;
 }
 
+void ProcessRBatch(std::shared_ptr<arrow::RecordBatch> &rbatch) {
+
+  auto hccl = nuis::get_col_as<bool>(rbatch, "hasscclep");
+  auto q0col = nuis::get_col_as<double>(rbatch, "true.event.lep.q0");
+  auto q3col = nuis::get_col_as<double>(rbatch, "true.event.lep.q3");
+
+  for (int i = 0; i < rbatch->num_rows(); ++i) {
+    std::cout << i << ": " << hccl->Value(i) << " " << q0col->Value(i) << " "
+              << q3col->Value(i) << std::endl;
+  }
+}
+
 arrow::Status RunMain(int, char const *argv[]) {
 
   nuis::EventSourceFactory fact;
@@ -124,8 +136,23 @@ arrow::Status RunMain(int, char const *argv[]) {
         "Failed to find EventSource for input file {}", argv[1]);
   }
 
-  auto frame = nuis::FrameGen(evs, 2.5E5);
+  auto frame = nuis::EventFrameGen(evs, 100);
 
+  frame.add_typed_column<bool>(
+      "hasscclep", [](HepMC3::GenEvent const &ev) -> bool {
+        auto pin = ps::sel::BeamAny(ev, ps::pdg::groups::kNeutralLeptons);
+        if (!pin) {
+          return false;
+        }
+        int nupid = pin->pid();
+        int ccpid = nupid > 0 ? (nupid - 1) : (nupid + 1);
+        auto pout = ps::sel::OutPartFirstAny(ev, {ccpid, nupid});
+
+        if (!pout) {
+          return false;
+        }
+        return true;
+      });
   frame.add_typed_columns<int>(int_cols_names, int_cols);
   frame.add_typed_columns<double>(double_cols_names, double_cols);
 
@@ -141,6 +168,9 @@ arrow::Status RunMain(int, char const *argv[]) {
       arrow::ipc::MakeFileWriter(outfile, rbatch->schema()));
 
   ARROW_RETURN_NOT_OK(ipc_writer->WriteRecordBatch(*rbatch));
+
+  ProcessRBatch(rbatch);
+  return arrow::Status::OK();
 
   while (rbatch = frame.nextArrow()) {
     ARROW_RETURN_NOT_OK(ipc_writer->WriteRecordBatch(*rbatch));

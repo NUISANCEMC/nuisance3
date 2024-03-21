@@ -12,7 +12,7 @@
 namespace py = pybind11;
 using namespace nuis;
 
-void pyFrameInit(py::module &);
+void pyEventFrameInit(py::module &);
 void pyBinningInit(py::module &);
 void pyHistFrameInit(py::module &);
 void pyRecordInit(py::module &);
@@ -40,7 +40,7 @@ PYBIND11_MODULE(pyNUISANCE, m) {
   // m.add_object("pyProSelecta", pps);
 
   pyEventInputInit(m);
-  pyFrameInit(m);
+  pyEventFrameInit(m);
   pyBinningInit(m);
   pyHistFrameInit(m);
   pyRecordInit(m);

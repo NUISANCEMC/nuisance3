@@ -1,7 +1,7 @@
 #pragma once
 
-#include "nuis/frame/Frame.h"
-#include "nuis/frame/column_types.h"
+#include "nuis/eventframe/EventFrame.h"
+#include "nuis/eventframe/column_types.h"
 
 #include "nuis/log.h"
 
@@ -14,27 +14,23 @@
 
 namespace nuis {
 
-class FrameGen : public nuis_named_log("Frame") {
+class EventFrameGen : public nuis_named_log("EventFrame") {
 
 public:
   using FilterFunc = std::function<int(HepMC3::GenEvent const &)>;
 
-  template <typename RT = double>
+  template <typename RT>
   using ProjectionFunc = std::function<RT(HepMC3::GenEvent const &)>;
-  template <typename RT = double>
+  template <typename RT>
   using ProjectionsFunc =
       std::function<std::vector<RT>(HepMC3::GenEvent const &)>;
 
-  // PS An option to input a vector of functions is also needed (instead of
-  // requiring a lambda to build it) LP Is add_column("name",
-  // func).add_column("name", func).add_column("name", func) not okay?
+  EventFrameGen(INormalizedEventSourcePtr evs, size_t block_size = 500000);
+  EventFrameGen filter(FilterFunc filt);
 
-  FrameGen(INormalizedEventSourcePtr evs, size_t block_size = 500000);
-  FrameGen filter(FilterFunc filt);
-
-  template <typename RT = double>
-  FrameGen add_typed_columns(std::vector<std::string> col_names,
-                             ProjectionsFunc<RT> proj) {
+  template <typename RT>
+  EventFrameGen add_typed_columns(std::vector<std::string> col_names,
+                                  ProjectionsFunc<RT> proj) {
 
     auto &projs = get_proj_functions<RT>();
     columns.push_back(
@@ -44,8 +40,9 @@ public:
     return *this;
   }
 
-  template <typename RT = double>
-  FrameGen add_typed_column(std::string col_name, ProjectionFunc<RT> proj) {
+  template <typename RT>
+  EventFrameGen add_typed_column(std::string col_name,
+                                 ProjectionFunc<RT> proj) {
     add_typed_columns<RT>(
         {
             col_name,
@@ -59,21 +56,21 @@ public:
     return *this;
   }
 
-  FrameGen add_columns(std::vector<std::string> col_names,
-                       ProjectionsFunc<double> proj) {
+  EventFrameGen add_columns(std::vector<std::string> col_names,
+                            ProjectionsFunc<double> proj) {
     return add_typed_columns<double>(col_names, proj);
   }
 
-  FrameGen add_column(std::string col_name, ProjectionFunc<double> proj) {
+  EventFrameGen add_column(std::string col_name, ProjectionFunc<double> proj) {
     return add_typed_column<double>(col_name, proj);
   }
 
-  FrameGen limit(size_t nmax);
-  FrameGen progress(size_t every = 100000);
+  EventFrameGen limit(size_t nmax);
+  EventFrameGen progress(size_t every = 100000);
 
-  Frame first();
-  Frame next();
-  Frame all();
+  EventFrame first();
+  EventFrame next();
+  EventFrame all();
 
 #ifdef NUIS_ARROW_ENABLED
   std::shared_ptr<arrow::RecordBatch> firstArrow();
@@ -93,20 +90,36 @@ private:
 
   std::vector<ColumnBlockDefinition> columns;
 
-  template <typename RT = double>
+  template <typename RT>
   constexpr std::vector<ProjectionsFunc<RT>> &get_proj_functions() {
-    if constexpr (std::is_same_v<RT, int>) {
+    if constexpr (std::is_same_v<RT, bool>) {
+      return projectors_bool;
+    } else if constexpr (std::is_same_v<RT, int>) {
       return projectors_int;
-    } else if (std::is_same_v<RT, double>) {
+    } else if constexpr (std::is_same_v<RT, uint>) {
+      return projectors_uint64_t;
+    } else if constexpr (std::is_same_v<RT, int16_t>) {
+      return projectors_int16_t;
+    } else if constexpr (std::is_same_v<RT, uint16_t>) {
+      return projectors_uint16_t;
+    } else if constexpr (std::is_same_v<RT, float>) {
+      return projectors_float;
+    } else if constexpr (std::is_same_v<RT, double>) {
       return projectors_double;
     }
   }
+
   template <typename T>
   size_t fill_row_columns(Eigen::ArrayXdRef row, HepMC3::GenEvent const &ev,
                           size_t proj_index, size_t first_col,
                           size_t ncols_to_fill);
 
+  std::vector<ProjectionsFunc<bool>> projectors_bool;
   std::vector<ProjectionsFunc<int>> projectors_int;
+  std::vector<ProjectionsFunc<uint>> projectors_uint64_t;
+  std::vector<ProjectionsFunc<int16_t>> projectors_int16_t;
+  std::vector<ProjectionsFunc<uint16_t>> projectors_uint16_t;
+  std::vector<ProjectionsFunc<float>> projectors_float;
   std::vector<ProjectionsFunc<double>> projectors_double;
 
 #ifdef NUIS_ARROW_ENABLED
@@ -123,8 +136,6 @@ private:
   size_t max_events_to_loop;
   size_t progress_report_every;
   size_t nevents;
-
-  size_t GetNCols();
 
   // first/next state
   std::vector<std::string> all_column_names;
