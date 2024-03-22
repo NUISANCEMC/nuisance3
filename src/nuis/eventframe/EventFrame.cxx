@@ -45,8 +45,6 @@ EventFrame::cols(std::vector<std::string> const &cns) {
   return rtn;
 }
 
-} // namespace nuis
-
 std::ostream &operator<<(std::ostream &os, nuis::EventFramePrinter fp) {
 
   size_t abs_max_width = fp.max_col_width;
@@ -116,3 +114,5 @@ std::ostream &operator<<(std::ostream &os, nuis::EventFramePrinter fp) {
 std::ostream &operator<<(std::ostream &os, nuis::EventFrame const &f) {
   return os << nuis::EventFramePrinter(f);
 }
+
+} // namespace nuis

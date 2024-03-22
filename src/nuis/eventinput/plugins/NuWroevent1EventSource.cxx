@@ -84,7 +84,7 @@ public:
     ient = 0;
     auto ge = nuwroconv::ToGenEvent(*ev, gri);
     ge->set_event_number(ient);
-    ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+    ge->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
     return ge;
   }
 
@@ -103,7 +103,7 @@ public:
 
     auto ge = nuwroconv::ToGenEvent(*ev, gri);
     ge->set_event_number(ient);
-    ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+    ge->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
     return ge;
   }
 

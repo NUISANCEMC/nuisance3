@@ -45,15 +45,15 @@ EventFrameGen EventFrameGen::progress(size_t every) {
 }
 
 EventFrame EventFrameGen::first() {
-  all_column_names =
-      std::accumulate(columns.begin(), columns.end(),
-                      std::vector<std::string>{"event number", "cv weight"},
-                      [](auto cols, auto const &hcp) {
-                        for (auto h : hcp.column_names) {
-                          cols.push_back(h);
-                        }
-                        return cols;
-                      });
+  all_column_names = std::accumulate(
+      columns.begin(), columns.end(),
+      std::vector<std::string>{"event.number", "weight.cv", "process.id"},
+      [](auto cols, auto const &hcp) {
+        for (auto h : hcp.column_names) {
+          cols.push_back(h);
+        }
+        return cols;
+      });
 
   n_total_rows = 0;
   neventsprocessed = 0;
@@ -131,12 +131,13 @@ EventFrame EventFrameGen::next() {
 
     chunk(chunk_row, 0) = ev.event_number();
     chunk(chunk_row, 1) = cvw;
+    chunk(chunk_row, 2) = NuHepMC::ER3::ReadProcessID(ev);
 
     NUIS_LOG_TRACE(
         "EventFrameGen::next() chunk_row: {} was kept, event_number: {} ",
         ev.event_number());
 
-    size_t col_id = 2;
+    size_t col_id = 3;
     for (auto &[column_names, typenum, proj_index] : columns) {
       size_t next_col_id = col_id;
 
@@ -267,15 +268,16 @@ void EventFrameGen::fill_array_builder(
 }
 
 std::shared_ptr<arrow::RecordBatch> EventFrameGen::firstArrow() {
-  all_column_names = std::accumulate(
-      columns.begin(), columns.end(),
-      std::vector<std::string>{"event number", "cv weight", "fatx estimate"},
-      [](auto cols, auto const &hcp) {
-        for (auto h : hcp.column_names) {
-          cols.push_back(h);
-        }
-        return cols;
-      });
+  all_column_names =
+      std::accumulate(columns.begin(), columns.end(),
+                      std::vector<std::string>{"event.number", "weight.cv",
+                                               "process.id", "fatx.estimate"},
+                      [](auto cols, auto const &hcp) {
+                        for (auto h : hcp.column_names) {
+                          cols.push_back(h);
+                        }
+                        return cols;
+                      });
 
   n_total_rows = 0;
   neventsprocessed = 0;
@@ -299,9 +301,10 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
   log_debug("EventFrameGen::nextArrow() Building schema: ");
 
   for (auto const &[name, typenum] : std::vector<std::pair<std::string, int>>{
-           {"event number", nuis::column_type<int>::id},
-           {"cv weight", nuis::column_type<double>::id},
-           {"fatx estimate", nuis::column_type<double>::id}}) {
+           {"event.number", nuis::column_type<int>::id},
+           {"weight.cv", nuis::column_type<double>::id},
+           {"process.id", nuis::column_type<int>::id},
+           {"fatx.estimate", nuis::column_type<double>::id}}) {
 
     std::shared_ptr<arrow::Field> col = nullptr;
     std::unique_ptr<arrow::ArrayBuilder> builder = nullptr;
@@ -385,11 +388,12 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
 
     BuilderAs<int>(array_builders[0]).Append(ev.event_number());
     BuilderAs<double>(array_builders[1]).Append(cvw);
+    BuilderAs<int>(array_builders[2]).Append(NuHepMC::ER3::ReadProcessID(ev));
 
     auto [fatx, sumweights, nevents] = source->norm_info();
-    BuilderAs<double>(array_builders[2]).Append(fatx);
+    BuilderAs<double>(array_builders[3]).Append(fatx);
 
-    size_t col_id = 3;
+    size_t col_id = 4;
     for (auto &[column_names, typenum, proj_index] : columns) {
 
       switch (typenum) {

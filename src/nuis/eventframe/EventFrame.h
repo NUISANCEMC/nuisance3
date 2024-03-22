@@ -45,7 +45,7 @@ struct EventFramePrinter {
       : fr{f}, max_rows{mr}, prettyprint(pp), max_col_width{mcw} {}
 };
 
-} // namespace nuis
-
 std::ostream &operator<<(std::ostream &os, nuis::EventFrame const &);
 std::ostream &operator<<(std::ostream &os, nuis::EventFramePrinter);
+
+} // namespace nuis
