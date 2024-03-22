@@ -3,9 +3,11 @@
 NUISANCE provides two DataFrame types for event-level data. Each provides a columnar table of projected event properties, where each included event corresponds to a single row in the table.
 
 * [`nuis::EventFrame`](#nuiseventframe): A simple table stored in an [`Eigen::ArrayXXd`](https://eigen.tuxfamily.org/dox/group__TutorialArrayClass.html). This is useful for simple in-memory analysis where intermediate storage of the data is not required. Because it is stored in an Eigen Array, all columns are of double type. On the python side, the data can be directly interacted with as a two-dimensional [numpy ndarray](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html) without copying the underlying data.
-* [`arrow::RecordBatch`](#arrowrecordbatch): [Apache Arrow](https://arrow.apache.org) is a standard in-memory columnar analysis format that supports separately typed columns, batched I/O, and efficient compute processing. It also has first-class support for direct conversion to [Pandas DataFrames](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html) for python-based analyses.
+* [`arrow::RecordBatch`](#arrowrecordbatch): [Apache Arrow](https://arrow.apache.org) is a standard in-memory, columnar analysis format that supports separately typed columns, batched I/O, and efficient compute processing. It also has first-class support for direct conversion to [Pandas DataFrames](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html) for python-based analyses.
 
 Both can be used to produce [tidy 'data'](http://vita.had.co.nz/papers/tidy-data.pdf) with the help of the [`nuis::EventFrameGen`](#creating-dataframes-with-nuiseventframegen) class.
+
+This document describes the EventFrame types, facilities for producing them from an input event vector, and how to write/read `arrow::RecordBatch`s from files. For documentation on how they might be used in an analysis, see [HistFrames](../histframe/README.md).
 
 ## `nuis::EventFrame`
 
@@ -122,7 +124,7 @@ The number of rows in each batch can be set in the `EventFrameGen` constructor l
 
 ```c++
 size_t batch_size = 250000;
-auto fg = EventFrameGen(evs,batch_size);
+auto fg = EventFrameGen(evs, batch_size);
 ```
 
 ### Adding Columns
@@ -418,12 +420,15 @@ You could also have just printed the `table` member directly:
 
 ## `arrow::RecordBatch`
 
-If Apache Arrow can be found on your system when the build is configured, NUISANCE's Arrow features will be enabled. `RecordBatches` can be produced by `EventFrameGen` by calling `EventFrameGen::firstArrow` and `EventFrameGen::nextArrow` rather than their `EventFrame` producing counterparts. These functions return `std::shared_ptr<arrow::RecordBatch>` instances. There is no `EventFrameGen::allArrow` call, as working with batches of rows is the optimal way to process EventFrames.
+If you intend to use `RecordBatch`es in your workflow, we strongly recommend reading the Arrow C++ documentation first: [Getting Started](https://arrow.apache.org/docs/cpp/getting_started.html) with Arrow. 
 
-Because we work with smart pointers of record batches, the batch looping is slightly differen:, when there are no more rows to read from the `INormalizedEventSource` a `nullptr` is returned, rather than a batch with no rows.
+If Apache Arrow can be found on your system when the build is configured, NUISANCE's Arrow features will be enabled. `RecordBatches` are collections of columnar arrays of uniform length. Collections of `RecordBatches` with the same schema are called `arrow::Table`s. `RecordBatches`  can be produced by `EventFrameGen` by calling `EventFrameGen::firstArrow` and `EventFrameGen::nextArrow` rather than their `EventFrame` producing counterparts, `EventFrameGen::first` and `EventFrameGen::next`. These functions return `std::shared_ptr<arrow::RecordBatch>` instances. There is no `EventFrameGen::all` equivalent `EventFrameGen::allArrow` call, as working with batches of rows is the preferred way to process EventFrames. The number of rows in a RecordBatch is set by the second argument to `EventFrameGen` as for `EventFrames`. The maximum `arrow::Array` length, and thus `RecordBatch` size is 2,147,483,647 rows, so for most workflows you can practically work with a single in-memory `RecordBatch` by setting a very large `batch_size`, but we recommend against it.
+
+Because we work with smart pointers of `RecordBatches`, batch looping is slightly different for Arrow EventFrames:, when there are no more rows to read from the `INormalizedEventSource` a `nullptr` is returned, rather than a batch with no rows.
 
 ```c++
-auto fg = EventFrameGen(evs);
+size_t batch_size = 250000;
+auto fg = EventFrameGen(evs, batch_size);
 auto batch = fg.firstArrow();
 while(batch){
   //do something with each batch
@@ -489,11 +494,12 @@ fg.add_typed_column<int>("nupid", nupid);
 
 auto batch = fg.firstArrow();
 while(batch){
+  //do the type casting here, at the batch level
   auto enu_col = nuis::get_col_as<double>(rbatch, "enu");
   auto nupid_col = nuis::get_col_as<int>(rbatch, "nupid");
 
   for(size_t row_it = 0; row_it < batch->num_rows(); ++row_it){
-    if(nupid_col->Value(row_it) != 14){ // no casting required
+    if(nupid_col->Value(row_it) != 14){ // no row-level casting required
       continue;
     }
     myhist.fill(enu_col->Value(row_it));
@@ -503,8 +509,44 @@ while(batch){
 }
 ```
 
-### I/O with Arrow Tables
+### I/O with Arrow IPC
 
-#### Arrow IPC
+Once you have an `arrow::RecordBatch`, there are many options for onwards processing. In this section who give examples of how to write and read instances to files.
 
-#### Parquet
+Arrow C++ makes heavy use of return codes and provides utility macros for error checking and
+early return. An example of writing an `arrow:Table` to file is given below.
+
+```c++
+arrow::Status RunMain(int, char const *argv[]) {
+
+  //...
+
+  auto rbatch = frame.firstArrow();
+
+  std::shared_ptr<arrow::io::FileOutputStream> outfile;
+  ARROW_ASSIGN_OR_RAISE(outfile,
+                        arrow::io::FileOutputStream::Open("test_out.arrow"));
+  ARROW_ASSIGN_OR_RAISE(
+      std::shared_ptr<arrow::ipc::RecordBatchWriter> ipc_writer,
+      arrow::ipc::MakeFileWriter(outfile, rbatch->schema()));
+
+  ARROW_RETURN_NOT_OK(ipc_writer->WriteRecordBatch(*rbatch));
+
+  while (rbatch = frame.nextArrow()) {
+    ARROW_RETURN_NOT_OK(ipc_writer->WriteRecordBatch(*rbatch));
+  }
+
+  ARROW_RETURN_NOT_OK(ipc_writer->Close());
+
+  return arrow::Status::OK();
+}
+
+int main(int argc, char const *argv[]) {
+  arrow::Status st = RunMain(argc, argv);
+  if (!st.ok()) {
+    std::cerr << st << std::endl;
+    return 1;
+  }
+  return 0;
+}
+```

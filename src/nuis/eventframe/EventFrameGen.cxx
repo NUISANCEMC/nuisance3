@@ -45,14 +45,15 @@ EventFrameGen EventFrameGen::progress(size_t every) {
 }
 
 EventFrame EventFrameGen::first() {
-  all_column_names = std::accumulate(columns.begin(), columns.end(),
-                                     std::vector<std::string>{"evt#", "cvw"},
-                                     [](auto cols, auto const &hcp) {
-                                       for (auto h : hcp.column_names) {
-                                         cols.push_back(h);
-                                       }
-                                       return cols;
-                                     });
+  all_column_names =
+      std::accumulate(columns.begin(), columns.end(),
+                      std::vector<std::string>{"event number", "cv weight"},
+                      [](auto cols, auto const &hcp) {
+                        for (auto h : hcp.column_names) {
+                          cols.push_back(h);
+                        }
+                        return cols;
+                      });
 
   n_total_rows = 0;
   neventsprocessed = 0;

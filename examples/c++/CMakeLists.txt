@@ -14,7 +14,7 @@ install(TARGETS nuis-example-frame DESTINATION bin)
 
 if(NUIS_ARROW_ENABLED)
   add_executable(nuis-example-arrow nuis-example-arrow.cxx)
-  target_link_libraries(nuis-example-arrow eventinput eventframe)
+  target_link_libraries(nuis-example-arrow eventinput eventframe histframe)
   install(TARGETS nuis-example-arrow DESTINATION bin)
 endif()
 

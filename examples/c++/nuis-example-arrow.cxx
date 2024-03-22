@@ -4,6 +4,9 @@
 #include "nuis/eventframe/column_types.h"
 #include "nuis/eventframe/missing_datum.h"
 
+#include "nuis/histframe/HistFrame.h"
+#include "nuis/histframe/utility.h"
+
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"
 
@@ -115,14 +118,17 @@ std::vector<double> double_cols(HepMC3::GenEvent const &ev) {
 
 void ProcessRBatch(std::shared_ptr<arrow::RecordBatch> &rbatch) {
 
-  auto hccl = nuis::get_col_as<bool>(rbatch, "hasscclep");
-  auto q0col = nuis::get_col_as<double>(rbatch, "true.event.lep.q0");
-  auto q3col = nuis::get_col_as<double>(rbatch, "true.event.lep.q3");
+  auto hf = nuis::HistFrame(nuis::Binning::lin_space(0, 2E3, 10));
+  auto hf2 =
+      nuis::HistFrame(nuis::Binning::lin_spaceND({{0, 2E3, 10}, {0, 2E3, 10}}));
 
-  for (int i = 0; i < rbatch->num_rows(); ++i) {
-    std::cout << i << ": " << hccl->Value(i) << " " << q0col->Value(i) << " "
-              << q3col->Value(i) << std::endl;
-  }
+  nuis::fill_from_RecordBatch(hf, rbatch, "true.event.lep.q0");
+  nuis::fill_from_RecordBatch(
+      hf, rbatch,
+      std::vector<std::string>{"true.event.lep.q0", "true.event.lep.q3"});
+
+  std::cout << hf << std::endl;
+  std::cout << hf2 << std::endl;
 }
 
 arrow::Status RunMain(int, char const *argv[]) {
@@ -136,7 +142,7 @@ arrow::Status RunMain(int, char const *argv[]) {
         "Failed to find EventSource for input file {}", argv[1]);
   }
 
-  auto frame = nuis::EventFrameGen(evs, 100);
+  auto frame = nuis::EventFrameGen(evs, 250000);
 
   frame.add_typed_column<bool>(
       "hasscclep", [](HepMC3::GenEvent const &ev) -> bool {
@@ -170,7 +176,6 @@ arrow::Status RunMain(int, char const *argv[]) {
   ARROW_RETURN_NOT_OK(ipc_writer->WriteRecordBatch(*rbatch));
 
   ProcessRBatch(rbatch);
-  return arrow::Status::OK();
 
   while (rbatch = frame.nextArrow()) {
     ARROW_RETURN_NOT_OK(ipc_writer->WriteRecordBatch(*rbatch));

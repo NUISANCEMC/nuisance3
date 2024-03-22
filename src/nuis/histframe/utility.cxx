@@ -195,4 +195,79 @@ std::ostream &operator<<(std::ostream &os, nuis::BinnedValuesBase const &bvb) {
   return os << " " << line.data();
 }
 
+void fill_from_EventFrame(
+    HistFrame &hf, EventFrame &ef,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  std::vector<double> projs(projection_column_names.size(), 0);
+  double weight = 1;
+
+  std::vector<int> proj_colids;
+  for (auto const &proj_col_name : projection_column_names) {
+    proj_colids.push_back(ef.find_column_index(proj_col_name));
+  }
+
+  std::vector<int> weight_colids;
+  for (auto const &weight_col_name : weight_column_names) {
+    weight_colids.push_back(ef.find_column_index(weight_col_name));
+  }
+
+  for (auto row : ef.table.rowwise()) {
+    weight = 1;
+    for (auto wid : weight_colids) {
+      weight *= row(wid);
+    }
+
+    for (size_t pi = 0; pi < proj_colids.size(); ++pi) {
+      projs[pi] = row(proj_colids[pi]);
+    }
+
+    hf.fill(projs, weight);
+  }
+}
+
+void fill_from_EventFrameGen(
+    HistFrame &hf, EventFrameGen &efg,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &weight_column_names) {
+  auto fr = efg.first();
+  while (fr.table.rows()) {
+    fill_from_EventFrame(hf, fr, projection_column_names, weight_column_names);
+    fr = efg.next();
+  }
+}
+
+void fill_from_RecordBatch(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> &rb,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  std::vector<double> projs(projection_column_names.size(), 0);
+  double weight = 1;
+
+  std::vector<std::function<double(int)>> proj_columns;
+  for (auto const &proj_col_name : projection_column_names) {
+    proj_columns.push_back(get_col_cast_to<double>(rb, proj_col_name));
+  }
+
+  std::vector<std::function<double(int)>> weight_columns;
+  for (auto const &weight_col_name : weight_column_names) {
+    weight_columns.push_back(get_col_cast_to<double>(rb, weight_col_name));
+  }
+
+  for (int row_it = 0; row_it < rb->num_rows(); ++row_it) {
+    weight = 1;
+    for (auto &wcol : weight_columns) {
+      weight *= wcol(row_it);
+    }
+
+    for (size_t pi = 0; pi < proj_columns.size(); ++pi) {
+      projs[pi] = proj_columns[pi](row_it);
+    }
+
+    hf.fill(projs, weight);
+  }
+}
+
 } // namespace nuis

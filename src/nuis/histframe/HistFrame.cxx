@@ -8,7 +8,6 @@
 
 #include "fmt/ranges.h"
 
-NEW_NUISANCE_EXCEPT(MissingProjectionEncountered);
 NEW_NUISANCE_EXCEPT(InvalidColumnAccess);
 
 namespace nuis {

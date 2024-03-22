@@ -1,12 +1,4 @@
-#include "nuis/eventframe/EventFrame.h"
-#include "nuis/eventframe/EventFrameGen.h"
-
-#include "nuis/python/pyNUISANCE.h"
-
-#include "nuis/python/pyEventInput.h"
-
-#include "pybind11/eigen.h"
-#include "pybind11/functional.h"
+#include "nuis/python/pyEventFrame.h"
 
 #ifdef NUIS_ARROW_ENABLED
 // header that
@@ -17,75 +9,73 @@ namespace py = pybind11;
 
 using namespace nuis;
 
-struct pyEventFrameGen {
-  pyEventFrameGen(pyNormalizedEventSource ev, size_t bsize) {
-    gen = std::make_shared<EventFrameGen>(ev.evs, bsize);
-  }
+pyEventFrameGen::pyEventFrameGen(pyNormalizedEventSource ev, size_t bsize) {
+  gen = std::make_shared<EventFrameGen>(ev.evs, bsize);
+}
 
-  pyEventFrameGen filter(EventFrameGen::FilterFunc filt) {
-    *gen = gen->filter(filt);
-    return *this;
-  }
+pyEventFrameGen pyEventFrameGen::filter(EventFrameGen::FilterFunc filt) {
+  *gen = gen->filter(filt);
+  return *this;
+}
 
-  pyEventFrameGen
-  add_double_columns(std::vector<std::string> const &col_names,
-                     EventFrameGen::ProjectionsFunc<double> proj) {
-    *gen = gen->add_typed_columns<double>(col_names, proj);
-    return *this;
-  }
+pyEventFrameGen pyEventFrameGen::add_double_columns(
+    std::vector<std::string> const &col_names,
+    EventFrameGen::ProjectionsFunc<double> proj) {
+  *gen = gen->add_typed_columns<double>(col_names, proj);
+  return *this;
+}
 
-  pyEventFrameGen
-  add_double_column(std::string const &col_name,
-                    EventFrameGen::ProjectionFunc<double> proj) {
-    *gen = gen->add_typed_column<double>(col_name, proj);
-    return *this;
-  }
+pyEventFrameGen
+pyEventFrameGen::add_double_column(std::string const &col_name,
+                                   EventFrameGen::ProjectionFunc<double> proj) {
+  *gen = gen->add_typed_column<double>(col_name, proj);
+  return *this;
+}
 
-  pyEventFrameGen add_int_columns(std::vector<std::string> const &col_names,
-                                  EventFrameGen::ProjectionsFunc<int> proj) {
-    *gen = gen->add_typed_columns<int>(col_names, proj);
-    return *this;
-  }
+pyEventFrameGen
+pyEventFrameGen::add_int_columns(std::vector<std::string> const &col_names,
+                                 EventFrameGen::ProjectionsFunc<int> proj) {
+  *gen = gen->add_typed_columns<int>(col_names, proj);
+  return *this;
+}
 
-  pyEventFrameGen add_int_column(std::string const &col_name,
-                                 EventFrameGen::ProjectionFunc<int> proj) {
-    *gen = gen->add_typed_column<int>(col_name, proj);
-    return *this;
-  }
+pyEventFrameGen
+pyEventFrameGen::add_int_column(std::string const &col_name,
+                                EventFrameGen::ProjectionFunc<int> proj) {
+  *gen = gen->add_typed_column<int>(col_name, proj);
+  return *this;
+}
 
-  pyEventFrameGen limit(size_t nmax) {
-    *gen = gen->limit(nmax);
-    return *this;
-  }
+pyEventFrameGen pyEventFrameGen::limit(size_t nmax) {
+  *gen = gen->limit(nmax);
+  return *this;
+}
 
-  pyEventFrameGen progress(size_t nmax) {
-    *gen = gen->progress(nmax);
-    return *this;
-  }
+pyEventFrameGen pyEventFrameGen::progress(size_t nmax) {
+  *gen = gen->progress(nmax);
+  return *this;
+}
 
-  auto first() { return gen->first(); }
-  auto next() { return gen->next(); }
-  auto all() { return gen->all(); }
+nuis::EventFrame pyEventFrameGen::first() { return gen->first(); }
+nuis::EventFrame pyEventFrameGen::next() { return gen->next(); }
+nuis::EventFrame pyEventFrameGen::all() { return gen->all(); }
 
 #ifdef NUIS_ARROW_ENABLED
-  py::object firstArrow() {
-    auto rb = gen->firstArrow();
-    if (rb) {
-      return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
-    }
-    return py::none();
+pybind11::object pyEventFrameGen::firstArrow() {
+  auto rb = gen->firstArrow();
+  if (rb) {
+    return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
   }
-  py::object nextArrow() {
-    auto rb = gen->nextArrow();
-    if (rb) {
-      return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
-    }
-    return py::none();
+  return py::none();
+}
+pybind11::object pyEventFrameGen::nextArrow() {
+  auto rb = gen->nextArrow();
+  if (rb) {
+    return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
   }
+  return py::none();
+}
 #endif
-
-  std::shared_ptr<EventFrameGen> gen;
-};
 
 Eigen::ArrayXdRef frame_gettattr(EventFrame &s, std::string const &column) {
   return s.col(column);
