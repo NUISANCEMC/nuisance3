@@ -1,4 +1,4 @@
-#include "nuis/frame/Frame.h"
+#include "nuis/Eventframe/EventFrame.h"
 
 #include "fmt/core.h"
 
@@ -8,32 +8,34 @@
 #include <sstream>
 
 namespace nuis {
-Frame::column_t Frame::find_column_index(std::string const &cn) const {
+EventFrame::column_t
+EventFrame::find_column_index(std::string const &cn) const {
   auto pos = std::find(column_names.begin(), column_names.end(), cn);
   if (pos == column_names.end()) {
-    return Frame::npos;
+    return EventFrame::npos;
   }
   return pos - column_names.begin();
 }
 
-Eigen::ArrayXdRef Frame::col(std::string const &cn) {
+Eigen::ArrayXdRef EventFrame::col(std::string const &cn) {
   auto cid = find_column_index(cn);
-  if (cid == Frame::npos) {
-    nuis_named_log("Frame")::log_critical(
-        "Tried to get column, named {} from frame. But no such column exists.",
+  if (cid == EventFrame::npos) {
+    nuis_named_log("EventFrame")::log_critical(
+        "Tried to get column, named {} from Eventframe. But no such column "
+        "exists.",
         cn);
     throw InvalidFrameColumnName();
   }
   return table.col(cid);
 }
 std::vector<Eigen::ArrayXdRef>
-Frame::cols(std::vector<std::string> const &cns) {
+EventFrame::cols(std::vector<std::string> const &cns) {
   std::vector<Eigen::ArrayXdRef> rtn;
   for (size_t i = 0; i < cns.size(); ++i) {
     auto cid = find_column_index(cns[i]);
-    if (cid == Frame::npos) {
-      nuis_named_log("Frame")::log_critical(
-          "Tried to get column, named {} from frame. But no such "
+    if (cid == EventFrame::npos) {
+      nuis_named_log("EventFrame")::log_critical(
+          "Tried to get column, named {} from Eventframe. But no such "
           "column exists.",
           cns[i]);
       throw InvalidFrameColumnName();
@@ -43,9 +45,7 @@ Frame::cols(std::vector<std::string> const &cns) {
   return rtn;
 }
 
-} // namespace nuis
-
-std::ostream &operator<<(std::ostream &os, nuis::FramePrinter fp) {
+std::ostream &operator<<(std::ostream &os, nuis::EventFramePrinter fp) {
 
   size_t abs_max_width = fp.max_col_width;
 
@@ -111,6 +111,8 @@ std::ostream &operator<<(std::ostream &os, nuis::FramePrinter fp) {
   return os << " " << line.data();
 }
 
-std::ostream &operator<<(std::ostream &os, nuis::Frame const &f) {
-  return os << nuis::FramePrinter(f);
+std::ostream &operator<<(std::ostream &os, nuis::EventFrame const &f) {
+  return os << nuis::EventFramePrinter(f);
 }
+
+} // namespace nuis

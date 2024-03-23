@@ -9,12 +9,12 @@ target_link_libraries(nuis-example-binning eventinput histframe)
 install(TARGETS nuis-example-binning DESTINATION bin)
 
 add_executable(nuis-example-frame nuis-example-frame.cxx)
-target_link_libraries(nuis-example-frame eventinput frame)
+target_link_libraries(nuis-example-frame eventinput eventframe)
 install(TARGETS nuis-example-frame DESTINATION bin)
 
 if(NUIS_ARROW_ENABLED)
   add_executable(nuis-example-arrow nuis-example-arrow.cxx)
-  target_link_libraries(nuis-example-arrow eventinput frame)
+  target_link_libraries(nuis-example-arrow eventinput eventframe histframe)
   install(TARGETS nuis-example-arrow DESTINATION bin)
 endif()
 

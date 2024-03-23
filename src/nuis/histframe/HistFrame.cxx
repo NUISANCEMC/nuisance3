@@ -1,6 +1,6 @@
 #include "nuis/histframe/HistFrame.h"
 
-#include "nuis/frame/missing_datum.h"
+#include "nuis/eventframe/missing_datum.h"
 
 #include "nuis/binning/exceptions.h"
 
@@ -8,7 +8,6 @@
 
 #include "fmt/ranges.h"
 
-NEW_NUISANCE_EXCEPT(MissingProjectionEncountered);
 NEW_NUISANCE_EXCEPT(InvalidColumnAccess);
 
 namespace nuis {

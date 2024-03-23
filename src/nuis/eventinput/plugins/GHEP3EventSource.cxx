@@ -666,7 +666,7 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
 
   ge->set_event_number(ient);
   ge->set_run_info(gri);
-  ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+  ge->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
 
   if (xspline) {
     NuHepMC::EC2::SetTotalCrossSection(
@@ -695,7 +695,7 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
       static_cast<genie::GHepRecord const &>(*ntpl->event));
   ge->set_event_number(ient);
   ge->set_run_info(gri);
-  ge->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+  ge->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
   auto tpart = NuHepMC::Event::GetTargetParticle(*ge);
   auto bpart = NuHepMC::Event::GetBeamParticle(*ge);
 

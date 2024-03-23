@@ -1,6 +1,3 @@
-#include "nuis/frame/Frame.h"
-#include "nuis/frame/FrameGen.h"
-
 #include "nuis/weightcalc/IWeightCalc.h"
 #include "nuis/weightcalc/WeightCalcFactory.h"
 

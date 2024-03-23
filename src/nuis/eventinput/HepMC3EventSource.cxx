@@ -54,7 +54,7 @@ std::shared_ptr<HepMC3::GenEvent> HepMC3EventSource::next() {
     return nullptr;
   }
 
-  evt->set_units(HepMC3::Units::MEV, HepMC3::Units::MM);
+  evt->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
   return evt;
 }
 
