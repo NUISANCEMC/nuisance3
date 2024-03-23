@@ -33,6 +33,16 @@ binnedvalues_gettattr(BinnedValues &s, std::string const &column) {
 
 void pyHistFrameInit(py::module &m) {
 
+  py::class_<BinnedValuesBase::ColumnInfo>(m, "ColumnInfo")
+      .def_readonly("name", &BinnedValuesBase::ColumnInfo::name)
+      .def_readonly("column_label", &BinnedValuesBase::ColumnInfo::column_label)
+      .def("__repr__", [](BinnedValuesBase::ColumnInfo const &s) {
+        return fmt::format("Column: name={}{}", s.name,
+                           s.column_label.size()
+                               ? fmt::format(", label={}", s.column_label)
+                               : std::string(""));
+      });
+
   py::class_<BinnedValuesBase>(m, "BinnedValuesBase")
       .def_readonly_static("npos", &BinnedValuesBase::npos)
       .def_readonly("binning", &BinnedValuesBase::binning)

@@ -2,6 +2,8 @@ backup
 #data
 build
 
+*-checkpoint.ipynb
+
 # Prerequisites
 *.d
 

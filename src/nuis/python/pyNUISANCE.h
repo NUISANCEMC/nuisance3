@@ -3,6 +3,7 @@
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "pybind11/stl_bind.h"
+#include "pybind11/eigen.h"
 
 #include "nuis/python/pyYAML.h"
 
@@ -13,3 +14,4 @@ PYBIND11_MAKE_OPAQUE(std::vector<bool>);
 PYBIND11_MAKE_OPAQUE(std::vector<int>);
 PYBIND11_MAKE_OPAQUE(std::vector<double>);
 PYBIND11_MAKE_OPAQUE(std::vector<uint32_t>);
+PYBIND11_MAKE_OPAQUE(std::vector<std::vector<double>>);
