@@ -17,6 +17,8 @@ struct Table {
       : blueprint{}, clear{}, select{}, weight{}, projections{}, project{},
         finalize{}, likeihood{} {}
 
+  YAML::Node metadata;
+    
   // Here we purposefully keep a full template so that people can change the
   // binning/data on the fly and all others get propagated.
 

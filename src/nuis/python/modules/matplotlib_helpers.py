@@ -195,10 +195,10 @@ class HistFrame_matplotlib_helper:
                 
         plt.pcolormesh(X, Y, C)
 
-def mpl_cern_template():
+def mpl_cern_template(page_dim=[3,3]):
     plt.minorticks_on()
     plt.rcParams.update({
-        'figure.figsize': [5, 4],
+        'figure.figsize': page_dim,
         'xtick.direction': 'in',
         'ytick.direction': 'in',
         'xtick.top': True,

@@ -18,9 +18,11 @@ struct Comparison {
   std::string normalisation_type;
   bool by_bin_width;
 
+  YAML::Node metadata;
   Eigen::ArrayXXd correlation;
 
   BinnedValues data;
+  BinnedValues mc_prediction;
   HistFrame mc;
 
   Comparison(BinningPtr bindef) {
