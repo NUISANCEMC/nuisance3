@@ -12,17 +12,18 @@ struct Comparison {
 
   struct Finalised {
     BinnedValues data;
-    BinnedValues mc;
+    BinnedValues estimate;
+    Eigen::ArrayXXd correlation;
+    YAML::Node metadata;
   };
 
-  std::string normalisation_type;
-  bool by_bin_width;
+  // std::string normalisation_type;
+  // bool by_bin_width;
 
   YAML::Node metadata;
   Eigen::ArrayXXd correlation;
-
   BinnedValues data;
-  BinnedValues mc_prediction;
+  BinnedValues estimate;
   HistFrame mc;
 
   Comparison(BinningPtr bindef) {

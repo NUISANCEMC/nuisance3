@@ -9,16 +9,19 @@ NEW_NUISANCE_EXCEPT(EmptyMC);
 
 namespace finalize {
 // Fix these for full covariance estimates
-Comparison::Finalised FATXNormalizedByBinWidth(Comparison const &fr,
-                                               const double fatx) {
+BinnedValues FATXNormalizedByBinWidth(Comparison &fr,
+                                      const double fatx) {
   auto mc = fr.mc.finalise(true);
   mc.values /= fatx;
   mc.errors /= fatx;
-  return Comparison::Finalised{fr.data, mc};
+
+  fr.estimate = mc;
+  return mc; 
+  //Comparison::Finalised{fr.data, mc, fr.correlation, fr.metadata}; 
 }
 
-Comparison::Finalised EventRateScaleToData(Comparison const &fr,
-                                           const double /*fatx_by_pdf*/) {
+BinnedValues EventRateScaleToData(Comparison &fr,
+                                  const double /*fatx_by_pdf*/) {
 
   auto datamc = fr[0];
   double dt_sum = datamc.data.value.sum();
@@ -31,9 +34,13 @@ Comparison::Finalised EventRateScaleToData(Comparison const &fr,
     throw EmptyMC();
 
   auto mc = fr.mc.finalise(true);
-  mc.values *= dt_sum / mc_sum;
-  mc.errors *= dt_sum / mc_sum;
-  return Comparison::Finalised{fr.data, mc};
+  double div = mc[0].value.sum(); // previous approach gave a factor of two out
+  mc.values *= dt_sum / div;
+  mc.errors *= dt_sum / div;
+
+  fr.estimate = mc;
+  return mc; 
+  //Comparison::Finalised{fr.data, mc, fr.correlation, fr.metadata};
 }
 
 } // namespace finalize

@@ -44,6 +44,10 @@ struct pyRecordFactory {
     return pyrec;
   }
 
+  TablePtr make_table(YAML::Node const &cfg = {}) {
+    return rfact.make_table(cfg);
+  }
+
   RecordFactory rfact;
 };
 } // namespace nuis
@@ -91,11 +95,13 @@ void pyRecordInit(py::module &m) {
       .def_readwrite("metadata", &Comparison::metadata)
       .def_readwrite("mc", &Comparison::mc)
       .def_readwrite("data", &Comparison::data)
-      .def_readwrite("mc_prediction", &Comparison::mc_prediction);
+      .def_readwrite("estimate", &Comparison::estimate);
 
   py::class_<pyRecordFactory>(m, "RecordFactory")
       .def(py::init<>())
-      .def("make", &pyRecordFactory::make);
+      .def("make_record", &pyRecordFactory::make)
+      .def("make_table", &pyRecordFactory::make_table);
+
 
   py::class_<pyRecord>(m, "Record")
       .def(py::init<>())
@@ -104,7 +110,9 @@ void pyRecordInit(py::module &m) {
 
   py::class_<Table,TablePtr>(m, "Table")
       .def(py::init<>())
-      .def_readwrite("metadata", &Table::metadata)
+      .def("metadata", [](const Table &t) { return t.metadata; })
+      .def("get_metadata", [](const Table &t) { return t.metadata; })
+      .def("set_metadata", [](Table &t, YAML::Node node) { t.metadata = node; })
       .def_readwrite("blueprint", &Table::blueprint)
       .def_readwrite("clear", &Table::clear)
       .def_readwrite("select", &Table::select)
@@ -112,7 +120,7 @@ void pyRecordInit(py::module &m) {
       .def_readwrite("weight", &Table::weight)
       .def_readwrite("finalize", &Table::finalize)
       .def("comparison", &Table::comparison)
-      .def_readwrite("likeihood", &Table::likeihood);
+      .def_readwrite("likelihood", &Table::likelihood);
 
   //      .def_readwrite("likeihood", &Table::likeihood)
   //      .def("add_column", &Table::add_column)

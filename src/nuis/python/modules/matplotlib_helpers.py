@@ -1,5 +1,5 @@
 from ._pyNUISANCE import FrameGen, Frame
-from ._pyNUISANCE import HistFrame
+from ._pyNUISANCE import HistFrame, BinnedValues
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -67,10 +67,13 @@ class HistFrame_matplotlib_helper:
     
     def  c(self, col=None): 
         if not col: col = self.fc()
-        return self.hf[col]["count"]
+        if "count" in self.hf[col]: return self.hf[col]["count"]
+        if "value" in self.hf[col]: return self.hf[col]["value"]
+
     def ec(self, col=None): 
         if not col: col = self.fc()
-        return np.sqrt(self.hf[col]["variance"])
+        if "variance" in self.hf[col]: return np.sqrt(self.hf[col]["variance"])
+        if "error" in self.hf[col]: return self.hf[col]["error"]
 
     def form_title(self, col, **kwargs):
         if "label" not in kwargs:
@@ -240,6 +243,7 @@ def build_Frame_mpl_helper(self):
 
 FrameGen.mpl = build_FrameGen_mpl_helper
 HistFrame.mpl = build_HistFrame_matplotlib_helper
+BinnedValues.mpl = build_HistFrame_matplotlib_helper
 Frame.mpl = build_Frame_mpl_helper
 
 HistFrame.show = plt.show
