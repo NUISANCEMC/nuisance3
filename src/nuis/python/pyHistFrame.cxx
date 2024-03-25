@@ -66,26 +66,37 @@ void pyHistFrameInit(py::module &m) {
                      py::return_value_policy::reference_internal)
       .def_readonly("num_fills", &HistFrame::num_fills)
       .def("fill_bin", &HistFrame::fill_bin, py::arg("bini"), py::arg("weight"),
-           py::arg("col") = 0)
+           py::arg("col"))
       .def("fill",
-           py::overload_cast<std::vector<double> const &, double,
-                             HistFrame::column_t>(&HistFrame::fill),
-           py::arg("projections"), py::arg("weight"), py::arg("col") = 0)
-      .def("fill",
-           py::overload_cast<double, double, HistFrame::column_t>(
+           py::overload_cast<std::vector<double> const &, double>(
                &HistFrame::fill),
-           py::arg("projection"), py::arg("weight"), py::arg("col") = 0)
-      .def("fill_with_selection",
-           py::overload_cast<int, std::vector<double> const &, double,
-                             HistFrame::column_t>(
-               &HistFrame::fill_with_selection),
-           py::arg("selection"), py::arg("projections"), py::arg("weight"),
-           py::arg("col") = 0)
-      .def("fill_with_selection",
-           py::overload_cast<int, double, double, HistFrame::column_t>(
-               &HistFrame::fill_with_selection),
-           py::arg("selection"), py::arg("projection"), py::arg("weight"),
-           py::arg("col") = 0)
+           py::arg("projections"), py::arg("weight"))
+      .def("fill", py::overload_cast<double, double>(&HistFrame::fill),
+           py::arg("projection"), py::arg("weight"))
+      .def("fill_if",
+           py::overload_cast<bool, std::vector<double> const &, double>(
+               &HistFrame::fill_if),
+           py::arg("selected"), py::arg("projections"), py::arg("weight"))
+      .def("fill_if",
+           py::overload_cast<bool, double, double>(&HistFrame::fill_if),
+           py::arg("selected"), py::arg("projection"), py::arg("weight"))
+      .def("fill_column",
+           py::overload_cast<std::vector<double> const &, double,
+                             HistFrame::column_t>(&HistFrame::fill_column),
+           py::arg("projections"), py::arg("weight"), py::arg("column"))
+      .def("fill_column",
+           py::overload_cast<double, double, HistFrame::column_t>(
+               &HistFrame::fill_column),
+           py::arg("projection"), py::arg("weight"), py::arg("column"))
+      .def("fill_column_if",
+           py::overload_cast<bool, std::vector<double> const &, double,
+                             HistFrame::column_t>(&HistFrame::fill_column_if),
+           py::arg("selected"), py::arg("projections"), py::arg("weight"),
+           py::arg("column"))
+      .def("fill_column_if", py::arg("selected"),
+           py::overload_cast<bool, double, double, HistFrame::column_t>(
+               &HistFrame::fill_column_if),
+           py::arg("projection"), py::arg("weight"), py::arg("column"))
       .def("finalise", &HistFrame::finalise,
            py::arg("divide_by_bin_sizes") = true)
       .def("reset", &HistFrame::reset)

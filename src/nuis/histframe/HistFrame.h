@@ -48,19 +48,22 @@ struct HistFrame : public BinnedValuesBase {
   column_view_const operator[](column_t col) const;
   column_view_const operator[](std::string const &name) const;
 
-  void fill(std::vector<double> const &projections, double weight,
-            column_t col = 0);
-  // A semantically meaningful helper function for passing a selection
-  // integer as the first projection axis
-  void fill_with_selection(int sel_int, std::vector<double> const &projections,
-                           double weight, column_t col = 0);
+  void fill(std::vector<double> const &projections, double weight);
+  void fill_column(std::vector<double> const &projections, double weight,
+                   column_t col);
+  void fill_if(bool selected, std::vector<double> const &projections,
+               double weight);
+  void fill_column_if(bool selected, std::vector<double> const &projections,
+                      double weight, column_t col);
 
   // convenience for 1D histograms
-  void fill(double projection, double weight, column_t col = 0);
-  void fill_with_selection(int sel_int, double projection, double weight,
-                           column_t col = 0);
+  void fill(double projection, double weight);
+  void fill_column(double projection, double weight, column_t col);
+  void fill_if(bool selected, double projection, double weight);
+  void fill_column_if(bool selected, double projection, double weight,
+                      column_t col);
 
-  void fill_bin(Binning::index_t bini, double weight, column_t col = 0);
+  void fill_bin(Binning::index_t bini, double weight, column_t col);
 
   BinnedValues finalise(bool divide_by_bin_sizes = true) const;
 
