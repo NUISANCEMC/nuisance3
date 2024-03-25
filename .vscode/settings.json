@@ -89,6 +89,7 @@
         "format": "cpp",
         "cinttypes": "cpp",
         "strstream": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "__memory": "cpp"
     }
 }

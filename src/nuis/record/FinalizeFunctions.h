@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nuis/record/Comparison.h"
+#include <vector>
 
 namespace nuis {
 
@@ -14,11 +15,20 @@ BinnedValues FATXNormalizedByBinWidth(Comparison &fr,
   auto mc = fr.mc.finalise(true);
   mc.values /= fatx;
   mc.errors /= fatx;
+  fr.estimate = mc;
+  return mc;
+}
+
+BinnedValues FATXNormalized(Comparison &fr,
+                                      const double fatx) {
+  auto mc = fr.mc.finalise(false);
+  mc.values /= fatx;
+  mc.errors /= fatx;
 
   fr.estimate = mc;
-  return mc; 
-  //Comparison::Finalised{fr.data, mc, fr.correlation, fr.metadata}; 
+  return mc;
 }
+
 
 BinnedValues EventRateScaleToData(Comparison &fr,
                                   const double /*fatx_by_pdf*/) {
@@ -33,15 +43,25 @@ BinnedValues EventRateScaleToData(Comparison &fr,
   if (mc_sum == 0.0)
     throw EmptyMC();
 
-  auto mc = fr.mc.finalise(true);
+  auto mc = fr.mc.finalise(false);
   double div = mc[0].value.sum(); // previous approach gave a factor of two out
   mc.values *= dt_sum / div;
   mc.errors *= dt_sum / div;
 
   fr.estimate = mc;
   return mc; 
-  //Comparison::Finalised{fr.data, mc, fr.correlation, fr.metadata};
 }
+
+BinnedValues FluxUnfoldedScaling(Comparison &fr,
+  const double /*fatx_by_pdf*/,
+  std::vector<double> /*flux_centers*/,
+  std::vector<double> /*flux_content*/) {
+
+  // Placeholder for flux unfolded scaling stuff....
+  return fr.mc.finalise(false);
+}
+
+// FluxUnfoldedScaling is an exceptional lambda case
 
 } // namespace finalize
 } // namespace nuis

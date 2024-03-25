@@ -1,10 +1,10 @@
-from ._pyNUISANCE import FrameGen, Frame
+from ._pyNUISANCE import EventFrameGen, EventFrame
 from ._pyNUISANCE import HistFrame, BinnedValues
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-class FrameGen_mpl_helper():
+class EventFrameGen_mpl_helper():
     def __init__(self, fr):
         self.fr = fr
 
@@ -26,7 +26,7 @@ class FrameGen_mpl_helper():
         obj = plt.hist2d( df[x], df[y], self.df[weights], *args, **kwargs )
         return obj
 
-class Frame_mpl_helper():
+class EventFrame_mpl_helper():
     def __init__(self, df):
         self.df = df
 
@@ -235,16 +235,16 @@ def mpl_cern_template(page_dim=[3,3]):
 def build_HistFrame_matplotlib_helper(self):
     return HistFrame_matplotlib_helper(self)
 
-def build_FrameGen_mpl_helper(self):
-    return FrameGen_mpl_helper(self)
+def build_EventFrameGen_mpl_helper(self):
+    return EventFrameGen_mpl_helper(self)
 
-def build_Frame_mpl_helper(self):
-    return Frame_mpl_helper(self)
+def build_EventFrame_mpl_helper(self):
+    return EventFrame_mpl_helper(self)
 
-FrameGen.mpl = build_FrameGen_mpl_helper
+EventFrameGen.mpl = build_EventFrameGen_mpl_helper
 HistFrame.mpl = build_HistFrame_matplotlib_helper
 BinnedValues.mpl = build_HistFrame_matplotlib_helper
-Frame.mpl = build_Frame_mpl_helper
+EventFrame.mpl = build_EventFrame_mpl_helper
 
 HistFrame.show = plt.show
 

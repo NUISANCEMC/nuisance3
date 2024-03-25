@@ -8,6 +8,8 @@ namespace likelihood {
 double Chi2(const Comparison& fr) {
     Eigen::ArrayXd res = (fr.data[0].value - fr.estimate[0].value);
     res /= fr.data[0].error;
+
+    Eigen::ArrayXd covar = fr.correlation;
     return (res * res).sum();
 }
 

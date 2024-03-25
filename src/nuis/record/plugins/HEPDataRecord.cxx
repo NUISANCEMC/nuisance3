@@ -250,18 +250,59 @@ public:
     };
 
     tab.weight = nuis::weight::DefaultWeight;
-    tab.finalize = nuis::finalize::EventRateScaleToData;
-    tab.likelihood = nuis::likelihood::Poisson;
+
+    if (variables_dep[0].qualifiers["scaling"] == "EventRateScaleToData") {
+      tab.finalize = nuis::finalize::EventRateScaleToData;
+
+    } else if (variables_dep[0].qualifiers["scaling"] == "FATXNormalizedByBinWidth") {
+      tab.finalize = nuis::finalize::FATXNormalizedByBinWidth;
+
+    } else if (variables_dep[0].qualifiers["scaling"] == "FATXNormalized") {
+      tab.finalize = nuis::finalize::FATXNormalized;
+
+    } else if (variables_dep[0].qualifiers["scaling"] == "FluxUnfolded") {
+      std::vector<double> bin_edges;  // placeholder - need a flux hist;
+      std::vector<double> bin_content;  // placeholder - need a flux hist;
+      tab.finalize = [bin_edges, bin_content](Comparison &fr, double fatx) {
+        return nuis::finalize::FluxUnfoldedScaling(fr,
+          fatx, bin_edges, bin_content);
+      };
+
+    } else {
+      std::cout << "FAILED TO FIND VALID FLUX DEF" << std::endl;
+      throw;
+    }
+
+    if (variables_dep[0].qualifiers["likelihood"] == "Poisson") {
+      tab.likelihood = nuis::likelihood::Poisson;
+    } else if (variables_dep[0].qualifiers["likelihood"] == "SimpleResidual") {
+      tab.likelihood = nuis::likelihood::SimpleResidual;
+    } else if (variables_dep[0].qualifiers["likelihood"] == "Chi2") {
+      tab.likelihood = nuis::likelihood::Chi2;
+    } else {
+      std::cout << "FAILED TO FIND Likleihood FLUX DEF" << std::endl;
+      throw;
+    }
 
     Comparison hist(from_hepdata_extents(variables_indep));
-
+    
     hist.data.values.col(0) = Eigen::Map<Eigen::VectorXd>(
         variables_dep[0].values.data(), variables_dep[0].values.size());
 
+    if (variables_dep[0].qualifiers.find("errors") != variables_dep[0].qualifiers.end()) {
+      if (variables_dep[0].qualifiers["errors"] == "sumw") {
+        for (size_t i = 0; i < variables_dep[0].values.size(); i++) {
+          if (variables_dep[0].values[i] > 0 && variables_dep[0].errors[i] == -999) {
+            variables_dep[0].errors[i] = sqrt(variables_dep[0].values[i]);
+          }
+        }
+      }
+    }
+    
     hist.data.errors.col(0) = Eigen::Map<Eigen::VectorXd>(
         variables_dep[0].errors.data(), variables_dep[0].errors.size());
 
-    cfg["id"]= cfg["release"].as<std::string>()+cfg["table"].as<std::string>();
+    cfg["id"]= cfg["release"].as<std::string>()+ ":" + cfg["table"].as<std::string>();
     tab.blueprint = std::make_shared<Comparison>(hist);
     tab.metadata = cfg; // Don't love having two copies but we need access at all levels.
     tab.blueprint->metadata = cfg; // maybe the blueprint doesn't need it?
