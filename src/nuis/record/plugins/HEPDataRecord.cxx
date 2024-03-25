@@ -251,7 +251,7 @@ public:
 
     tab.weight = nuis::weight::DefaultWeight;
     tab.finalize = nuis::finalize::EventRateScaleToData;
-    tab.likelihood = nuis::likelihood::Chi2;
+    tab.likelihood = nuis::likelihood::Poisson;
 
     Comparison hist(from_hepdata_extents(variables_indep));
 
