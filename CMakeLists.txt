@@ -173,7 +173,7 @@ endif()
 
 # PYTHON PATHS
 set(NUISANCE_PYSITEARCH "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
-set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/pyNUISANCE/")
 
 add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 

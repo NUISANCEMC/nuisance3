@@ -81,6 +81,12 @@
         "random": "cpp",
         "type_traits": "cpp",
         "utility": "cpp",
-        "core": "cpp"
+        "core": "cpp",
+        "numbers": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp",
+        "valarray": "cpp",
+        "format": "cpp",
+        "cinttypes": "cpp"
     }
 }

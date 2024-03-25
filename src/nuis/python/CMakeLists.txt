@@ -1,4 +1,4 @@
-pybind11_add_module(pyNUISANCE SHARED 
+pybind11_add_module(_pyNUISANCE SHARED 
   pyNUISANCE.cxx 
   pyYAML.cxx 
   pyEventInput.cxx 
@@ -11,7 +11,7 @@ pybind11_add_module(pyNUISANCE SHARED
   pyConvert.cxx
   )
 
-target_link_libraries(pyNUISANCE 
+target_link_libraries(_pyNUISANCE 
   PRIVATE 
     eventinput 
     eventframe 
@@ -23,9 +23,11 @@ target_link_libraries(pyNUISANCE
     NuHepMC::CPPUtils 
     pybind11::module)
 
-target_include_directories(pyNUISANCE PRIVATE
+target_include_directories(_pyNUISANCE PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
   ${Python3_INCLUDE_DIRS})
 
-install(TARGETS pyNUISANCE
+install(TARGETS _pyNUISANCE
     LIBRARY DESTINATION ${NUISANCE_PYTHONPATH})
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/nuis/python/modules/ DESTINATION ${NUISANCE_PYTHONPATH})
