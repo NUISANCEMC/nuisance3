@@ -306,7 +306,7 @@ void fill_procid_columns_from_EventFrame_if_impl(
     }
 
     auto bin = hf.find_bin(projs);
-    hf.fill_bin(bin, weight);
+    hf.fill_bin(bin, weight, 0);
 
     if constexpr (fill_columns) {
       HistFrame::column_t col = row(colsel_col);
@@ -484,7 +484,7 @@ void fill_procid_columns_from_RecordBatch_if_impl(
     }
 
     auto bin = hf.find_bin(projs);
-    hf.fill_bin(bin, weight);
+    hf.fill_bin(bin, weight, 0);
 
     if constexpr (fill_columns) {
       HistFrame::column_t col = colsel_col(row_it);

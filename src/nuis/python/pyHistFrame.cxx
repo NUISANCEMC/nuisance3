@@ -93,10 +93,11 @@ void pyHistFrameInit(py::module &m) {
                              HistFrame::column_t>(&HistFrame::fill_column_if),
            py::arg("selected"), py::arg("projections"), py::arg("weight"),
            py::arg("column"))
-      .def("fill_column_if", py::arg("selected"),
+      .def("fill_column_if",
            py::overload_cast<bool, double, double, HistFrame::column_t>(
                &HistFrame::fill_column_if),
-           py::arg("projection"), py::arg("weight"), py::arg("column"))
+           py::arg("selected"), py::arg("projection"), py::arg("weight"),
+           py::arg("column"))
       .def("finalise", &HistFrame::finalise,
            py::arg("divide_by_bin_sizes") = true)
       .def("reset", &HistFrame::reset)
