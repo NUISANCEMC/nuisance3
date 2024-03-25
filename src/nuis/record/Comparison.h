@@ -44,8 +44,16 @@ struct Comparison {
     return mc.fill(std::forward<TS>(args)...);
   }
 
-  template <typename... TS> void fill_with_selection(TS &&...args) {
-    return mc.fill_with_selection(std::forward<TS>(args)...);
+  template <typename... TS> void fill_if(TS &&...args) {
+    return mc.fill_if(std::forward<TS>(args)...);
+  }
+
+  template <typename... TS> void fill_column(TS &&...args) {
+    return mc.fill_column(std::forward<TS>(args)...);
+  }
+
+  template <typename... TS> void fill_column_if(TS &&...args) {
+    return mc.fill_column_if(std::forward<TS>(args)...);
   }
 
   template <typename... TS> auto find_bin(TS &&...args) {

@@ -2,7 +2,7 @@ pybind11_add_module(_pyNUISANCE SHARED
   pyNUISANCE.cxx 
   pyYAML.cxx 
   pyEventInput.cxx 
-  pyFrame.cxx 
+  pyEventFrame.cxx 
   pyHistFrame.cxx 
   pyRecord.cxx 
   pyWeightCalc.cxx 
@@ -14,7 +14,7 @@ pybind11_add_module(_pyNUISANCE SHARED
 target_link_libraries(_pyNUISANCE 
   PRIVATE 
     eventinput 
-    frame 
+    eventframe 
     histframe 
     weightcalc 
     weightcalc_plugins 

@@ -2,7 +2,7 @@
 
 #include "nuis/weightcalc/WeightCalcFactory.h"
 
-#include "nuis/frame/FrameGen.h"
+#include "nuis/eventframe/EventFrameGen.h"
 
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/FATXUtils.hxx"
@@ -43,9 +43,10 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  auto frame = FrameGen(evs)
+  auto frame = EventFrameGen(evs)
                    .add_column("enu", enu)
                    .add_columns({"enu2", "pid"}, enu_nupid)
                    .progress(1E5)
                    .all();
+
 }

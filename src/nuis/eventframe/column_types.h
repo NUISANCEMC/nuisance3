@@ -4,6 +4,10 @@
 #include "arrow/api.h"
 #endif
 
+#include "nuis/except.h"
+
+#include <cstdint>
+
 namespace nuis {
 template <typename T> struct column_type {
   constexpr static int id = 0;
@@ -34,20 +38,51 @@ template <typename T> struct column_type {
   };
 #endif
 
+NUIS_COLUMN_TYPE(bool, arrow::BooleanType, 0);
 NUIS_COLUMN_TYPE(int, arrow::Int64Type, 1);
-NUIS_COLUMN_TYPE(float, arrow::FloatType, 2);
-NUIS_COLUMN_TYPE(double, arrow::DoubleType, 3);
+NUIS_COLUMN_TYPE(uint, arrow::UInt64Type, 2);
+NUIS_COLUMN_TYPE(int16_t, arrow::Int16Type, 3);
+NUIS_COLUMN_TYPE(uint16_t, arrow::UInt16Type, 4);
+NUIS_COLUMN_TYPE(float, arrow::FloatType, 5);
+NUIS_COLUMN_TYPE(double, arrow::DoubleType, 6);
 
 inline std::string column_typenum_as_string(int i) {
   switch (i) {
+  case 0:
+    return "bool";
   case 1:
     return "int";
   case 2:
-    return "float";
+    return "uint";
   case 3:
+    return "int16";
+  case 4:
+    return "uint16";
+  case 5:
+    return "float";
+  case 6:
     return "double";
   }
   return "";
 }
+
+#ifdef NUIS_ARROW_ENABLED
+
+NEW_NUISANCE_EXCEPT(NonExistantColumnName);
+NEW_NUISANCE_EXCEPT(WrongColumnType);
+
+template <typename From, typename To> struct ColumnValueCaster {
+  std::shared_ptr<typename column_type<From>::ATT::ArrayType> cast_col;
+  To operator()(int i);
+};
+
+template <typename To>
+std::function<To(int)> get_col_cast_to(std::shared_ptr<arrow::RecordBatch> rb,
+                                       std::string const &colname);
+template <typename RT>
+std::shared_ptr<typename column_type<RT>::ATT::ArrayType>
+get_col_as(std::shared_ptr<arrow::RecordBatch> rb, std::string const &colname);
+
+#endif
 
 } // namespace nuis

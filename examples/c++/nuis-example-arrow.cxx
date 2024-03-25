@@ -1,8 +1,11 @@
 #include "nuis/eventinput/EventSourceFactory.h"
 
-#include "nuis/frame/FrameGen.h"
-#include "nuis/frame/column_types.h"
-#include "nuis/frame/missing_datum.h"
+#include "nuis/eventframe/EventFrameGen.h"
+#include "nuis/eventframe/column_types.h"
+#include "nuis/eventframe/missing_datum.h"
+
+#include "nuis/histframe/HistFrame.h"
+#include "nuis/histframe/utility.h"
 
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"
@@ -113,6 +116,20 @@ std::vector<double> double_cols(HepMC3::GenEvent const &ev) {
   // double PhiAdler;
 }
 
+void ProcessRBatch(std::shared_ptr<arrow::RecordBatch> &rbatch) {
+
+  auto hf = nuis::HistFrame(nuis::Binning::lin_space(0, 2E3, 10));
+  auto hf2 =
+      nuis::HistFrame(nuis::Binning::lin_spaceND({{0, 2E3, 10}, {0, 2E3, 10}}));
+
+  nuis::fill_from_RecordBatch(hf, rbatch, {"true.event.lep.q0"});
+  nuis::fill_from_RecordBatch(hf, rbatch,
+                              {"true.event.lep.q0", "true.event.lep.q3"});
+
+  std::cout << hf << std::endl;
+  std::cout << hf2 << std::endl;
+}
+
 arrow::Status RunMain(int, char const *argv[]) {
 
   nuis::EventSourceFactory fact;
@@ -124,8 +141,23 @@ arrow::Status RunMain(int, char const *argv[]) {
         "Failed to find EventSource for input file {}", argv[1]);
   }
 
-  auto frame = nuis::FrameGen(evs, 2.5E5);
+  auto frame = nuis::EventFrameGen(evs, 250000);
 
+  frame.add_typed_column<bool>(
+      "hasscclep", [](HepMC3::GenEvent const &ev) -> bool {
+        auto pin = ps::sel::BeamAny(ev, ps::pdg::groups::kNeutralLeptons);
+        if (!pin) {
+          return false;
+        }
+        int nupid = pin->pid();
+        int ccpid = nupid > 0 ? (nupid - 1) : (nupid + 1);
+        auto pout = ps::sel::OutPartFirstAny(ev, {ccpid, nupid});
+
+        if (!pout) {
+          return false;
+        }
+        return true;
+      });
   frame.add_typed_columns<int>(int_cols_names, int_cols);
   frame.add_typed_columns<double>(double_cols_names, double_cols);
 
@@ -141,6 +173,8 @@ arrow::Status RunMain(int, char const *argv[]) {
       arrow::ipc::MakeFileWriter(outfile, rbatch->schema()));
 
   ARROW_RETURN_NOT_OK(ipc_writer->WriteRecordBatch(*rbatch));
+
+  ProcessRBatch(rbatch);
 
   while (rbatch = frame.nextArrow()) {
     ARROW_RETURN_NOT_OK(ipc_writer->WriteRecordBatch(*rbatch));

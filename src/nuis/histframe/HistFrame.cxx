@@ -1,6 +1,6 @@
 #include "nuis/histframe/HistFrame.h"
 
-#include "nuis/frame/missing_datum.h"
+#include "nuis/eventframe/missing_datum.h"
 
 #include "nuis/binning/exceptions.h"
 
@@ -8,7 +8,6 @@
 
 #include "fmt/ranges.h"
 
-NEW_NUISANCE_EXCEPT(MissingProjectionEncountered);
 NEW_NUISANCE_EXCEPT(InvalidColumnAccess);
 
 namespace nuis {
@@ -80,37 +79,48 @@ void HistFrame::fill_bin(Binning::index_t i, double weight,
   num_fills++;
 }
 
-void HistFrame::fill_with_selection(int sel_int,
-                                    std::vector<double> const &projections,
-                                    double weight, column_t col) {
-
-  static std::vector<double> local_projections(10);
-  local_projections.clear();
-  local_projections.push_back(sel_int);
-  std::copy(projections.begin(), projections.end(),
-            std::back_inserter(local_projections));
-
-  fill(local_projections, weight, col);
+void HistFrame::fill(std::vector<double> const &projections, double weight) {
+  fill_bin(find_bin(projections), weight, 0);
 }
-
-void HistFrame::fill_with_selection(int sel_int, double projection,
-                                    double weight, column_t col) {
-  static std::vector<double> dummy = {0, 0};
-  dummy[0] = sel_int;
-  dummy[1] = projection;
-  fill(dummy, weight, col);
-}
-
-void HistFrame::fill(std::vector<double> const &projections, double weight,
-                     HistFrame::column_t col) {
+void HistFrame::fill_column(std::vector<double> const &projections,
+                            double weight, column_t col) {
   fill_bin(find_bin(projections), weight, col);
 }
+void HistFrame::fill_if(bool selected, std::vector<double> const &projections,
+                        double weight) {
+  if (selected) {
+    fill_bin(find_bin(projections), weight, 0);
+  }
+}
+void HistFrame::fill_column_if(bool selected,
+                               std::vector<double> const &projections,
+                               double weight, column_t col) {
+  if (selected) {
+    fill_bin(find_bin(projections), weight, col);
+  }
+}
 
-void HistFrame::fill(double projection, double weight,
-                     HistFrame::column_t col) {
-  static std::vector<double> dummy = {0};
-  dummy[0] = projection;
-  fill(dummy, weight, col);
+// convenience for 1D histograms
+void HistFrame::fill(double projection, double weight) {
+  static std::vector<double> projv = {0};
+  projv[0] = projection;
+  fill(projv, weight);
+}
+void HistFrame::fill_column(double projection, double weight, column_t col) {
+  static std::vector<double> projv = {0};
+  projv[0] = projection;
+  fill_column(projv, weight, col);
+}
+void HistFrame::fill_if(bool selected, double projection, double weight) {
+  static std::vector<double> projv = {0};
+  projv[0] = projection;
+  fill_if(selected, projv, weight);
+}
+void HistFrame::fill_column_if(bool selected, double projection, double weight,
+                               column_t col) {
+  static std::vector<double> projv = {0};
+  projv[0] = projection;
+  fill_column_if(selected, projv, weight, col);
 }
 
 BinnedValues HistFrame::finalise(bool divide_by_bin_sizes) const {

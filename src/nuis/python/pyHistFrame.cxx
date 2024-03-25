@@ -3,6 +3,7 @@
 
 #include "nuis/log.txx"
 
+#include "nuis/python/pyEventFrame.h"
 #include "nuis/python/pyNUISANCE.h"
 
 #include "pybind11/eigen.h"
@@ -52,7 +53,8 @@ void pyHistFrameInit(py::module &m) {
       .def("find_bin", py::overload_cast<std::vector<double> const &>(
                            &BinnedValuesBase::find_bin, py::const_))
       .def("find_bin",
-           py::overload_cast<double>(&BinnedValuesBase::find_bin, py::const_));
+           py::overload_cast<double>(&BinnedValuesBase::find_bin, py::const_))
+      .def("find_column_index", &BinnedValuesBase::find_column_index);
 
   py::class_<HistFrame, BinnedValuesBase>(m, "HistFrame")
       .def(py::init<BinningPtr, std::string const &, std::string const &>(),
@@ -64,38 +66,155 @@ void pyHistFrameInit(py::module &m) {
                      py::return_value_policy::reference_internal)
       .def_readonly("num_fills", &HistFrame::num_fills)
       .def("fill_bin", &HistFrame::fill_bin, py::arg("bini"), py::arg("weight"),
-           py::arg("col") = 0)
+           py::arg("col"))
       .def("fill",
-           py::overload_cast<std::vector<double> const &, double,
-                             HistFrame::column_t>(&HistFrame::fill),
-           py::arg("projections"), py::arg("weight"), py::arg("col") = 0)
-      .def("fill",
-           py::overload_cast<double, double, HistFrame::column_t>(
+           py::overload_cast<std::vector<double> const &, double>(
                &HistFrame::fill),
-           py::arg("projection"), py::arg("weight"), py::arg("col") = 0)
-      .def("fill_with_selection",
-           py::overload_cast<int, std::vector<double> const &, double,
-                             HistFrame::column_t>(
-               &HistFrame::fill_with_selection),
-           py::arg("selection"), py::arg("projections"), py::arg("weight"),
-           py::arg("col") = 0)
-      .def("fill_with_selection",
-           py::overload_cast<int, double, double, HistFrame::column_t>(
-               &HistFrame::fill_with_selection),
-           py::arg("selection"), py::arg("projection"), py::arg("weight"),
-           py::arg("col") = 0)
+           py::arg("projections"), py::arg("weight"))
+      .def("fill", py::overload_cast<double, double>(&HistFrame::fill),
+           py::arg("projection"), py::arg("weight"))
+      .def("fill_if",
+           py::overload_cast<bool, std::vector<double> const &, double>(
+               &HistFrame::fill_if),
+           py::arg("selected"), py::arg("projections"), py::arg("weight"))
+      .def("fill_if",
+           py::overload_cast<bool, double, double>(&HistFrame::fill_if),
+           py::arg("selected"), py::arg("projection"), py::arg("weight"))
+      .def("fill_column",
+           py::overload_cast<std::vector<double> const &, double,
+                             HistFrame::column_t>(&HistFrame::fill_column),
+           py::arg("projections"), py::arg("weight"), py::arg("column"))
+      .def("fill_column",
+           py::overload_cast<double, double, HistFrame::column_t>(
+               &HistFrame::fill_column),
+           py::arg("projection"), py::arg("weight"), py::arg("column"))
+      .def("fill_column_if",
+           py::overload_cast<bool, std::vector<double> const &, double,
+                             HistFrame::column_t>(&HistFrame::fill_column_if),
+           py::arg("selected"), py::arg("projections"), py::arg("weight"),
+           py::arg("column"))
+      .def("fill_column_if",
+           py::overload_cast<bool, double, double, HistFrame::column_t>(
+               &HistFrame::fill_column_if),
+           py::arg("selected"), py::arg("projection"), py::arg("weight"),
+           py::arg("column"))
       .def("finalise", &HistFrame::finalise,
            py::arg("divide_by_bin_sizes") = true)
       .def("reset", &HistFrame::reset)
       .def("__getattr__", &histframe_gettattr)
       .def("__getitem__", &histframe_gettattr)
       .def("__repr__", &str_via_ss<HistFrame>)
-      .def_static(
-          "project",
-          py::overload_cast<HistFrame const &, std::vector<size_t> const &>(
-              &Project))
-      .def_static("project",
-                  py::overload_cast<HistFrame const &, size_t>(&Project));
+      .def("project",
+           [](HistFrame const &hf, std::vector<size_t> const &cols) {
+             return Project(hf, cols);
+           })
+      .def("project",
+           [](HistFrame const &hf, size_t col) { return Project(hf, col); })
+      .def(
+          "fill_from_EventFrame",
+          [](HistFrame &hf, EventFrame &ef,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_from_EventFrame(hf, ef, projection_column_names,
+                                        weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("projection_column_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_from_EventFrame_if",
+          [](HistFrame &hf, EventFrame &ef,
+             std::string const &conditional_column_name,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_from_EventFrame_if(hf, ef, conditional_column_name,
+                                           projection_column_names,
+                                           weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("conditional_column_name"),
+          py::arg("projection_column_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_columns_from_EventFrame",
+          [](HistFrame &hf, EventFrame &ef,
+             std::vector<std::string> const &projection_column_names,
+             std::string const &column_selector_column_name,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_columns_from_EventFrame(hf, ef, projection_column_names,
+                                                column_selector_column_name,
+                                                weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("projection_column_names"),
+          py::arg("column_selector_column_name"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_columns_from_EventFrame_if",
+          [](HistFrame &hf, EventFrame &ef,
+             std::string const &conditional_column_name,
+             std::vector<std::string> const &projection_column_names,
+             std::string const &column_selector_column_name,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_columns_from_EventFrame_if(
+                hf, ef, conditional_column_name, projection_column_names,
+                column_selector_column_name, weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("conditional_column_name"),
+          py::arg("projection_column_names"),
+          py::arg("column_selector_column_name"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_procid_columns_from_EventFrame",
+          [](HistFrame &hf, EventFrame &ef,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_procid_columns_from_EventFrame(
+                hf, ef, projection_column_names, weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("projection_column_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_procid_columns_from_EventFrame_if",
+          [](HistFrame &hf, EventFrame &ef,
+             std::string const &conditional_column_name,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_procid_columns_from_EventFrame_if(
+                hf, ef, conditional_column_name, projection_column_names,
+                weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("conditional_column_name"),
+          py::arg("projection_column_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_from_EventFrameGen",
+          [](HistFrame &hf, pyEventFrameGen &efg,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_from_EventFrameGen(
+                hf, *efg.gen, projection_column_names, weight_column_names);
+          },
+          py::arg("eventframegen"), py::arg("projection_column_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+#ifdef NUIS_ARROW_ENABLED
+      .def(
+          "fill_from_RecordBatch",
+          [](HistFrame &hf, std::shared_ptr<arrow::RecordBatch> &rb,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_from_RecordBatch(hf, rb, projection_column_names,
+                                         weight_column_names);
+          },
+          py::arg("recordbatch"), py::arg("projection_column_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+#endif
+      ;
 
   py::class_<BinnedValues, BinnedValuesBase>(m, "BinnedValues")
       .def(py::init<BinningPtr, std::string const &, std::string const &>(),
@@ -109,10 +228,10 @@ void pyHistFrameInit(py::module &m) {
       .def("__getattr__", &binnedvalues_gettattr)
       .def("__getitem__", &binnedvalues_gettattr)
       .def("__repr__", &str_via_ss<BinnedValues>)
-      .def_static(
-          "project",
-          py::overload_cast<BinnedValues const &, std::vector<size_t> const &>(
-              &Project))
-      .def_static("project",
-                  py::overload_cast<BinnedValues const &, size_t>(&Project));
+      .def("project",
+           [](BinnedValues const &bv, std::vector<size_t> const &cols) {
+             return Project(bv, cols);
+           })
+      .def("project",
+           [](BinnedValues const &bv, size_t col) { return Project(bv, col); });
 }
