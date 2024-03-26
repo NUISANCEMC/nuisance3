@@ -22,6 +22,7 @@
 #include <filesystem>
 
 using namespace nuis;
+using namespace ps;
 
 // The functions for binning are pretty opaque to new users. I think comments
 // need to label these as the efficient implementations and some simple
@@ -190,7 +191,7 @@ public:
     }
 
     std::string filter_name = variables_dep[0].qualifiers["Filter"];
-    tab.select = ProSelecta::Get().GetFilterFunction(
+    tab.select = ProSelecta::Get().GetSelectFunction(
         filter_name, ProSelecta::Interpreter::kCling);
     if (!tab.select) {
       std::cout << "[ERROR]: Cling didn't find a filter function named: "
