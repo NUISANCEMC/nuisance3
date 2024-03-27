@@ -106,6 +106,7 @@ void pyEventFrameInit(py::module &m) {
       .def("sumw", [](EventFrame const &s) { return s.norm_info.sumweights; })
       .def("nevents", [](EventFrame const &s) { return s.norm_info.nevents; })
       .def("rows", [](EventFrame const &s) { return s.table.rows(); })
+      .def("__bool__", [](EventFrame const &s) { return s.table.rows(); })
       .def("find_column_index", &EventFrame::find_column_index)
       .def_readonly_static("npos", &EventFrame::npos)
       .def_readonly_static("missing_datum", &kMissingDatum<double>)

@@ -47,6 +47,7 @@ const std::map<int, std::pair<std::string, int>> ChannelNameIndexModeMapping{
 
     {51, {"NC_elastic_p_nu", 250}},
     {52, {"NC_elastic_n_nu", 251}},
+    {53, {"NC_2p2h_nu", 350}},
 
     {16, {"CC_COH_nu", 100}},
 
@@ -95,6 +96,8 @@ const std::map<int, std::pair<std::string, int>> ChannelNameIndexModeMapping{
     {-51, {"NC_elastic_p_nubar", 275}},
     {-52, {"NC_elastic_n_nubar", 276}},
 
+    {-53, {"NC_2p2h_nubar", 355}},
+
     {-16, {"CC_COH_nubar", 125}},
 
     {-36, {"NC_COH_nubar", 175}},
@@ -124,6 +127,9 @@ const std::map<int, std::pair<std::string, int>> ChannelNameIndexModeMapping{
 
     {-35, {"NC_DIF_nubar", 185}},
 
+    {54, {"NuElectronElastic", 700}},
+
+    {55, {"InverseMuDecay", 701}},
 };
 
 int GetEC1Channel(int neutmode) {
