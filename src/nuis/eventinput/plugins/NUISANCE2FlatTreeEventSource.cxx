@@ -15,7 +15,7 @@
 #include "HepMC3/GenVertex.h"
 #include "HepMC3/Print.h"
 
-#include "TFile.h"
+#include "TChain.h"
 #include "TTreeReader.h"
 #include "TTreeReaderArray.h"
 #include "TTreeReaderValue.h"
@@ -130,8 +130,8 @@ std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
 
 class NUISANCE2FlattTreeEventSource : public IEventSource {
 
-  std::filesystem::path filepath;
-  std::unique_ptr<TFile> fin;
+  std::vector<std::filesystem::path> filepaths;
+  std::unique_ptr<TChain> chin;
 
   std::shared_ptr<HepMC3::GenRunInfo> gri;
 
@@ -171,15 +171,17 @@ class NUISANCE2FlattTreeEventSource : public IEventSource {
     auto evt = std::make_shared<HepMC3::GenEvent>(HepMC3::Units::GEV);
 
     auto proc_id = **Mode;
-    ::NuHepMC::ER3::SetProcessID(*evt, proc_id);
-
-    // int TargetPDG = **tgt;
+    NuHepMC::ER3::SetProcessID(*evt, proc_id);
 
     auto primary_vtx = std::make_shared<HepMC3::GenVertex>();
-    primary_vtx->set_status(::NuHepMC::VertexStatus::Primary);
+    primary_vtx->set_status(NuHepMC::VertexStatus::Primary);
+
+    auto nucleon_separation_vtx = std::make_shared<HepMC3::GenVertex>();
+    nucleon_separation_vtx->set_status(
+        NuHepMC::VertexStatus::NucleonSeparation);
 
     auto fsi_vtx = std::make_shared<HepMC3::GenVertex>();
-    fsi_vtx->set_status(::NuHepMC::VertexStatus::FSISummary);
+    fsi_vtx->set_status(NuHepMC::VertexStatus::FSISummary);
 
     evt->add_vertex(primary_vtx);
     evt->add_vertex(fsi_vtx);
@@ -196,31 +198,38 @@ class NUISANCE2FlattTreeEventSource : public IEventSource {
       fsi_vtx->add_particle_out(part);
     }
 
+    std::shared_ptr<HepMC3::GenParticle> tgt_part{nullptr},
+        struck_nuc_part{nullptr};
+
     for (int in_it = 0; in_it < **ninitp; ++in_it) {
 
       auto pid = pdg_init->operator[](in_it);
-
-      // skip everything but nu and tgt
-      int status = 0;
-
-      if (pid == **PDGnu) {
-        status = NuHepMC::ParticleStatus::IncomingBeam;
-      }
-      if (pid == **tgt) {
-        status = NuHepMC::ParticleStatus::Target;
-      }
-
-      if (!status) {
-        continue;
-      }
 
       auto part = std::make_shared<HepMC3::GenParticle>(
           HepMC3::FourVector{
               px_init->operator[](in_it), py_init->operator[](in_it),
               pz_init->operator[](in_it), E_init->operator[](in_it)},
-          pid, status);
+          pid, 0);
 
-      primary_vtx->add_particle_in(part);
+      if (pid == **PDGnu) {
+        part->set_status(NuHepMC::ParticleStatus::IncomingBeam);
+        primary_vtx->add_particle_in(part);
+      } else if (pid == **tgt) {
+        part->set_status(NuHepMC::ParticleStatus::Target);
+        tgt_part = part;
+      } else if ((pid == 2212) || (pid == 2112)) {
+        part->set_status(NuHepMC::ParticleStatus::StruckNucleon);
+        struck_nuc_part = part;
+      }
+    }
+
+    if (struck_nuc_part && tgt_part) {
+      evt->add_vertex(nucleon_separation_vtx);
+      nucleon_separation_vtx->add_particle_in(tgt_part);
+      nucleon_separation_vtx->add_particle_out(struck_nuc_part);
+      primary_vtx->add_particle_in(struck_nuc_part);
+    } else if (tgt_part) {
+      primary_vtx->add_particle_in(tgt_part);
     }
 
     // skip ninitp as they are in both array
@@ -238,9 +247,9 @@ class NUISANCE2FlattTreeEventSource : public IEventSource {
       fsi_vtx->add_particle_in(part);
     }
 
-    auto beamp = ::NuHepMC::Event::GetBeamParticle(*evt);
-    auto tgtp = ::NuHepMC::Event::GetTargetParticle(*evt);
-    auto nfs = ::NuHepMC::Event::GetParticles_All(
+    auto beamp = NuHepMC::Event::GetBeamParticle(*evt);
+    auto tgtp = NuHepMC::Event::GetTargetParticle(*evt);
+    auto nfs = NuHepMC::Event::GetParticles_All(
                    *evt, NuHepMC::ParticleStatus::UndecayedPhysical)
                    .size();
 
@@ -266,30 +275,41 @@ class NUISANCE2FlattTreeEventSource : public IEventSource {
   }
 
 public:
-  NUISANCE2FlattTreeEventSource(YAML::Node const &cfg) : filepath{} {
-    log_trace("[NUISANCE2FlattTreeEventSource]: cfg[\"filepath\"]? {} = {}, "
-              "HasTTree ? {}",
-              bool(cfg["filepath"]),
-              bool(cfg["filepath"]) ? cfg["filepath"].as<std::string>() : "",
-              bool(cfg["filepath"])
-                  ? HasTTree(cfg["filepath"].as<std::string>(), "FlatTree_VARS")
-                  : false);
+  NUISANCE2FlattTreeEventSource(YAML::Node const &cfg) {
     if (cfg["filepath"] &&
         HasTTree(cfg["filepath"].as<std::string>(), "FlatTree_VARS")) {
-      filepath = cfg["filepath"].as<std::string>();
+      filepaths.push_back(cfg["filepath"].as<std::string>());
+    } else if (cfg["filepaths"]) {
+      for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
+        log_trace("Checking file {} for tree FlatTree_VARS.", fp);
+        if (HasTTree(fp, "FlatTree_VARS")) {
+          filepaths.push_back(fp);
+          log_debug("Added file {} with tree FlatTree_VARS to filepaths.", fp);
+        }
+      }
     }
   }
 
   std::shared_ptr<HepMC3::GenEvent> first() {
 
-    if (filepath.empty()) {
+    if (!filepaths.size()) {
       return nullptr;
     }
 
-    fin =
-        std::unique_ptr<TFile>(TFile::Open(filepath.native().c_str(), "READ"));
+    chin = std::make_unique<TChain>("FlatTree_VARS");
 
-    reader = std::make_unique<TTreeReader>("FlatTree_VARS", fin.get());
+    for (auto const &ftr : filepaths) {
+      if (!chin->Add(ftr.c_str(), 0)) {
+        log_warn("Could not find FlatTree_VARS in {}", ftr.native());
+        chin.reset();
+        return nullptr;
+      } else {
+        log_debug("Added file {} with tree FlatTree_VARS to TChain.",
+                  ftr.native());
+      }
+    }
+
+    reader = std::make_unique<TTreeReader>(chin.get());
 
     if (reader->GetEntries() == 0) {
       return nullptr;
