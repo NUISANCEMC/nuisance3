@@ -16,6 +16,7 @@
 #include "HepMC3/Print.h"
 
 #include "TChain.h"
+#include "TH1D.h"
 #include "TTreeReader.h"
 #include "TTreeReaderArray.h"
 #include "TTreeReaderValue.h"
@@ -28,37 +29,115 @@
 
 namespace nuis {
 
-std::map<int, std::pair<std::string, std::string>> Modes = {
-    {700, {"NuElectronElastic", ""}},
-    {701, {"InverseMuDecay", ""}},
-    {-200, {"EM QuasiElastic", ""}},
-    {-300, {"EM MEC", ""}},
-    {-400, {"EM Resonant", ""}},
-    {-600, {"EM DeepInelastic", ""}},
-    {200, {"CC QuasiElastic", ""}},
-    {250, {"NC Elastic", ""}},
-    {300, {"CC MEC", ""}},
-    {350, {"NC MEC", ""}},
-    {400, {"CC Resonant", ""}},
-    {450, {"NC Resonant", ""}},
-    {500, {"CC ShallowInelastic", ""}},
-    {550, {"NC ShallowInelastic", ""}},
-    {600, {"CC DeepInelastic", ""}},
-    {650, {"NC DeepInelastic", ""}},
-    {100, {"CC Coherent", ""}},
-    {150, {"NC Coherent", ""}},
-    {101, {"CC Diffractive", ""}},
-    {151, {"NC Diffractive", ""}},
+const std::map<int, std::pair<std::string, int>> ChannelNameIndexModeMapping{
+    {1, {"CC_QE_nu", 200}},
+
+    {11, {"CC_RES_ppi+_nu", 400}},
+    {12, {"CC_RES_ppi0_nu", 401}},
+    {13, {"CC_RES_npi+_nu", 402}},
+
+    {21, {"CC_multi_pi_nu", 500}},
+
+    {31, {"NC_RES_npi0_nu", 450}},
+    {32, {"NC_RES_ppi0_nu", 451}},
+    {33, {"NC_RES_ppi-_nu", 452}},
+    {34, {"NC_RES_npi+_nu", 452}},
+
+    {41, {"NC_multi_pi_nu", 550}},
+
+    {51, {"NC_elastic_p_nu", 250}},
+    {52, {"NC_elastic_n_nu", 251}},
+
+    {16, {"CC_COH_nu", 100}},
+
+    {36, {"NC_COH_nu", 150}},
+
+    {22, {"CC_eta_nu", 410}},
+
+    {42, {"NC_eta_n_nu", 460}},
+    {43, {"NC_eta_p_nu", 461}},
+
+    {23, {"CC_kaon_nu", 411}},
+
+    {44, {"NC_kaon_n_nu", 462}},
+    {45, {"NC_kaon_p_nu", 463}},
+
+    {26, {"CC_DIS_nu", 600}},
+
+    {46, {"NC_DIS_nu", 601}},
+
+    {17, {"CC_1gamma_nu", 412}},
+
+    {38, {"NC_1gamma_n_nu", 464}},
+    {39, {"NC_1gamma_p_nu", 465}},
+
+    {2, {"CC_2p2h_nu", 300}},
+
+    {15, {"CC_DIF_nu", 110}},
+
+    {35, {"NC_DIF_nu", 160}},
+
+    {-1, {"CC_QE_proton_nubar", 225}},
+
+    {-11, {"CC_RES_npi-_nubar", 425}},
+    {-12, {"CC_RES_ppi0_nubar", 426}},
+    {-13, {"CC_RES_ppi-_nubar", 427}},
+
+    {-21, {"CC_multi_pi_nubar", 525}},
+
+    {-31, {"NC_RES_npi0_nubar", 475}},
+    {-32, {"NC_RES_ppi0_nubar", 476}},
+    {-33, {"NC_RES_ppi-_nubar", 478}},
+    {-34, {"NC_RES_npi+_nubar", 479}},
+
+    {-41, {"NC_multi_pi_nubar", 575}},
+
+    {-51, {"NC_elastic_p_nubar", 275}},
+    {-52, {"NC_elastic_n_nubar", 276}},
+
+    {-16, {"CC_COH_nubar", 125}},
+
+    {-36, {"NC_COH_nubar", 175}},
+
+    {-22, {"CC_eta_nubar", 435}},
+
+    {-42, {"NC_eta_n_nubar", 485}},
+    {-43, {"NC_eta_p_nubar", 486}},
+
+    {-23, {"CC_kaon_nubar", 436}},
+
+    {-44, {"NC_kaon_n_nubar", 487}},
+    {-45, {"NC_kaon_p_nubar", 488}},
+
+    {-26, {"CC_DIS_nubar", 625}},
+
+    {-46, {"NC_DIS_nubar", 675}},
+
+    {-17, {"CC_1gamma_nubar", 437}},
+
+    {-38, {"NC_1gamma_n_nubar", 489}},
+    {-39, {"NC_1gamma_p_nubar", 490}},
+
+    {-2, {"CC_2p2h_nubar", 325}},
+
+    {-15, {"CC_DIF_nubar", 135}},
+
+    {-35, {"NC_DIF_nubar", 185}},
+
 };
 
-std::map<int, int> NEUTToMode{
-    {1, 200},  {2, 300},  {11, 400}, {12, 400}, {13, 400}, {16, 100},
-    {21, 500}, {22, 500}, {23, 500}, {26, 600}, {31, 450}, {32, 450},
-    {33, 450}, {34, 450}, {36, 150}, {41, 550}, {42, 550}, {43, 550},
-    {44, 550}, {45, 550}, {46, 650}, {51, 250}, {52, 250}};
+int GetEC1Channel(int neutmode) {
+  if (!ChannelNameIndexModeMapping.count(neutmode)) {
+    std::cout << "[ERROR]: neutmode: " << neutmode << " unaccounted for."
+              << std::endl;
+    throw neutmode;
+  }
+  return ChannelNameIndexModeMapping.at(neutmode).second;
+}
 
-std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
-                                                 double fatx) {
+std::shared_ptr<HepMC3::GenRunInfo>
+BuildRunInfo(Long64_t nevents, double fatx, int probepid,
+             std::unique_ptr<TH1D> const &flux_hist) {
 
   // G.R.1 Valid GenRunInfo
   auto run_info = std::make_shared<HepMC3::GenRunInfo>();
@@ -71,7 +150,22 @@ std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
       "NUISANCE2", "UNKNOWN_NUISANCE2_VERSION", ""});
 
   // G.R.4 Process Metadata
-  NuHepMC::GR4::WriteProcessIDDefinitions(run_info, Modes);
+  std::vector<int> pids;
+  for (auto const &neutchan : ChannelNameIndexModeMapping) {
+    pids.push_back(neutchan.second.second);
+    NuHepMC::add_attribute(run_info,
+                           "NuHepMC.ProcessInfo[" +
+                               std::to_string(neutchan.second.second) +
+                               "].Name",
+                           neutchan.second.first);
+    NuHepMC::add_attribute(
+        run_info,
+        "NuHepMC.ProcessInfo[" + std::to_string(neutchan.second.second) +
+            "].Description",
+        std::string("neutmode=") + std::to_string(neutchan.first));
+  }
+
+  NuHepMC::add_attribute(run_info, "NuHepMC.ProcessIDs", pids);
 
   // G.R.5 Vertex Status Metadata
   NuHepMC::StatusCodeDescriptors VertexStatuses = {
@@ -113,6 +207,26 @@ std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
   std::vector<std::string> conventions = {
       "G.C.1", "G.C.2", "G.C.4", "G.C.5", "E.C.1", "V.C.1", "P.C.1", "P.C.2",
   };
+
+  if (flux_hist) {
+    conventions.push_back("G.C.7");
+
+    NuHepMC::GC7::SetHistogramBeamType(run_info);
+
+    std::vector<double> bin_edges;
+    std::vector<double> bin_content;
+
+    bin_edges.push_back(flux_hist->GetXaxis()->GetBinLowEdge(1));
+    for (int i = 0; i < flux_hist->GetXaxis()->GetNbins(); ++i) {
+      bin_edges.push_back(flux_hist->GetXaxis()->GetBinUpEdge(i + 1));
+      bin_content.push_back(flux_hist->GetBinContent(i + 1));
+    }
+
+    NuHepMC::GC7::WriteBeamEnergyHistogram(run_info, probepid, bin_edges,
+                                           bin_content, false);
+    NuHepMC::GC7::WriteBeamUnits(
+        run_info, "Unknown", std::string(flux_hist->GetYaxis()->GetTitle()));
+  }
 
   // G.C.4 Cross Section Units and Target Scaling
   NuHepMC::GC4::SetCrossSectionUnits(run_info, "1e-38 cm2", "PerTargetNucleon");
@@ -170,8 +284,7 @@ class NUISANCE2FlattTreeEventSource : public IEventSource {
   std::shared_ptr<HepMC3::GenEvent> ToGenEvent() {
     auto evt = std::make_shared<HepMC3::GenEvent>(HepMC3::Units::GEV);
 
-    auto proc_id = **Mode;
-    NuHepMC::ER3::SetProcessID(*evt, proc_id);
+    NuHepMC::ER3::SetProcessID(*evt, GetEC1Channel(**Mode));
 
     auto primary_vtx = std::make_shared<HepMC3::GenVertex>();
     primary_vtx->set_status(NuHepMC::VertexStatus::Primary);
@@ -269,6 +382,8 @@ class NUISANCE2FlattTreeEventSource : public IEventSource {
       abort();
     }
 
+    NuHepMC::ER5::SetLabPosition(*evt, std::vector<double>{0, 0, 0, 0});
+
     evt->weights().push_back(1);
 
     return evt;
@@ -352,8 +467,15 @@ public:
 
     auto ge = ToGenEvent();
 
+    std::unique_ptr<TH1D> flux(
+        reader->GetTree()->GetCurrentFile()->Get<TH1D>("FlatTree_FLUX"));
+    if (flux) {
+      flux->SetDirectory(nullptr);
+    }
+
     gri = BuildRunInfo(reader->GetEntries(),
-                       *(*fScaleFactor) * double(reader->GetEntries()));
+                       *(*fScaleFactor) * double(reader->GetEntries()),
+                       NuHepMC::Event::GetBeamParticle(*ge)->pid(), flux);
 
     ge->set_event_number(ient++);
     ge->set_run_info(gri);
