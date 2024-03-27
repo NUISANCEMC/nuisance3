@@ -391,9 +391,15 @@ class NUISANCE2FlattTreeEventSource : public IEventSource {
 
 public:
   NUISANCE2FlattTreeEventSource(YAML::Node const &cfg) {
-    if (cfg["filepath"] &&
-        HasTTree(cfg["filepath"].as<std::string>(), "FlatTree_VARS")) {
-      filepaths.push_back(cfg["filepath"].as<std::string>());
+    log_trace("[NUISANCE2FlattTreeEventSource] enter");
+    if (cfg["filepath"]) {
+      log_trace("Checking file {} for tree FlatTree_VARS.",
+                cfg["filepath"].as<std::string>());
+      if (HasTTree(cfg["filepath"].as<std::string>(), "FlatTree_VARS")) {
+        log_debug("Added file {} with tree FlatTree_VARS to filepaths.",
+                  cfg["filepath"].as<std::string>());
+        filepaths.push_back(cfg["filepath"].as<std::string>());
+      }
     } else if (cfg["filepaths"]) {
       for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
         log_trace("Checking file {} for tree FlatTree_VARS.", fp);
@@ -403,6 +409,7 @@ public:
         }
       }
     }
+    log_trace("[NUISANCE2FlattTreeEventSource] exit");
   }
 
   std::shared_ptr<HepMC3::GenEvent> first() {
@@ -418,9 +425,6 @@ public:
         log_warn("Could not find FlatTree_VARS in {}", ftr.native());
         chin.reset();
         return nullptr;
-      } else {
-        log_debug("Added file {} with tree FlatTree_VARS to TChain.",
-                  ftr.native());
       }
     }
 

@@ -43,10 +43,14 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  auto frame = EventFrameGen(evs)
-                   .add_column("enu", enu)
-                   .add_columns({"enu2", "pid"}, enu_nupid)
-                   .progress(1E5)
-                   .all();
+  auto fg = EventFrameGen(evs)
+                .add_column("enu", enu)
+                .add_columns({"enu2", "pid"}, enu_nupid)
+                .progress(1E5);
 
+  auto chunk = fg.first();
+  while(chunk){
+    //do something
+    chunk = fg.next();
+  }
 }

@@ -59,9 +59,6 @@ if(ROOT_FOUND)
   add_library(NUISANCE2FlatTree_eventinput_plugin SHARED NUISANCE2FlatTreeEventSource.cxx)
   target_link_libraries(NUISANCE2FlatTree_eventinput_plugin PUBLIC NuHepMC::CPPUtils nuis_options ROOT::TreePlayer)
 
-  target_compile_definitions(NUISANCE2FlatTree_eventinput_plugin PRIVATE 
-    GENIE_VERSION_STR="${GENIE_VERSION}")
-
   set_target_properties(NUISANCE2FlatTree_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
   set_target_properties(NUISANCE2FlatTree_eventinput_plugin PROPERTIES OUTPUT_NAME "NUISANCE2FlatTree")
 

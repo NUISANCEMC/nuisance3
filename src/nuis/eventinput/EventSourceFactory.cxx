@@ -143,12 +143,12 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
   }
 
   for (auto &[pluginso, plugin] : pluginfactories) {
-    auto es = plugin(cfg);
     log_trace("Trying plugin {} for file {}", pluginso.native(),
               bool(cfg["filepath"])
                   ? fmt::format("{}", cfg["filepath"].as<std::string>())
                   : fmt::format(
                         "{}", cfg["filepaths"].as<std::vector<std::string>>()));
+    auto es = plugin(cfg);
     if (es->first()) {
       log_debug("Plugin {} is able to read file", pluginso.native());
       return {es->first()->run_info(), es};
