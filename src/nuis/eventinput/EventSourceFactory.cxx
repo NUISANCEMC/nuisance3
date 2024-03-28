@@ -11,6 +11,7 @@
 #include "yaml-cpp/yaml.h"
 
 #include "fmt/core.h"
+#include "fmt/ranges.h"
 
 #include <regex>
 
@@ -45,6 +46,11 @@ std::filesystem::path PathResolver::resolve(std::string const &filepath) {
   }
 
   if (std::filesystem::exists(filepath)) {
+    return filepath;
+  }
+
+  if (filepath.find_first_of(':') <
+      filepath.find_first_of('/')) { // assume non-local file
     return filepath;
   }
 
@@ -118,16 +124,45 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
                "existing filesystem path.",
                cfg["filepath"].as<std::string>());
     }
+  } else if (cfg["filepaths"]) {
+    std::vector<std::string> filepaths =
+        cfg["filepaths"].as<std::vector<std::string>>();
+    for (auto &f : filepaths) {
+      auto path = resolv.resolve(f);
+      if (!path.empty()) {
+        f = path.native();
+      } else {
+        log_warn("EventSourceFactory::PathResolver did not resolve {} to an "
+                 "existing filesystem path.",
+                 f);
+      }
+    }
+  } else {
+    log_warn("[make_unnormalized] was passed no paths.");
+    return {nullptr, nullptr};
   }
 
   for (auto &[pluginso, plugin] : pluginfactories) {
+    log_trace("Trying plugin {} for file {}", pluginso.native(),
+              bool(cfg["filepath"])
+                  ? fmt::format("{}", cfg["filepath"].as<std::string>())
+                  : fmt::format(
+                        "{}", cfg["filepaths"].as<std::vector<std::string>>()));
     auto es = plugin(cfg);
     if (es->first()) {
-      log_debug("Reading file {} with plugin {}",
-                cfg["filepath"].as<std::string>(), pluginso.native());
+      log_debug("Plugin {} is able to read file", pluginso.native());
       return {es->first()->run_info(), es};
     }
   }
+
+  if (!cfg["filepath"]) {
+    log_warn("[make_unnormalized] was only passed a filepaths attribute, "
+             "but no plugin was able to read the files. N.B. When reading "
+             "HepMC3 files, they must be passed individually via the "
+             "filepath attribute as HepMC3 has no equivalent of a TChain.");
+    return {nullptr, nullptr};
+  }
+
   // try plugins first as there is a bug in HepMC3 root reader that segfaults
   // if it is not passed the expected type.
   auto es =

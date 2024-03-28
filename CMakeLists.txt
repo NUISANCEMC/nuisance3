@@ -346,9 +346,11 @@ install(PROGRAMS ${PROJECT_BINARY_DIR}/setup.NUISANCE3.sh DESTINATION bin)
 
 if(NUISANCE_ENABLE_TESTS)
 
-  CPMAddPackage("gh:catchorg/Catch2@3.5.2")
-
-  LIST(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
+  find_package(Catch2)
+  if(NOT Catch2_FOUND)
+    CPMAddPackage("gh:catchorg/Catch2@3.5.2")
+    LIST(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
+  endif()
 
   include(CTest)
   include(Catch)

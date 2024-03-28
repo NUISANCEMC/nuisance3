@@ -243,8 +243,12 @@ def build_EventFrame_mpl_helper(self):
 
 EventFrameGen.mpl = build_EventFrameGen_mpl_helper
 HistFrame.mpl = build_HistFrame_matplotlib_helper
+<<<<<<< HEAD
 BinnedValues.mpl = build_HistFrame_matplotlib_helper
 EventFrame.mpl = build_EventFrame_mpl_helper
+=======
+EventFrame.mpl = build_Frame_mpl_helper
+>>>>>>> origin/main
 
 HistFrame.show = plt.show
 

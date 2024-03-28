@@ -112,7 +112,7 @@ The most memory-efficient way to interact with `EventFrame`s is requesting and p
 ```c++
 auto fg = EventFrameGen(evs);
 auto batch = fg.first();
-while(batch.table.rows()){
+while(batch){ // check if the batch has nay more rows
   for(auto row : batch.table.rowwise()){
     //do something with each row
   }
@@ -423,8 +423,6 @@ You could also have just printed the `table` member directly:
 If you intend to use `RecordBatch`es in your workflow, we strongly recommend reading the Arrow C++ documentation first: [Getting Started](https://arrow.apache.org/docs/cpp/getting_started.html) with Arrow. 
 
 If Apache Arrow can be found on your system when the build is configured, NUISANCE's Arrow features will be enabled. `RecordBatches` are collections of columnar arrays of uniform length. Collections of `RecordBatches` with the same schema are called `arrow::Table`s. `RecordBatches`  can be produced by `EventFrameGen` by calling `EventFrameGen::firstArrow` and `EventFrameGen::nextArrow` rather than their `EventFrame` producing counterparts, `EventFrameGen::first` and `EventFrameGen::next`. These functions return `std::shared_ptr<arrow::RecordBatch>` instances. There is no `EventFrameGen::all` equivalent `EventFrameGen::allArrow` call, as working with batches of rows is the preferred way to process EventFrames. The number of rows in a RecordBatch is set by the second argument to `EventFrameGen` as for `EventFrames`. The maximum `arrow::Array` length, and thus `RecordBatch` size is 2,147,483,647 rows, so for most workflows you can practically work with a single in-memory `RecordBatch` by setting a very large `batch_size`, but we recommend against it.
-
-Because we work with smart pointers of `RecordBatches`, batch looping is slightly different for Arrow EventFrames:, when there are no more rows to read from the `INormalizedEventSource` a `nullptr` is returned, rather than a batch with no rows.
 
 ```c++
 size_t batch_size = 250000;

@@ -32,6 +32,8 @@ struct EventFrame {
 
   Eigen::ArrayXdRef col(std::string const &cn);
   std::vector<Eigen::ArrayXdRef> cols(std::vector<std::string> const &cns);
+
+  explicit operator bool() const { return table.rows(); }
 };
 
 struct EventFramePrinter {

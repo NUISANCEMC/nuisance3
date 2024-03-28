@@ -53,3 +53,14 @@ if(GENIE3_FOUND)
 
   install(TARGETS GHEP3_eventinput_plugin DESTINATION lib/plugins)
 endif()
+
+find_package(ROOT QUIET)
+if(ROOT_FOUND)
+  add_library(NUISANCE2FlatTree_eventinput_plugin SHARED NUISANCE2FlatTreeEventSource.cxx)
+  target_link_libraries(NUISANCE2FlatTree_eventinput_plugin PUBLIC NuHepMC::CPPUtils nuis_options ROOT::TreePlayer)
+
+  set_target_properties(NUISANCE2FlatTree_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
+  set_target_properties(NUISANCE2FlatTree_eventinput_plugin PROPERTIES OUTPUT_NAME "NUISANCE2FlatTree")
+
+  install(TARGETS NUISANCE2FlatTree_eventinput_plugin DESTINATION lib/plugins)
+endif()

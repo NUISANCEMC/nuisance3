@@ -10,7 +10,8 @@ struct pyNormalizedEventSource {
   nuis::INormalizedEventSourcePtr evs;
   pybind11::tuple curr_event;
 
-  pyNormalizedEventSource(std::string filename);
+  pyNormalizedEventSource(std::string const &filename);
+  pyNormalizedEventSource(YAML::Node const &node);
 
   pybind11::object first();
   pybind11::object next();
