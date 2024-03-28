@@ -3,8 +3,14 @@
 namespace py = pybind11;
 using namespace nuis;
 
-pyNormalizedEventSource::pyNormalizedEventSource(std::string filename) {
+pyNormalizedEventSource::pyNormalizedEventSource(std::string const &filename) {
   auto resp = fact.make(filename);
+  gri = resp.first;
+  evs = resp.second;
+}
+
+pyNormalizedEventSource::pyNormalizedEventSource(YAML::Node const &node) {
+  auto resp = fact.make(node);
   gri = resp.first;
   evs = resp.second;
 }
@@ -80,7 +86,8 @@ IEventSource_sentinel end(pyNormalizedEventSource &) {
 
 void pyEventInputInit(py::module &m) {
   py::class_<pyNormalizedEventSource>(m, "EventSource")
-      .def(py::init<std::string>())
+      .def(py::init<std::string const &>())
+      .def(py::init<YAML::Node const &>())
       .def("first", &pyNormalizedEventSource::first)
       .def("next", &pyNormalizedEventSource::next)
       .def("run_info", &pyNormalizedEventSource::run_info)

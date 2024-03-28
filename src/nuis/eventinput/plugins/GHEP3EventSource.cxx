@@ -562,14 +562,24 @@ genie::Spline const *GHEP3EventSource::GetSpline(int tgtpdg, int nupdg) {
 }
 
 GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
-  if (cfg["filepath"] && HasTTree(cfg["filepath"].as<std::string>(), "gtree")) {
-    filepaths.push_back(cfg["filepath"].as<std::string>());
+  log_trace("[GHEP3EventSource] enter");
+  if (cfg["filepath"]) {
+    log_trace("Checking file {} for tree gtree.",
+              cfg["filepath"].as<std::string>());
+    if (HasTTree(cfg["filepath"].as<std::string>(), "gtree")) {
+      log_debug("Added file {} with tree gtree to filepaths.",
+                cfg["filepath"].as<std::string>());
+      filepaths.push_back(cfg["filepath"].as<std::string>());
+    }
   } else if (cfg["filepaths"]) {
     for (auto fp : cfg["filepaths"].as<std::vector<std::string>>()) {
+      log_trace("Checking file {} for tree gtree.", fp);
       if (HasTTree(fp, "gtree")) {
         filepaths.push_back(fp);
+        log_debug("Added file {} with tree gtree to filepaths.", fp);
       }
     }
+    log_trace("[GHEP3EventSource] exit");
   }
 
   auto evt = first();
