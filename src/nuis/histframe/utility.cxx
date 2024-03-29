@@ -196,13 +196,28 @@ std::ostream &operator<<(std::ostream &os, nuis::BinnedValuesBase const &bvb) {
   return os << " " << line.data();
 }
 
-template <bool fill_columns, bool fill_if, bool autoprocidcolumns>
+template <bool fill_columns, bool fill_if, bool autoprocidcolumns,
+          bool autoweightcolumns>
 void fill_procid_columns_from_EventFrame_if_impl(
     HistFrame &hf, EventFrame const &ef,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
+    std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names) {
+
+  static_assert(!(fill_columns && autoprocidcolumns),
+                "Cannot use EventFrame-filling utility function with both "
+                "column filler and automatic procid columns at the same time.");
+
+  static_assert(!(fill_columns && autoweightcolumns),
+                "Cannot use EventFrame-filling utility function with both "
+                "column filler and column weighter at the same time.");
+
+  static_assert(
+      !(autoprocidcolumns && autoweightcolumns),
+      "Cannot use EventFrame-filling utility function with both "
+      "automatic procid columns and column weighter at the same time.");
 
   EventFrame::column_t cond_col;
   if constexpr (fill_if) {
@@ -249,6 +264,21 @@ void fill_procid_columns_from_EventFrame_if_impl(
     nuis_named_log("HistFrame")::log_trace(
         "[fill_columns_from_EventFrame_if]: wght({}) -> {}", weight_col_name,
         weight_colids.back());
+  }
+
+  std::vector<EventFrame::column_t> auto_weight_ecolids;
+  std::vector<HistFrame::column_t> auto_weight_hcolids;
+  if constexpr (autoweightcolumns) {
+    for (auto const &weight_col_name : column_weighter_names) {
+      auto_weight_ecolids.push_back(ef.find_column_index(weight_col_name));
+
+      auto hf_colid = hf.find_column_index(weight_col_name);
+      if (hf_colid == HistFrame::npos) {
+        auto_weight_hcolids.push_back(hf.add_column(weight_col_name));
+      } else {
+        auto_weight_hcolids.push_back(hf_colid);
+      }
+    }
   }
 
   EventFrame::column_t procid_col;
@@ -329,6 +359,13 @@ void fill_procid_columns_from_EventFrame_if_impl(
 
       hf.fill_bin(bin, weight, col);
     }
+
+    if constexpr (autoweightcolumns) {
+      for (size_t col_it = 0; col_it < auto_weight_ecolids.size(); ++col_it) {
+        hf.fill_bin(bin, weight * row(auto_weight_ecolids[col_it]),
+                    auto_weight_hcolids[col_it]);
+      }
+    }
   }
 }
 
@@ -336,8 +373,8 @@ void fill_from_EventFrame(
     HistFrame &hf, EventFrame const &ef,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, false, false>(
-      hf, ef, "", projection_column_names, "", weight_column_names);
+  fill_procid_columns_from_EventFrame_if_impl<false, false, false, false>(
+      hf, ef, "", projection_column_names, "", {}, weight_column_names);
 }
 
 void fill_from_EventFrame_if(
@@ -345,8 +382,8 @@ void fill_from_EventFrame_if(
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, true, false>(
-      hf, ef, conditional_column_name, projection_column_names, "",
+  fill_procid_columns_from_EventFrame_if_impl<false, true, false, false>(
+      hf, ef, conditional_column_name, projection_column_names, "", {},
       weight_column_names);
 }
 
@@ -355,8 +392,8 @@ void fill_columns_from_EventFrame(
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<true, false, false>(
-      hf, ef, "", projection_column_names, column_selector_column_name,
+  fill_procid_columns_from_EventFrame_if_impl<true, false, false, false>(
+      hf, ef, "", projection_column_names, column_selector_column_name, {},
       weight_column_names);
 }
 
@@ -366,17 +403,38 @@ void fill_columns_from_EventFrame_if(
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<true, true, false>(
+  fill_procid_columns_from_EventFrame_if_impl<true, true, false, false>(
       hf, ef, conditional_column_name, projection_column_names,
-      column_selector_column_name, weight_column_names);
+      column_selector_column_name, {}, weight_column_names);
+}
+
+void fill_weighted_columns_from_EventFrame(
+    HistFrame &hf, EventFrame const &ef,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+  fill_procid_columns_from_EventFrame_if_impl<false, false, false, true>(
+      hf, ef, "", projection_column_names, "", column_weighter_names,
+      weight_column_names);
+}
+
+void fill_weighted_columns_from_EventFrame_if(
+    HistFrame &hf, EventFrame const &ef,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+  fill_procid_columns_from_EventFrame_if_impl<false, true, false, true>(
+      hf, ef, conditional_column_name, projection_column_names, "",
+      column_weighter_names, weight_column_names);
 }
 
 void fill_procid_columns_from_EventFrame(
     HistFrame &hf, EventFrame const &ef,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, false, true>(
-      hf, ef, "", projection_column_names, "", weight_column_names);
+  fill_procid_columns_from_EventFrame_if_impl<false, false, true, false>(
+      hf, ef, "", projection_column_names, "", {}, weight_column_names);
 }
 
 void fill_procid_columns_from_EventFrame_if(
@@ -384,8 +442,8 @@ void fill_procid_columns_from_EventFrame_if(
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, true, true>(
-      hf, ef, conditional_column_name, projection_column_names, "",
+  fill_procid_columns_from_EventFrame_if_impl<false, true, true, false>(
+      hf, ef, conditional_column_name, projection_column_names, "", {},
       weight_column_names);
 }
 
@@ -402,13 +460,28 @@ void fill_from_EventFrameGen(
 
 #ifdef NUIS_ARROW_ENABLED
 
-template <bool fill_columns, bool fill_if, bool autoprocidcolumns>
+template <bool fill_columns, bool fill_if, bool autoprocidcolumns,
+          bool autoweightcolumns>
 void fill_procid_columns_from_RecordBatch_if_impl(
     HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
+    std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names) {
+
+  static_assert(!(fill_columns && autoprocidcolumns),
+                "Cannot use RecordBatch-filling utility function with both "
+                "column filler and automatic procid columns at the same time.");
+
+  static_assert(!(fill_columns && autoweightcolumns),
+                "Cannot use RecordBatch-filling utility function with both "
+                "column filler and column weighter at the same time.");
+
+  static_assert(
+      !(autoprocidcolumns && autoweightcolumns),
+      "Cannot use RecordBatch-filling utility function with both "
+      "automatic procid columns and column weighter at the same time.");
 
   std::function<bool(int)> cond_col;
   if constexpr (fill_if) {
@@ -437,6 +510,22 @@ void fill_procid_columns_from_RecordBatch_if_impl(
   std::vector<std::function<double(int)>> weight_columns;
   for (auto const &weight_col_name : weight_column_names) {
     weight_columns.push_back(get_col_cast_to<double>(rb, weight_col_name));
+  }
+
+  std::vector<std::function<double(int)>> auto_weight_columns;
+  std::vector<HistFrame::column_t> auto_weight_hcolids;
+  if constexpr (autoweightcolumns) {
+    for (auto const &weight_col_name : column_weighter_names) {
+      auto_weight_columns.push_back(
+          get_col_cast_to<double>(rb, weight_col_name));
+
+      auto hf_colid = hf.find_column_index(weight_col_name);
+      if (hf_colid == HistFrame::npos) {
+        auto_weight_hcolids.push_back(hf.add_column(weight_col_name));
+      } else {
+        auto_weight_hcolids.push_back(hf_colid);
+      }
+    }
   }
 
   std::function<int(int)> procid_col;
@@ -507,63 +596,91 @@ void fill_procid_columns_from_RecordBatch_if_impl(
 
       hf.fill_bin(bin, weight, col);
     }
+
+    if constexpr (autoweightcolumns) {
+      for (size_t col_it = 0; col_it < auto_weight_hcolids.size(); ++col_it) {
+        hf.fill_bin(bin, weight * auto_weight_columns[col_it](row_it),
+                    auto_weight_hcolids[col_it]);
+      }
+    }
   }
 }
 
 void fill_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const ef,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_RecordBatch_if_impl<false, false, false>(
-      hf, ef, "", projection_column_names, "", weight_column_names);
+  fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false>(
+      hf, rb, "", projection_column_names, "", {}, weight_column_names);
 }
 
 void fill_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const ef,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_RecordBatch_if_impl<false, true, false>(
-      hf, ef, conditional_column_name, projection_column_names, "",
+  fill_procid_columns_from_RecordBatch_if_impl<false, true, false, false>(
+      hf, rb, conditional_column_name, projection_column_names, "", {},
       weight_column_names);
 }
 
 void fill_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const ef,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_RecordBatch_if_impl<true, false, false>(
-      hf, ef, "", projection_column_names, column_selector_column_name,
+  fill_procid_columns_from_RecordBatch_if_impl<true, false, false, false>(
+      hf, rb, "", projection_column_names, column_selector_column_name, {},
       weight_column_names);
 }
 
 void fill_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const ef,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_RecordBatch_if_impl<true, true, false>(
-      hf, ef, conditional_column_name, projection_column_names,
-      column_selector_column_name, weight_column_names);
+  fill_procid_columns_from_RecordBatch_if_impl<true, true, false, false>(
+      hf, rb, conditional_column_name, projection_column_names,
+      column_selector_column_name, {}, weight_column_names);
+}
+
+void fill_weighted_columns_from_RecordBatch(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+  fill_procid_columns_from_RecordBatch_if_impl<false, false, false, true>(
+      hf, rb, "", projection_column_names, "", column_weighter_names,
+      weight_column_names);
+}
+
+void fill_weighted_columns_from_RecordBatch_if(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+  fill_procid_columns_from_RecordBatch_if_impl<false, true, false, true>(
+      hf, rb, conditional_column_name, projection_column_names, "",
+      column_weighter_names, weight_column_names);
 }
 
 void fill_procid_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const ef,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_RecordBatch_if_impl<false, false, true>(
-      hf, ef, "", projection_column_names, "", weight_column_names);
+  fill_procid_columns_from_RecordBatch_if_impl<false, false, true, false>(
+      hf, rb, "", projection_column_names, "", {}, weight_column_names);
 }
 
 void fill_procid_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const ef,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_RecordBatch_if_impl<false, true, true>(
-      hf, ef, conditional_column_name, projection_column_names, "",
+  fill_procid_columns_from_RecordBatch_if_impl<false, true, true, false>(
+      hf, rb, conditional_column_name, projection_column_names, "", {},
       weight_column_names);
 }
 #endif

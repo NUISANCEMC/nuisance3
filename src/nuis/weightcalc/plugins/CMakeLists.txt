@@ -55,4 +55,16 @@ if(TARGET Prob3plusplus::Prob3plusplus)
   target_link_libraries(weightcalc_plugins INTERFACE Prob3plusplus_weightcalc_plugin)
 endif()
 
+find_package(T2KReWeight QUIET)
+if(T2KReWeight_FOUND)
+  add_library(T2KReWeight_weightcalc_plugin SHARED T2KReWeightCalc.cxx)
+  target_link_libraries(T2KReWeight_weightcalc_plugin PUBLIC neutvect_eventinput_plugin T2KReWeight::All nuis_options)
+
+  set_target_properties(T2KReWeight_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
+  set_target_properties(T2KReWeight_weightcalc_plugin PROPERTIES OUTPUT_NAME "T2KReWeight")
+
+  install(TARGETS T2KReWeight_weightcalc_plugin DESTINATION lib/plugins)
+  target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_T2KReWeight_Enabled)
+endif()
+
 install(TARGETS weightcalc_plugins DESTINATION lib/plugins)
