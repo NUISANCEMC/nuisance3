@@ -124,7 +124,7 @@ private:
 
 #ifdef NUIS_ARROW_ENABLED
   template <typename T>
-  void fill_array_builder(std::vector<std::unique_ptr<arrow::ArrayBuilder>> &,
+  void fill_array_builder(std::vector<ArrowBuilderPtr> &,
                           HepMC3::GenEvent const &ev, size_t proj_index,
                           size_t first_col, size_t ncols_to_fill);
 
