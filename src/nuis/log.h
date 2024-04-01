@@ -4,6 +4,8 @@
 
 #include <memory>
 #include <sstream>
+#include <iostream>
+#include <fstream>
 
 namespace spdlog {
 class logger;
@@ -56,6 +58,9 @@ template <typename T> std::string str_via_ss(T const &t) {
   ss << t;
   return ss.str();
 }
+
+inline void StopTalking();
+inline void StartTalking();
 
 } // namespace nuis
 

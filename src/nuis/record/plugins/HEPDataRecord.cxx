@@ -94,7 +94,7 @@ std::string database() {
     log_critical("PROSELECTA_DIR environment variable not defined");
     throw; // PROSELECTA_DIRUndefined();
   }
-  ProSelecta::Get().AddIncludePath(PROSELECTA);
+  ProSelecta::Get().AddIncludePath(PROSELECTA, ProSelecta::Interpreter::kCling);
 
   // Require Database Valid
   auto DATABASE = std::getenv("NUISANCEDB");
@@ -202,7 +202,7 @@ public:
 
     // This seems to be ProSelecta bug feature, analysis.cxx works
     // but /path/analysis.cxx does not.
-    ProSelecta::Get().AddIncludePath(path_release.c_str());
+    ProSelecta::Get().AddIncludePath(path_release.c_str(), ProSelecta::Interpreter::kCling);
     std::string analysis = path_release + "analysis.cxx";
     if (cfg["analysis"])
       analysis = cfg["analysis"].as<std::string>();

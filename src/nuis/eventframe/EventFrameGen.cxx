@@ -85,6 +85,7 @@ EventFrame EventFrameGen::next() {
     return {all_column_names, Eigen::ArrayXXd(0, all_column_names.size()),
             norm_info};
   }
+  
 
   Eigen::ArrayXXd chunk(chunk_size, all_column_names.size());
 
@@ -94,6 +95,7 @@ EventFrame EventFrameGen::next() {
 
   auto nmaxloop = std::min(max_events_to_loop, nevents);
 
+  nuis::StopTalking();
   while (ev_it != end_it) {
     auto const &[evp, cvw] = *ev_it;
     auto const &ev = *evp;
@@ -102,12 +104,14 @@ EventFrame EventFrameGen::next() {
 
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
+      nuis::StartTalking();
       log_info("EventFrameGen has selected {}{} from {} processed events.",
                n_total_rows,
                ((nmaxloop != std::numeric_limits<size_t>::max())
                     ? fmt::format("/{}", nmaxloop)
                     : ""),
                neventsprocessed);
+      nuis::StopTalking();
     }
 
     bool cut = false;
@@ -172,6 +176,7 @@ EventFrame EventFrameGen::next() {
     }
     ++ev_it;
   }
+  nuis::StartTalking();
 
   log_trace(
       "EventFrameGen::next() done looping  n_total_rows: {} neventsprocessed: "
@@ -182,6 +187,7 @@ EventFrame EventFrameGen::next() {
   // loop
   norm_info = source->norm_info();
   ++ev_it;
+
   return {all_column_names, chunk.topRows(chunk_row), norm_info};
 }
 
