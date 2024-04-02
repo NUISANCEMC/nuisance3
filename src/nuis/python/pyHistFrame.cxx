@@ -9,6 +9,11 @@
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
 
+#ifdef NUIS_ARROW_ENABLED
+// header that
+#include "arrow/python/pyarrow.h"
+#endif
+
 namespace py = pybind11;
 using namespace nuis;
 
@@ -218,13 +223,103 @@ void pyHistFrameInit(py::module &m) {
 #ifdef NUIS_ARROW_ENABLED
       .def(
           "fill_from_RecordBatch",
-          [](HistFrame &hf, std::shared_ptr<arrow::RecordBatch> &rb,
+          [](HistFrame &hf, py::handle pyrb,
              std::vector<std::string> const &projection_column_names,
              std::vector<std::string> const &weight_column_names) {
-            return fill_from_RecordBatch(hf, rb, projection_column_names,
-                                         weight_column_names);
+            return fill_from_RecordBatch(
+                hf, arrow::py::unwrap_batch(pyrb.ptr()).ValueOrDie(),
+                projection_column_names, weight_column_names);
           },
-          py::arg("recordbatch"), py::arg("projection_column_names"),
+          py::arg("eventframe"), py::arg("projection_column_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_from_RecordBatch_if",
+          [](HistFrame &hf, py::handle pyrb,
+             std::string const &conditional_column_name,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_from_RecordBatch_if(
+                hf, arrow::py::unwrap_batch(pyrb.ptr()).ValueOrDie(),
+                conditional_column_name, projection_column_names,
+                weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("conditional_column_name"),
+          py::arg("projection_column_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_columns_from_RecordBatch",
+          [](HistFrame &hf, py::handle pyrb,
+             std::vector<std::string> const &projection_column_names,
+             std::string const &column_selector_column_name,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_columns_from_RecordBatch(
+                hf, arrow::py::unwrap_batch(pyrb.ptr()).ValueOrDie(),
+                projection_column_names, column_selector_column_name,
+                weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("projection_column_names"),
+          py::arg("column_selector_column_name"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_weighted_columns_from_RecordBatch",
+          [](HistFrame &hf, py::handle pyrb,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &column_weighter_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_weighted_columns_from_RecordBatch(
+                hf, arrow::py::unwrap_batch(pyrb.ptr()).ValueOrDie(),
+                projection_column_names, column_weighter_names,
+                weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("projection_column_names"),
+          py::arg("column_weighter_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_columns_from_RecordBatch_if",
+          [](HistFrame &hf, py::handle pyrb,
+             std::string const &conditional_column_name,
+             std::vector<std::string> const &projection_column_names,
+             std::string const &column_selector_column_name,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_columns_from_RecordBatch_if(
+                hf, arrow::py::unwrap_batch(pyrb.ptr()).ValueOrDie(),
+                conditional_column_name, projection_column_names,
+                column_selector_column_name, weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("conditional_column_name"),
+          py::arg("projection_column_names"),
+          py::arg("column_selector_column_name"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_procid_columns_from_RecordBatch",
+          [](HistFrame &hf, py::handle pyrb,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_procid_columns_from_RecordBatch(
+                hf, arrow::py::unwrap_batch(pyrb.ptr()).ValueOrDie(),
+                projection_column_names, weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("projection_column_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
+          "fill_procid_columns_from_RecordBatch_if",
+          [](HistFrame &hf, py::handle pyrb,
+             std::string const &conditional_column_name,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_procid_columns_from_RecordBatch_if(
+                hf, arrow::py::unwrap_batch(pyrb.ptr()).ValueOrDie(),
+                conditional_column_name, projection_column_names,
+                weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("conditional_column_name"),
+          py::arg("projection_column_names"),
           py::arg("weight_column_names") =
               std::vector<std::string>{"weight.cv"})
 #endif

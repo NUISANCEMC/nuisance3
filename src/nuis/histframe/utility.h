@@ -69,43 +69,49 @@ void fill_from_EventFrameGen(
 
 #ifdef NUIS_ARROW_ENABLED
 void fill_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &weight_column_names = {"weight.cv"});
+
+void fill_from_RecordBatch_if(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
 void fill_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
 void fill_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
 void fill_weighted_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
 void fill_weighted_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
 void fill_procid_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
 void fill_procid_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
