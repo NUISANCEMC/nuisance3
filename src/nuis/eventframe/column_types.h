@@ -6,6 +6,8 @@
 
 #include "nuis/except.h"
 
+#include <iostream>
+
 #include <cstdint>
 
 namespace nuis {
@@ -18,6 +20,15 @@ template <typename T> struct column_type {
 #endif
 };
 
+struct LoudDeleter {
+  void operator()(arrow::ArrayBuilder *o) {
+    std::cout << "deleting: " << o << std::endl;
+    std::default_delete<arrow::ArrayBuilder>()(o);
+  }
+};
+
+using ArrowBuilderPtr = std::unique_ptr<arrow::ArrayBuilder>;
+
 #ifdef NUIS_ARROW_ENABLED
 #define NUIS_COLUMN_TYPE(ctype, atype, typenum)                                \
   template <> struct column_type<ctype> {                                      \
@@ -26,8 +37,8 @@ template <typename T> struct column_type {
     using AT = atype;                                                          \
     using ATT = arrow::TypeTraits<AT>;                                         \
     static std::shared_ptr<AT> mkt() { return std::make_shared<AT>(); }        \
-    static std::unique_ptr<ATT::BuilderType> mkb() {                           \
-      return std::make_unique<ATT::BuilderType>();                             \
+    static ArrowBuilderPtr mkb() {                                             \
+      return std::unique_ptr<ATT::BuilderType>(new ATT::BuilderType());        \
     }                                                                          \
   };
 #else

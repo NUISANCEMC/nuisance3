@@ -150,6 +150,20 @@ void pyHistFrameInit(py::module &m) {
           py::arg("weight_column_names") =
               std::vector<std::string>{"weight.cv"})
       .def(
+          "fill_weighted_columns_from_EventFrame",
+          [](HistFrame &hf, EventFrame &ef,
+             std::vector<std::string> const &projection_column_names,
+             std::vector<std::string> const &column_weighter_names,
+             std::vector<std::string> const &weight_column_names) {
+            return fill_weighted_columns_from_EventFrame(
+                hf, ef, projection_column_names, column_weighter_names,
+                weight_column_names);
+          },
+          py::arg("eventframe"), py::arg("projection_column_names"),
+          py::arg("column_weighter_names"),
+          py::arg("weight_column_names") =
+              std::vector<std::string>{"weight.cv"})
+      .def(
           "fill_columns_from_EventFrame_if",
           [](HistFrame &hf, EventFrame &ef,
              std::string const &conditional_column_name,

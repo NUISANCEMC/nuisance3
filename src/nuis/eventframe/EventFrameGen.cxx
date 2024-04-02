@@ -242,24 +242,23 @@ EventFrame EventFrameGen::all() {
 #ifdef NUIS_ARROW_ENABLED
 
 template <typename T>
-std::pair<std::shared_ptr<arrow::Field>, std::unique_ptr<arrow::ArrayBuilder>>
+std::pair<std::shared_ptr<arrow::Field>, ArrowBuilderPtr>
 GetColumnBuilder(std::string const &name) {
   return {arrow::field(name, nuis::column_type<T>::mkt()),
           nuis::column_type<T>::mkb()};
 }
 
 template <typename T>
-typename nuis::column_type<T>::ATT::BuilderType &
-BuilderAs(std::unique_ptr<arrow::ArrayBuilder> &ab) {
+typename nuis::column_type<T>::ATT::BuilderType &BuilderAs(ArrowBuilderPtr &ab) {
   return *dynamic_cast<typename nuis::column_type<T>::ATT::BuilderType *>(
       ab.get());
 }
 
 template <typename T>
-void EventFrameGen::fill_array_builder(
-    std::vector<std::unique_ptr<arrow::ArrayBuilder>> &array_builders,
-    HepMC3::GenEvent const &ev, size_t proj_index, size_t first_col,
-    size_t ncols_to_fill) {
+void EventFrameGen::fill_array_builder(std::vector<ArrowBuilderPtr> &array_builders,
+                                       HepMC3::GenEvent const &ev,
+                                       size_t proj_index, size_t first_col,
+                                       size_t ncols_to_fill) {
 
   size_t next_col_id = first_col;
 
@@ -302,7 +301,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
   }
 
   std::vector<std::shared_ptr<arrow::Field>> schema_list;
-  std::vector<std::unique_ptr<arrow::ArrayBuilder>> array_builders;
+  std::vector<ArrowBuilderPtr> array_builders;
 
   log_debug("EventFrameGen::nextArrow() Building schema: ");
 
@@ -313,7 +312,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
            {"fatx.estimate", nuis::column_type<double>::id}}) {
 
     std::shared_ptr<arrow::Field> col = nullptr;
-    std::unique_ptr<arrow::ArrayBuilder> builder = nullptr;
+    ArrowBuilderPtr builder = nullptr;
 
     log_debug("\t\t col: {}, name: {}, type: {}", schema_list.size(), name,
               column_typenum_as_string(typenum));
@@ -332,7 +331,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
   for (auto &[column_names, typenum, proj_index] : columns) {
     for (auto const &name : column_names) {
       std::shared_ptr<arrow::Field> col = nullptr;
-      std::unique_ptr<arrow::ArrayBuilder> builder = nullptr;
+      ArrowBuilderPtr builder = nullptr;
 
       COLUMN_TYPE_ITER { throw InvalidFrameColumnType(); };
 #undef X
@@ -447,7 +446,9 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
   ARROW_ASSIGN_OR_RAISE(arrays[1],
                         BuilderAs<double>(array_builders[1]).Finish());
   ARROW_ASSIGN_OR_RAISE(arrays[2],
-                        BuilderAs<double>(array_builders[2]).Finish());
+                        BuilderAs<int>(array_builders[2]).Finish());
+  ARROW_ASSIGN_OR_RAISE(arrays[3],
+                        BuilderAs<double>(array_builders[3]).Finish());
   log_debug("EventFrameGen::nextArrow() building arrays: ");
   log_debug("\t\t col: {}, name: {}, type: {}, num: {}", 0, all_column_names[0],
             column_typenum_as_string(column_type<int>::id),
@@ -458,8 +459,11 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
   log_debug("\t\t col: {}, name: {}, type: {}, num: {}", 2, all_column_names[2],
             column_typenum_as_string(column_type<double>::id),
             arrays[2]->length());
+  log_debug("\t\t col: {}, name: {}, type: {}, num: {}", 3, all_column_names[3],
+            column_typenum_as_string(column_type<double>::id),
+            arrays[3]->length());
 
-  size_t col_id = 3;
+  size_t col_id = 4;
   for (auto &[column_names, typenum, proj_index] : columns) {
 
     switch (typenum) {
