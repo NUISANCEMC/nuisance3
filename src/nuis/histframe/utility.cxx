@@ -607,7 +607,7 @@ void fill_procid_columns_from_RecordBatch_if_impl(
 }
 
 void fill_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
   fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false>(
@@ -615,7 +615,7 @@ void fill_from_RecordBatch(
 }
 
 void fill_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
@@ -625,7 +625,7 @@ void fill_from_RecordBatch_if(
 }
 
 void fill_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names) {
@@ -635,7 +635,7 @@ void fill_columns_from_RecordBatch(
 }
 
 void fill_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
@@ -667,7 +667,7 @@ void fill_weighted_columns_from_RecordBatch_if(
 }
 
 void fill_procid_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
   fill_procid_columns_from_RecordBatch_if_impl<false, false, true, false>(
@@ -675,7 +675,7 @@ void fill_procid_columns_from_RecordBatch(
 }
 
 void fill_procid_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const rb,
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
