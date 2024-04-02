@@ -257,6 +257,34 @@ inline auto get_macro_log_level() {
 #endif
   return log_level::off;
 }
+
+
+
+static std::streambuf *default_cout; //!< Where the STDOUT stream is currently directed
+static std::streambuf *default_cerr; //!< Where the STDERR stream is currently directed
+static std::ofstream redirect_stream; //!< Where should unwanted messages be thrown
+
+inline void StopTalking(){
+  std::cout.rdbuf(redirect_stream.rdbuf());
+  std::cerr.rdbuf(redirect_stream.rdbuf());
+  // shhnuisancepythiaitokay_();
+  // fflush(stdout);
+  // fflush(stderr);  
+  // dup2(silentfd, fileno(stdout));
+  // dup2(silentfd, fileno(stderr));
+}
+
+inline void StartTalking() {
+  std::cout.rdbuf(default_cout);
+  std::cerr.rdbuf(default_cerr);
+  // canihaznuisancepythia_();
+  // fflush(stdout);
+  // fflush(stderr); 
+  // dup2(savedstdoutfd, fileno(stdout));
+  // dup2(savedstderrfd, fileno(stderr));
+}
+
+
 } // namespace nuis
 
 #if (NUIS_ACTIVE_LEVEL <= NUIS_LEVEL_TRACE)
