@@ -196,6 +196,13 @@ nuis_named_log_impl<TN>::log_level_scopeguard(log_level ll) {
   return log_level_scopeguard_impl(logger, ll);
 }
 
+template <typename TN>
+stop_talking_scopeguard_impl
+nuis_named_log_impl<TN>::stop_talking_scopeguard(log_level ll) {
+  ensure_logger();
+  return stop_talking_scopeguard_impl(ll, get_log_level());
+}
+
 template <typename... Args> void log_trace(Args &&...args) {
   nuis_named_log("default")::log_trace(std::forward<Args>(args)...);
 }
@@ -224,6 +231,27 @@ inline log_level get_log_level() {
 
 inline log_level_scopeguard_impl log_level_scopeguard(log_level ll) {
   return nuis_named_log("default")::log_level_scopeguard(ll);
+}
+
+inline stop_talking_scopeguard_impl::stop_talking_scopeguard_impl(
+    log_level ll, log_level limit)
+    : did_stop_talking{false} {
+      std::cout << "ll: " << int(ll) << ", limit = " << int(limit) << std::endl;
+  if (ll <= limit) {
+    std::cout << " did scope guard " << std::endl;
+    did_stop_talking = true;
+    StopTalking();
+  };
+}
+inline stop_talking_scopeguard_impl::~stop_talking_scopeguard_impl() {
+  if (did_stop_talking) {
+    StartTalking();
+  std::cout << "stop scope guard" << std::endl;
+  }
+}
+
+inline stop_talking_scopeguard_impl stop_talking_scopeguard(log_level ll) {
+  return stop_talking_scopeguard_impl(ll, get_log_level());
 }
 
 } // namespace nuis
@@ -258,18 +286,19 @@ inline auto get_macro_log_level() {
   return log_level::off;
 }
 
+static std::streambuf
+    *default_cout; //!< Where the STDOUT stream is currently directed
+static std::streambuf
+    *default_cerr; //!< Where the STDERR stream is currently directed
+static std::ofstream
+    redirect_stream; //!< Where should unwanted messages be thrown
 
-
-static std::streambuf *default_cout; //!< Where the STDOUT stream is currently directed
-static std::streambuf *default_cerr; //!< Where the STDERR stream is currently directed
-static std::ofstream redirect_stream; //!< Where should unwanted messages be thrown
-
-inline void StopTalking(){
+inline void StopTalking() {
   std::cout.rdbuf(redirect_stream.rdbuf());
   std::cerr.rdbuf(redirect_stream.rdbuf());
   // shhnuisancepythiaitokay_();
   // fflush(stdout);
-  // fflush(stderr);  
+  // fflush(stderr);
   // dup2(silentfd, fileno(stdout));
   // dup2(silentfd, fileno(stderr));
 }
@@ -279,11 +308,10 @@ inline void StartTalking() {
   std::cerr.rdbuf(default_cerr);
   // canihaznuisancepythia_();
   // fflush(stdout);
-  // fflush(stderr); 
+  // fflush(stderr);
   // dup2(savedstdoutfd, fileno(stdout));
   // dup2(savedstderrfd, fileno(stderr));
 }
-
 
 } // namespace nuis
 

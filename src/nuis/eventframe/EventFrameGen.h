@@ -68,13 +68,17 @@ public:
   EventFrameGen limit(size_t nmax);
   EventFrameGen progress(size_t every = 100000);
 
-  EventFrame first();
-  EventFrame next();
+  EventFrame first(size_t nchunk = std::numeric_limits<size_t>::max());
+  EventFrame next(size_t nchunk = std::numeric_limits<size_t>::max());
   EventFrame all();
 
+  NormInfo norm_info() const { return fnorm_info; }
+
 #ifdef NUIS_ARROW_ENABLED
-  std::shared_ptr<arrow::RecordBatch> firstArrow();
-  std::shared_ptr<arrow::RecordBatch> nextArrow();
+  std::shared_ptr<arrow::RecordBatch> firstArrow(
+      size_t nchunk = std::numeric_limits<size_t>::max());
+  std::shared_ptr<arrow::RecordBatch> nextArrow(
+      size_t nchunk = std::numeric_limits<size_t>::max());
 #endif
 
 private:
@@ -128,7 +132,8 @@ private:
                           HepMC3::GenEvent const &ev, size_t proj_index,
                           size_t first_col, size_t ncols_to_fill);
 
-  arrow::Result<std::shared_ptr<arrow::RecordBatch>> _nextArrow();
+  arrow::Result<std::shared_ptr<arrow::RecordBatch>> _nextArrow(
+      size_t nchunk = std::numeric_limits<size_t>::max());
 #endif
 
   size_t chunk_size;
@@ -142,7 +147,7 @@ private:
   size_t n_total_rows;
   size_t neventsprocessed;
   INormalizedEventSource_looper ev_it;
-  NormInfo norm_info;
+  NormInfo fnorm_info;
 };
 
 } // namespace nuis

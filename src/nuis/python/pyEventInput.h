@@ -16,8 +16,7 @@ struct pyNormalizedEventSource {
   pybind11::object first();
   pybind11::object next();
   std::shared_ptr<HepMC3::GenRunInfo> run_info();
-  double fatx();
-  double sumw();
+  nuis::NormInfo norm_info() const;
   bool good();
 };
 

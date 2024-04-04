@@ -41,9 +41,11 @@ T2KReWeightCalc::T2KReWeightCalc(IEventSourcePtr evs, YAML::Node const &cfg) {
     return;
   }
   if (cfg["neut_cardname"]) {
+    auto sts = stop_talking_scopeguard();
     t2krew::T2KNEUTUtils::SetCardFile(cfg["neut_cardname"].as<std::string>(),
                                       false);
   }
+  auto sts = stop_talking_scopeguard();
   fT2KRW = t2krew::MakeT2KReWeightInstance(t2krew::Event::kNEUT);
 }
 

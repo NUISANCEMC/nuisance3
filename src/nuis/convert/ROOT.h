@@ -3,6 +3,14 @@
 #include "nuis/binning/exceptions.h"
 #include "nuis/binning/utility.h"
 
+#include "nuis/histframe/BinnedValues.h"
+
+#include "nuis/eventframe/missing_datum.h"
+
+#include "NuHepMC/Exceptions.hxx"
+#include "NuHepMC/Types.hxx"
+
+#include "TFile.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
@@ -173,6 +181,43 @@ template <typename TN> BinnedValues BinnedValues_from_ROOT(TN const &hist) {
   }
 
   return bv;
+}
+
+NEW_NUISANCE_EXCEPT(NonExistantInputROOTFile);
+NEW_NUISANCE_EXCEPT(NonExistantTH1);
+
+NuHepMC::GC7::EnergyDistribution get_EnergyDistribution_from_ROOT(
+    std::string const &fname, std::string const &hname,
+    std::string const &energy_unit = "", bool is_per_width = true) {
+  NuHepMC::GC7::EnergyDistribution ed;
+  ed.dist_type = NuHepMC::GC7::EDistType::kHistogram;
+  ed.MonoEnergeticEnergy = kMissingDatum<double>;
+
+  TFile fin(fname.c_str());
+
+  if (!fin.IsOpen() || fin.IsZombie()) {
+    throw NonExistantInputROOTFile() << fname;
+  }
+
+  TH1 *hist = fin.Get<TH1>(hname.c_str());
+
+  if (!hist) {
+    throw NonExistantTH1() << hname << " does not exist in " << fname;
+  }
+
+  ed.energy_unit =
+      energy_unit.size() ? energy_unit : hist->GetXaxis()->GetTitle();
+  ed.rate_unit = hist->GetYaxis()->GetTitle();
+  ed.bin_edges = Eigen::ArrayXd::Zero(hist->GetXaxis()->GetNbins() + 1);
+  ed.bin_edges[0] = hist->GetXaxis()->GetBinLowEdge(1);
+  ed.bin_content = Eigen::ArrayXd::Zero(hist->GetXaxis()->GetNbins());
+  for (int i = 0; i < hist->GetXaxis()->GetNbins(); ++i) {
+    ed.bin_edges[i + 1] = hist->GetXaxis()->GetBinUpEdge(i + 1);
+    ed.bin_content[i] = hist->GetBinContent(i + 1);
+  }
+  ed.ContentIsPerWidth = is_per_width;
+
+  return ed;
 }
 
 } // namespace nuis

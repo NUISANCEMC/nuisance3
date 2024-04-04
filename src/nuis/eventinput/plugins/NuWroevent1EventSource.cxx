@@ -27,6 +27,8 @@ class NuWroevent1EventSource : public IEventSource {
 
   std::shared_ptr<HepMC3::GenRunInfo> gri;
 
+  double fatx;
+
   Long64_t ch_ents;
   Long64_t ient;
   TUUID ch_fuid;
@@ -76,7 +78,7 @@ public:
     (void)branch_status;
     chin->GetEntry(0);
 
-    double fatx = ev->weight;
+    fatx = ev->weight;
 
     gri = nuwroconv::BuildRunInfo(ch_ents, fatx, ev->par);
 
@@ -104,6 +106,8 @@ public:
     auto ge = nuwroconv::ToGenEvent(*ev, gri);
     ge->set_event_number(ient);
     ge->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
+    // accounts for per-file variations over an input chain
+    ge->weights()[0] = ev->weight / fatx;
     return ge;
   }
 

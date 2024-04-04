@@ -44,7 +44,7 @@ EventFrameGen EventFrameGen::progress(size_t every) {
   return *this;
 }
 
-EventFrame EventFrameGen::first() {
+EventFrame EventFrameGen::first(size_t nchunk) {
   all_column_names = std::accumulate(
       columns.begin(), columns.end(),
       std::vector<std::string>{"event.number", "weight.cv", "process.id"},
@@ -59,7 +59,7 @@ EventFrame EventFrameGen::first() {
   neventsprocessed = 0;
   ev_it = begin(source);
 
-  return next();
+  return next(nchunk);
 }
 
 template <typename T>
@@ -76,18 +76,22 @@ size_t EventFrameGen::fill_row_columns(Eigen::ArrayXdRef row,
   return first_col;
 }
 
-EventFrame EventFrameGen::next() {
+EventFrame EventFrameGen::next(size_t nchunk) {
+
+  if (nchunk == std::numeric_limits<size_t>::max()) {
+    nchunk = chunk_size;
+  }
+
   log_trace(
       "EventFrameGen::next() neventsprocessed: {}, max_events_to_loop: {}",
       neventsprocessed, max_events_to_loop);
 
   if (neventsprocessed >= max_events_to_loop) {
-    return {all_column_names, Eigen::ArrayXXd(0, all_column_names.size()),
-            norm_info};
+    return {all_column_names, Eigen::ArrayXXd(0, all_column_names.size()), 0,
+            fnorm_info};
   }
-  
 
-  Eigen::ArrayXXd chunk(chunk_size, all_column_names.size());
+  Eigen::ArrayXXd chunk(nchunk, all_column_names.size());
 
   size_t chunk_row = 0;
 
@@ -171,7 +175,7 @@ EventFrame EventFrameGen::next() {
     if (neventsprocessed >= max_events_to_loop) {
       break;
     }
-    if (chunk_row >= chunk_size) {
+    if (chunk_row >= nchunk) {
       break;
     }
     ++ev_it;
@@ -185,10 +189,10 @@ EventFrame EventFrameGen::next() {
 
   // grab the norm_info before reading the next event for the start of the next
   // loop
-  norm_info = source->norm_info();
+  fnorm_info = source->norm_info();
   ++ev_it;
 
-  return {all_column_names, chunk.topRows(chunk_row), norm_info};
+  return {all_column_names, chunk.topRows(chunk_row), chunk_row, fnorm_info};
 }
 
 EventFrame EventFrameGen::all() {
@@ -236,7 +240,8 @@ EventFrame EventFrameGen::all() {
 
   log_trace("EventFrameGen::all() done: nrows {}", builder.rows());
 
-  return {all_column_names, builder, source->norm_info()};
+  return {all_column_names, builder, size_t(builder.rows()),
+          source->norm_info()};
 }
 
 #ifdef NUIS_ARROW_ENABLED
@@ -249,16 +254,16 @@ GetColumnBuilder(std::string const &name) {
 }
 
 template <typename T>
-typename nuis::column_type<T>::ATT::BuilderType &BuilderAs(ArrowBuilderPtr &ab) {
+typename nuis::column_type<T>::ATT::BuilderType &
+BuilderAs(ArrowBuilderPtr &ab) {
   return *dynamic_cast<typename nuis::column_type<T>::ATT::BuilderType *>(
       ab.get());
 }
 
 template <typename T>
-void EventFrameGen::fill_array_builder(std::vector<ArrowBuilderPtr> &array_builders,
-                                       HepMC3::GenEvent const &ev,
-                                       size_t proj_index, size_t first_col,
-                                       size_t ncols_to_fill) {
+void EventFrameGen::fill_array_builder(
+    std::vector<ArrowBuilderPtr> &array_builders, HepMC3::GenEvent const &ev,
+    size_t proj_index, size_t first_col, size_t ncols_to_fill) {
 
   size_t next_col_id = first_col;
 
@@ -272,7 +277,7 @@ void EventFrameGen::fill_array_builder(std::vector<ArrowBuilderPtr> &array_build
   }
 }
 
-std::shared_ptr<arrow::RecordBatch> EventFrameGen::firstArrow() {
+std::shared_ptr<arrow::RecordBatch> EventFrameGen::firstArrow(size_t nchunk) {
   all_column_names =
       std::accumulate(columns.begin(), columns.end(),
                       std::vector<std::string>{"event.number", "weight.cv",
@@ -288,10 +293,16 @@ std::shared_ptr<arrow::RecordBatch> EventFrameGen::firstArrow() {
   neventsprocessed = 0;
   ev_it = begin(source);
 
-  return _nextArrow().ValueOrDie();
+  return _nextArrow(nchunk).ValueOrDie();
 }
 
-arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
+arrow::Result<std::shared_ptr<arrow::RecordBatch>>
+EventFrameGen::_nextArrow(size_t nchunk) {
+
+  if (nchunk == std::numeric_limits<size_t>::max()) {
+    nchunk = chunk_size;
+  }
+
   log_trace(
       "EventFrameGen::nextArrow() neventsprocessed: {}, max_events_to_loop: {}",
       neventsprocessed, max_events_to_loop);
@@ -424,7 +435,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
     if (neventsprocessed >= max_events_to_loop) {
       break;
     }
-    if (rbatch_row >= chunk_size) {
+    if (rbatch_row >= nchunk) {
       break;
     }
     ++ev_it;
@@ -437,7 +448,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
 
   // grab the norm_info before reading the next event for the start of the next
   // loop
-  norm_info = source->norm_info();
+  fnorm_info = source->norm_info();
   ++ev_it;
 
   std::vector<std::shared_ptr<arrow::Array>> arrays(all_column_names.size(),
@@ -445,8 +456,7 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
   ARROW_ASSIGN_OR_RAISE(arrays[0], BuilderAs<int>(array_builders[0]).Finish());
   ARROW_ASSIGN_OR_RAISE(arrays[1],
                         BuilderAs<double>(array_builders[1]).Finish());
-  ARROW_ASSIGN_OR_RAISE(arrays[2],
-                        BuilderAs<int>(array_builders[2]).Finish());
+  ARROW_ASSIGN_OR_RAISE(arrays[2], BuilderAs<int>(array_builders[2]).Finish());
   ARROW_ASSIGN_OR_RAISE(arrays[3],
                         BuilderAs<double>(array_builders[3]).Finish());
   log_debug("EventFrameGen::nextArrow() building arrays: ");
@@ -493,8 +503,8 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> EventFrameGen::_nextArrow() {
       arrow::RecordBatch::Make(schema, arrays.front()->length(), arrays));
 }
 
-std::shared_ptr<arrow::RecordBatch> EventFrameGen::nextArrow() {
-  return _nextArrow().ValueOrDie();
+std::shared_ptr<arrow::RecordBatch> EventFrameGen::nextArrow(size_t nchunk) {
+  return _nextArrow(nchunk).ValueOrDie();
 }
 
 #endif

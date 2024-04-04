@@ -512,7 +512,7 @@ while(batch){
 Once you have an `arrow::RecordBatch`, there are many options for onwards processing. In this section who give examples of how to write and read instances to files.
 
 Arrow C++ makes heavy use of return codes and provides utility macros for error checking and
-early return. An example of writing an `arrow:Table` to file is given below.
+early return. An example of writing an `arrow::Table` to file is given below.
 
 ```c++
 arrow::Status RunMain(int, char const *argv[]) {

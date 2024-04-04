@@ -15,6 +15,8 @@ struct NormInfo {
   double fatx;
   double sumweights;
   size_t nevents;
+
+  double fatx_per_sumweights() { return fatx / sumweights; }
 };
 
 /// An event source wrapper that keeps track of the FATX, if we cannot determine

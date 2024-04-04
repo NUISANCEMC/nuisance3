@@ -43,12 +43,8 @@ std::shared_ptr<HepMC3::GenRunInfo> pyNormalizedEventSource::run_info() {
   return gri;
 }
 
-double pyNormalizedEventSource::fatx() {
-  return evs ? evs->norm_info().fatx : 0;
-}
-
-double pyNormalizedEventSource::sumw() {
-  return evs ? evs->norm_info().sumweights : 0;
+NormInfo pyNormalizedEventSource::norm_info() const {
+  return evs ? evs->norm_info() : NormInfo{};
 }
 
 bool pyNormalizedEventSource::good() { return bool(evs); }
@@ -85,14 +81,20 @@ IEventSource_sentinel end(pyNormalizedEventSource &) {
 }
 
 void pyEventInputInit(py::module &m) {
+
+  py::class_<NormInfo>(m, "NormInfo")
+      .def_readonly("fatx", &NormInfo::fatx)
+      .def_readonly("sumweights", &NormInfo::sumweights)
+      .def_readonly("nevents", &NormInfo::nevents)
+      .def("fatx_per_sumweights", &NormInfo::fatx_per_sumweights);
+
   py::class_<pyNormalizedEventSource>(m, "EventSource")
       .def(py::init<std::string const &>())
       .def(py::init<YAML::Node const &>())
       .def("first", &pyNormalizedEventSource::first)
       .def("next", &pyNormalizedEventSource::next)
       .def("run_info", &pyNormalizedEventSource::run_info)
-      .def("fatx", &pyNormalizedEventSource::fatx)
-      .def("sumw", &pyNormalizedEventSource::sumw)
+      .def("norm_info", &pyNormalizedEventSource::norm_info)
       .def("__bool__", &pyNormalizedEventSource::good)
       .def(
           "__iter__",

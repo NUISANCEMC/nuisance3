@@ -23,6 +23,7 @@ NEW_NUISANCE_EXCEPT(InvalidFrameColumnName);
 struct EventFrame {
   std::vector<std::string> column_names;
   Eigen::ArrayXXd table;
+  size_t num_rows;
   NormInfo norm_info;
 
   using column_t = uint16_t;

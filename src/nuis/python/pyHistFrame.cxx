@@ -42,7 +42,7 @@ void pyHistFrameInit(py::module &m) {
   py::class_<BinnedValuesBase::ColumnInfo>(m, "ColumnInfo")
       .def_readonly("name", &BinnedValuesBase::ColumnInfo::name)
       .def_readonly("column_label", &BinnedValuesBase::ColumnInfo::column_label)
-      .def("__repr__", [](BinnedValuesBase::ColumnInfo const &s) {
+      .def("__str__", [](BinnedValuesBase::ColumnInfo const &s) {
         return fmt::format("Column: name={}{}", s.name,
                            s.column_label.size()
                                ? fmt::format(", label={}", s.column_label)
@@ -65,10 +65,22 @@ void pyHistFrameInit(py::module &m) {
       .def(py::init<BinningPtr, std::string const &, std::string const &>(),
            py::arg("binop"), py::arg("def_col_name") = "mc",
            py::arg("def_col_label") = "")
-      .def_readwrite("sumweights", &HistFrame::sumweights,
-                     py::return_value_policy::reference_internal)
-      .def_readwrite("variances", &HistFrame::variances,
-                     py::return_value_policy::reference_internal)
+      .def_property(
+          "sumweights",
+          // Getter
+          [](HistFrame &self) { return self.sumweights; },
+          // Setter
+          [](HistFrame &self, Eigen::ArrayXXdRef &val) {
+            self.sumweights = val;
+          })
+      .def_property(
+          "variances",
+          // Getter
+          [](HistFrame &self) { return self.variances; },
+          // Setter
+          [](HistFrame &self, Eigen::ArrayXXdRef &val) {
+            self.variances = val;
+          })
       .def_readonly("num_fills", &HistFrame::num_fills)
       .def("fill_bin", &HistFrame::fill_bin, py::arg("bini"), py::arg("weight"),
            py::arg("col"))
@@ -108,7 +120,8 @@ void pyHistFrameInit(py::module &m) {
       .def("reset", &HistFrame::reset)
       .def("__getattr__", &histframe_gettattr)
       .def("__getitem__", &histframe_gettattr)
-      .def("__repr__", &str_via_ss<HistFrame>)
+      .def("__copy__", [](HistFrame const &self) { return HistFrame(self); })
+      .def("__str__", &str_via_ss<HistFrame>)
       .def("project",
            [](HistFrame const &hf, std::vector<size_t> const &cols) {
              return Project(hf, cols);
@@ -336,7 +349,7 @@ void pyHistFrameInit(py::module &m) {
       .def("make_HistFrame", &BinnedValues::make_HistFrame, py::arg("col") = 0)
       .def("__getattr__", &binnedvalues_gettattr)
       .def("__getitem__", &binnedvalues_gettattr)
-      .def("__repr__", &str_via_ss<BinnedValues>)
+      .def("__str__", &str_via_ss<BinnedValues>)
       .def("project",
            [](BinnedValues const &bv, std::vector<size_t> const &cols) {
              return Project(bv, cols);

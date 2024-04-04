@@ -21,7 +21,8 @@ target_link_libraries(_pyNUISANCE
     record 
     convert
     NuHepMC::CPPUtils 
-    pybind11::module)
+    pybind11::module
+    ROOT::Hist)
 
 target_include_directories(_pyNUISANCE PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>

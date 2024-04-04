@@ -256,6 +256,7 @@ class NUISANCE2FlattTreeEventSource : public IEventSource {
   std::shared_ptr<HepMC3::GenRunInfo> gri;
 
   Long64_t ient;
+  double fatx;
 
   std::unique_ptr<TTreeReader> reader;
 
@@ -483,8 +484,8 @@ public:
       flux->SetDirectory(nullptr);
     }
 
-    gri = BuildRunInfo(reader->GetEntries(),
-                       *(*fScaleFactor) * double(reader->GetEntries()),
+    fatx = *(*fScaleFactor) * double(reader->GetEntries());
+    gri = BuildRunInfo(reader->GetEntries(), fatx,
                        NuHepMC::Event::GetBeamParticle(*ge)->pid(), flux);
 
     ge->set_event_number(ient++);
@@ -505,6 +506,8 @@ public:
     ge->set_event_number(ient++);
     ge->set_run_info(gri);
     ge->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
+    // accounts for per-file variations over an input chain
+    ge->weights()[0] = *(*fScaleFactor) * double(reader->GetEntries()) / fatx;
 
     return ge;
   }

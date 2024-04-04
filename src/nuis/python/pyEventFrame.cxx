@@ -56,26 +56,32 @@ pyEventFrameGen pyEventFrameGen::progress(size_t nmax) {
   return *this;
 }
 
-nuis::EventFrame pyEventFrameGen::first() { return gen->first(); }
-nuis::EventFrame pyEventFrameGen::next() { return gen->next(); }
+nuis::EventFrame pyEventFrameGen::first(size_t nchunk) {
+  return gen->first(nchunk);
+}
+nuis::EventFrame pyEventFrameGen::next(size_t nchunk) {
+  return gen->next(nchunk);
+}
 nuis::EventFrame pyEventFrameGen::all() { return gen->all(); }
 
 #ifdef NUIS_ARROW_ENABLED
-pybind11::object pyEventFrameGen::firstArrow() {
-  auto rb = gen->firstArrow();
+pybind11::object pyEventFrameGen::firstArrow(size_t nchunk) {
+  auto rb = gen->firstArrow(nchunk);
   if (rb) {
     return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
   }
   return py::none();
 }
-pybind11::object pyEventFrameGen::nextArrow() {
-  auto rb = gen->nextArrow();
+pybind11::object pyEventFrameGen::nextArrow(size_t nchunk) {
+  auto rb = gen->nextArrow(nchunk);
   if (rb) {
     return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
   }
   return py::none();
 }
 #endif
+
+NormInfo pyEventFrameGen::norm_info() const { return gen->norm_info(); }
 
 Eigen::ArrayXdRef frame_gettattr(EventFrame &s, std::string const &column) {
   return s.col(column);
@@ -102,10 +108,8 @@ void pyEventFrameInit(py::module &m) {
                      py::return_value_policy::reference_internal)
       .def_readwrite("column_names", &EventFrame::column_names,
                      py::return_value_policy::reference_internal)
-      .def("fatx", [](EventFrame const &s) { return s.norm_info.fatx; })
-      .def("sumw", [](EventFrame const &s) { return s.norm_info.sumweights; })
-      .def("nevents", [](EventFrame const &s) { return s.norm_info.nevents; })
-      .def("rows", [](EventFrame const &s) { return s.table.rows(); })
+      .def("norm_info", [](EventFrame const &s) { return s.norm_info; })
+      .def_readonly("num_rows", &EventFrame::num_rows)
       .def("__bool__", [](EventFrame const &s) { return bool(s.table.rows()); })
       .def("find_column_index", &EventFrame::find_column_index)
       .def_readonly_static("npos", &EventFrame::npos)
@@ -114,11 +118,11 @@ void pyEventFrameInit(py::module &m) {
       .def("__setattr__", &frame_settattr)
       .def("__getitem__", &frame_gettattr)
       .def("__setitem__", &frame_settattr)
-      .def("__repr__", &str_via_ss<EventFrame>);
+      .def("__str__", &str_via_ss<EventFrame>);
 
   py::class_<pyEventFrameGen>(m, "EventFrameGen")
       .def(py::init<pyNormalizedEventSource, size_t>(), py::arg("event_source"),
-           py::arg("block_size") = 50000)
+           py::arg("block_size") = 250000)
       .def("filter", &pyEventFrameGen::filter)
 #ifdef NUIS_ARROW_ENABLED
       .def_static("has_arrow_support", []() { return true; })
@@ -133,12 +137,17 @@ void pyEventFrameInit(py::module &m) {
       .def("add_double_columns", &pyEventFrameGen::add_double_columns)
       .def("limit", &pyEventFrameGen::limit)
       .def("limit", [](pyEventFrameGen &s, double i) { return s.limit(i); })
+      .def("norm_info", &pyEventFrameGen::norm_info)
       .def("progress", &pyEventFrameGen::progress, py::arg("every") = 100000)
-      .def("first", &pyEventFrameGen::first)
-      .def("next", &pyEventFrameGen::next)
+      .def("first", &pyEventFrameGen::first,
+           py::arg("nchunk") = std::numeric_limits<size_t>::max())
+      .def("next", &pyEventFrameGen::next,
+           py::arg("nchunk") = std::numeric_limits<size_t>::max())
 #ifdef NUIS_ARROW_ENABLED
-      .def("firstArrow", &pyEventFrameGen::firstArrow)
-      .def("nextArrow", &pyEventFrameGen::nextArrow)
+      .def("firstArrow", &pyEventFrameGen::firstArrow,
+           py::arg("nchunk") = std::numeric_limits<size_t>::max())
+      .def("nextArrow", &pyEventFrameGen::nextArrow,
+           py::arg("nchunk") = std::numeric_limits<size_t>::max())
 #endif
       .def("all", &pyEventFrameGen::all);
 }

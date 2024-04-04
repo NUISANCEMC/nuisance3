@@ -19,11 +19,13 @@ struct pyEventFrameGen {
   add_double_columns(std::vector<std::string> const &col_names,
                      nuis::EventFrameGen::ProjectionsFunc<double> proj);
 
-  pyEventFrameGen add_double_column(std::string const &col_name,
-                                    nuis::EventFrameGen::ProjectionFunc<double> proj);
+  pyEventFrameGen
+  add_double_column(std::string const &col_name,
+                    nuis::EventFrameGen::ProjectionFunc<double> proj);
 
-  pyEventFrameGen add_int_columns(std::vector<std::string> const &col_names,
-                                  nuis::EventFrameGen::ProjectionsFunc<int> proj);
+  pyEventFrameGen
+  add_int_columns(std::vector<std::string> const &col_names,
+                  nuis::EventFrameGen::ProjectionsFunc<int> proj);
 
   pyEventFrameGen add_int_column(std::string const &col_name,
                                  nuis::EventFrameGen::ProjectionFunc<int> proj);
@@ -32,14 +34,16 @@ struct pyEventFrameGen {
 
   pyEventFrameGen progress(size_t nmax);
 
-  nuis::EventFrame first();
-  nuis::EventFrame next();
+  nuis::EventFrame first(size_t nchunk);
+  nuis::EventFrame next(size_t nchunk);
   nuis::EventFrame all();
 
 #ifdef NUIS_ARROW_ENABLED
-  pybind11::object firstArrow();
-  pybind11::object nextArrow();
+  pybind11::object firstArrow(size_t nchunk);
+  pybind11::object nextArrow(size_t nchunk);
 #endif
+
+  nuis::NormInfo norm_info() const;
 
   std::shared_ptr<nuis::EventFrameGen> gen;
 };

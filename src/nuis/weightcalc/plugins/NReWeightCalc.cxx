@@ -22,6 +22,7 @@ NEW_NUISANCE_EXCEPT(NEUTCardRequired);
 
 double NReWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
   neut::CommonBlockIFace::ReadVect(nevs->neutvect(ev));
+  auto sts = stop_talking_scopeguard();
   return fNEUTRW->CalcWeight();
 }
 
@@ -30,6 +31,7 @@ void NReWeightCalc::set_parameters(
   for (auto &[p, v] : params) {
     fNEUTRW->SetDial_To_Value(fNEUTRW->DialFromString(p), v);
   }
+  auto sts = stop_talking_scopeguard();
   fNEUTRW->Reconfigure();
 }
 

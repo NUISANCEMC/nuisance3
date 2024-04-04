@@ -19,13 +19,13 @@ void pyBinningInit(py::module &m) {
       .def_readwrite("low", &SingleExtent::low)
       .def_readwrite("high", &SingleExtent::high)
       .def("width", &SingleExtent::width)
-      .def("__repr__", &str_via_ss<SingleExtent>);
+      .def("__str__", &str_via_ss<SingleExtent>);
 
   pyBinning.def_readonly_static("npos", &Binning::npos)
       .def_readonly("bins", &Binning::bins)
       .def_readonly("axis_labels", &Binning::axis_labels)
       .def("bin_sizes", &Binning::bin_sizes)
-      .def("__repr__", &str_via_ss<Binning>)
+      .def("__str__", &str_via_ss<Binning>)
       .def("find_bin",
            [](BinningPtr binning, double x) { return binning->find_bin(x); })
       .def("find_bin",

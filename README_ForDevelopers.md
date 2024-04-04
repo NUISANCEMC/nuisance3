@@ -200,6 +200,21 @@ Get the current compile-time level with like:
 nuis::get_macro_log_level();
 ```
 
+### Quietening Dependency Code
+
+We provide the `nuis::StopTalking` and `nuis::StartTalking` functions in `nuis/log.h` that redirect the C++ standard library streams away from stdout temporarily to allow NUISANCE code to suppress excessive logging from dependent code.
+
+We also provide a scopeguard style version that takes a log level argument which sets the suppression level below which `std::cout` is redirected.
+
+```c++
+{
+  auto sts = stop_talking_scopeguard(log_level::debug);
+  SomeLoudFunction();
+}
+```
+
+The `log_level` defaults to `log_level::trace`. `stop_talking_scopeguard` is named log aware, so it will check the context-relevant current log_level when deciding whether to redirect `std::cout`.
+
 ## Diagnostics
 
 ### Profiling

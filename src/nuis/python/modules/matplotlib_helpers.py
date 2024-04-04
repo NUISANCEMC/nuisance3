@@ -100,34 +100,40 @@ class HistFrame_matplotlib_helper:
             return ([(x[0].low) for x in self.hf.binning.bins]
                 + [self.hf.binning.bins[-1][0].high])
             
-    def errorbar(self, axis="x", col=None, *args, **kwargs):
+    def errorbar(self, axis="x", col=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         pdim, perr, plab = self.get_1d_plotdim(axis)
         obj = plt.errorbar(pdim, self.c(col), xerr=perr, 
                             yerr=self.ec(), *args, **kwargs )
-        plt.xlabel(plab)
+        plot_axis.xlabel(plab)
         return obj
 
-    def plot(self, axis="x", col=None, fill=None, *args, **kwargs):
+    def plot(self, axis="x", col=None, fill=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plt.plot( pdim, self.c(col), *args, **kwargs )
+        obj = plot_axis.plot( pdim, self.c(col), *args, **kwargs )
         if fill == "tozeroy":
-            plt.fill_between(pdim, np.zeros(len(pdim)), self.c(col))
-        plt.xlabel(plab)
+            plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(col))
+        plot_axis.xlabel(plab)
         return obj
     
-    def plot_all(self, axis="x", cols=None, labels=None, *args, **kwargs):
+    def plot_all(self, axis="x", cols=None, labels=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         if not cols: cols = [x.name for x in self.hf.column_info]
         if not labels: labels = cols
-        for col in cols:
+        for col, label in zip(cols,labels):
+            kwargs["label"] = label
             self.plot(axis, col, *args, **kwargs)
         return 
 
-    def fill(self, axis="x", col="mc", fill=None, *args, **kwargs):
+    def fill(self, axis="x", col="mc", fill=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plt.fill_between(pdim, np.zeros(len(pdim)), self.c(col), *args, **kwargs )
+        obj = plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(col), *args, **kwargs )
         return obj
         
-    def fill_all(self, axis="x", cols=None, labels=None, *args, **kwargs):
+    def fill_all(self, axis="x", cols=None, labels=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         if not cols: cols = [x.name for x in self.hf.column_info]
         if not labels: labels = cols
         for col, label in zip(cols,labels):
@@ -135,26 +141,30 @@ class HistFrame_matplotlib_helper:
             self.fill(axis, col, *args, **kwargs)
         return 
 
-    def scatter(self, axis="x", col=None, *args, **kwargs):
+    def scatter(self, axis="x", col=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plt.scatter( pdim, self.c(col), *args, **kwargs )
-        plt.xlabel(plab)
+        obj = plot_axis.scatter( pdim, self.c(col), *args, **kwargs )
+        plot_axis.xlabel(plab)
         return obj
 
-    def scatter_all(self, axis="x", cols=None, labels=None, *args, **kwargs):
+    def scatter_all(self, axis="x", cols=None, labels=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         if not cols: cols = self.hf.column_info
         if not labels: labels = cols
         for col in cols:
             self.scatter(axis, col, *args, **kwargs)
         return 
     
-    def hist(self, axis="x", col=None, *args, **kwargs):
+    def hist(self, axis="x", col=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plt.hist( pdim, weights=self.c(col), bins=self.get_1d_bins(axis), *args, **kwargs )
-        plt.xlabel(plab)
+        obj = plot_axis.hist( pdim, weights=self.c(col), bins=self.get_1d_bins(axis), *args, **kwargs )
+        plot_axis.xlabel(plab)
         return obj
     
-    def hist_all(self, axis="x", cols=None, labels=None, *args, **kwargs):
+    def hist_all(self, axis="x", cols=None, labels=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         if not cols: cols = [x.name for x in self.hf.column_info]
         if not labels: labels = cols
         for col, label in zip(cols,labels):
@@ -164,15 +174,17 @@ class HistFrame_matplotlib_helper:
  
 
     def hist2d(self, xaxis="x", yaxis="y", col=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
         pdim, perr, plab = self.get_1d_plotdim(xaxis)
         pdim2, perr2, plab2 = self.get_1d_plotdim(yaxis)
-        obj = plt.hist2d( pdim, pdim2, weights=self.c(col), bins=[np.unique(self.bx()), np.unique(self.by())], *args, **kwargs )
-        plt.xlabel(plab)
-        plt.ylabel(plab2)
+        obj = plot_axis.hist2d( pdim, pdim2, weights=self.c(col), bins=[np.unique(self.bx()), np.unique(self.by())], *args, **kwargs )
+        plot_axis.xlabel(plab)
+        plot_axis.ylabel(plab2)
         
         return obj
     
-    def colormesh(self, xaxis="x", yaxis="y", col=None, *args, **kwargs):
+    def colormesh(self, xaxis="x", yaxis="y", col=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt
 
         # Placeholder for noow will update to arb axis
         nbins = len(self.hf.binning.bins)
@@ -196,7 +208,7 @@ class HistFrame_matplotlib_helper:
             if (2*i + 2) != (2*nbins):
                 C[2*i + 1,0] = self.hf.sumweights[i,0]
                 
-        plt.pcolormesh(X, Y, C)
+        plot_axis.pcolormesh(X, Y, C)
 
 def mpl_cern_template(page_dim=[3,3]):
     plt.minorticks_on()
