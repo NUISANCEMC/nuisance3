@@ -4,14 +4,20 @@ target_include_directories(Binning_tests PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRE
 
 catch_discover_tests(Binning_tests)
 
+if(TARGET ROOT::Hist)
+  add_executable(Binning_benchmarking Binning_benchmarking.cxx)
+  target_link_libraries(Binning_benchmarking PRIVATE Catch2::Catch2WithMain histframe ROOT::Hist)
+  target_include_directories(Binning_benchmarking PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}../>)
+endif()
+
 add_executable(Projection_tests Projection_tests.cxx)
 target_link_libraries(Projection_tests PRIVATE Catch2::Catch2WithMain histframe)
 target_include_directories(Projection_tests PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}../>)
 
 catch_discover_tests(Projection_tests)
 
-add_executable(Frame_tests Frame_tests.cxx)
-target_link_libraries(Frame_tests PRIVATE Catch2::Catch2WithMain frame)
-target_include_directories(Frame_tests PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}../>)
+add_executable(EventFrame_tests EventFrame_tests.cxx)
+target_link_libraries(EventFrame_tests PRIVATE Catch2::Catch2WithMain eventframe)
+target_include_directories(EventFrame_tests PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}../>)
 
-catch_discover_tests(Frame_tests)
+catch_discover_tests(EventFrame_tests)

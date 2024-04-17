@@ -6,11 +6,24 @@
 
 namespace nuis {
 
-HistFrame Project(HistFrame const &hf, std::vector<size_t> const &proj_to_axes);
-HistFrame Project(HistFrame const &hf, size_t proj_to_axis);
+HistFrame Project(HistFrame const &hf, std::vector<size_t> const &proj_to_axes,
+                  bool result_has_binning = true);
+HistFrame Project(HistFrame const &hf, size_t proj_to_axis,
+                  bool result_has_binning = true);
 BinnedValues Project(BinnedValues const &hf,
-                     std::vector<size_t> const &proj_to_axes);
-BinnedValues Project(BinnedValues const &hf, size_t proj_to_axis);
+                     std::vector<size_t> const &proj_to_axes,
+                     bool result_has_binning = true);
+BinnedValues Project(BinnedValues const &hf, size_t proj_to_axis,
+                     bool result_has_binning = true);
+
+HistFrame Slice(HistFrame const &hf, size_t ax, double slice_min,
+                double slice_max, bool result_has_binning = true);
+HistFrame Slice(HistFrame const &hf, size_t ax, double slice_val,
+                bool result_has_binning = true);
+BinnedValues Slice(BinnedValues const &hf, size_t ax, double slice_min,
+                   double slice_max, bool result_has_binning = true);
+BinnedValues Slice(BinnedValues const &hf, size_t ax, double slice_val,
+                   bool result_has_binning = true);
 
 std::ostream &operator<<(std::ostream &os, nuis::BinnedValuesBase const &);
 
@@ -68,50 +81,58 @@ void fill_from_EventFrameGen(
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
 #ifdef NUIS_ARROW_ENABLED
-void fill_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &weight_column_names = {"weight.cv"});
+template <typename ArrTabular = arrow::RecordBatch>
+void fill_from_Arrow(HistFrame &hf, std::shared_ptr<ArrTabular> const &tab,
+                     std::vector<std::string> const &projection_column_names,
+                     std::vector<std::string> const &weight_column_names = {
+                         "weight.cv"});
 
-void fill_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::string const &conditional_column_name,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &weight_column_names = {"weight.cv"});
+template <typename ArrTabular = arrow::RecordBatch>
+void fill_from_Arrow_if(HistFrame &hf, std::shared_ptr<ArrTabular> const &tab,
+                        std::string const &conditional_column_name,
+                        std::vector<std::string> const &projection_column_names,
+                        std::vector<std::string> const &weight_column_names = {
+                            "weight.cv"});
 
-void fill_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::vector<std::string> const &projection_column_names,
-    std::string const &column_selector_column_name,
-    std::vector<std::string> const &weight_column_names = {"weight.cv"});
-
-void fill_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::string const &conditional_column_name,
+template <typename ArrTabular = arrow::RecordBatch>
+void fill_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<ArrTabular> const &tab,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
-void fill_weighted_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+template <typename ArrTabular = arrow::RecordBatch>
+void fill_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<ArrTabular> const &tab,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_selector_column_name,
+    std::vector<std::string> const &weight_column_names = {"weight.cv"});
+
+template <typename ArrTabular = arrow::RecordBatch>
+void fill_weighted_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<ArrTabular> const &tab,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
-void fill_weighted_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+template <typename ArrTabular = arrow::RecordBatch>
+void fill_weighted_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<ArrTabular> const &tab,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
-void fill_procid_columns_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+template <typename ArrTabular = arrow::RecordBatch>
+void fill_procid_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<ArrTabular> const &tab,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});
 
-void fill_procid_columns_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+template <typename ArrTabular = arrow::RecordBatch>
+void fill_procid_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<ArrTabular> const &tab,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names = {"weight.cv"});

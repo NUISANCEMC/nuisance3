@@ -105,7 +105,7 @@ void Prob3plusplusWeightCalc::set_parameters(
     log_info("[Prob3plusplusWeightCalc]: Set sinsq_th12 = {}", sinsq_th12);
   }
   if (params.count("th12")) {
-    sinsq_th12 = std::pow(std::sin(params.at("sinsq_th12")), 2);
+    sinsq_th12 = std::pow(std::sin(params.at("th12")), 2);
     log_info("[Prob3plusplusWeightCalc]: Set sinsq_th12 = {}", sinsq_th12);
   }
 
@@ -114,7 +114,7 @@ void Prob3plusplusWeightCalc::set_parameters(
     log_info("[Prob3plusplusWeightCalc]: Set sinsq_th13 = {}", sinsq_th13);
   }
   if (params.count("th13")) {
-    sinsq_th13 = std::pow(std::sin(params.at("sinsq_th13")), 2);
+    sinsq_th13 = std::pow(std::sin(params.at("th13")), 2);
     log_info("[Prob3plusplusWeightCalc]: Set sinsq_th13 = {}", sinsq_th13);
   }
 
@@ -123,7 +123,7 @@ void Prob3plusplusWeightCalc::set_parameters(
     log_info("[Prob3plusplusWeightCalc]: Set sinsq_th23 = {}", sinsq_th23);
   }
   if (params.count("th23")) {
-    sinsq_th23 = std::pow(std::sin(params.at("sinsq_th23")), 2);
+    sinsq_th23 = std::pow(std::sin(params.at("th23")), 2);
     log_info("[Prob3plusplusWeightCalc]: Set sinsq_th23 = {}", sinsq_th23);
   }
 
@@ -232,7 +232,7 @@ void Prob3plusplusWeightCalc::set_parameters(
                     {"dmsq_21", 7.41E-5},
                     {"dmsq_atm", 2.51E-3},
                     {"dcp_rad", 0}});
-    log_info("[Prob3plusplusWeightCalc]: Set T2K bestfit parameters");
+    log_info("[Prob3plusplusWeightCalc]: Set NuFit:5.2 bestfit parameters");
   }
 }
 

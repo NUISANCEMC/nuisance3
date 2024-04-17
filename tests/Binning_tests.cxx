@@ -201,7 +201,12 @@ TEST_CASE("log10_space::bins", "[Binning]") {
 TEST_CASE("log10_space::func", "[Binning]") {
   auto ls = nuis::Binning::log10_space(1, 1E3, 3, "lx");
 
+#ifndef NUIS_NDEBUG
   REQUIRE_THROWS_AS(ls->find_bin(0), nuis::UnbinnableNumber);
+#else
+  REQUIRE(ls->find_bin(0) == nuis::Binning::npos);
+#endif
+
   REQUIRE(ls->find_bin(0.1) == nuis::Binning::npos);
   REQUIRE(ls->find_bin(1) == 0);
   REQUIRE(ls->find_bin(10) == 1);
@@ -374,6 +379,53 @@ TEST_CASE("from_extents::func", "[Binning]") {
   REQUIRE(ls->find_bin({-0.1, 3, 6}) == nuis::Binning::npos);
   REQUIRE(ls->find_bin({0, 2.9, 6}) == nuis::Binning::npos);
   REQUIRE(ls->find_bin({0, 3, 5.9}) == nuis::Binning::npos);
+}
+
+TEST_CASE("from_extents::func -- lin_space", "[Binning]") {
+
+  std::vector<nuis::Binning::BinExtents> bins;
+
+  double xmin = 0;
+  double ymin = 3;
+  double zmin = 6;
+  for (size_t zi = 0; zi < 3; ++zi) {
+    for (size_t yi = 0; yi < 3; ++yi) {
+      for (size_t xi = 0; xi < 3; ++xi) {
+        bins.emplace_back();
+        bins.back().push_back({
+            xmin + xi * 1,
+            xmin + (xi + 1) * 1,
+        });
+        bins.back().push_back({
+            ymin + yi * 1,
+            ymin + (yi + 1) * 1,
+        });
+        bins.back().push_back({
+            zmin + zi * 1,
+            zmin + (zi + 1) * 1,
+        });
+      }
+    }
+  }
+
+  auto ls = nuis::Binning::from_extents(bins);
+  auto ls_comp = nuis::Binning::lin_spaceND({{0, 3, 3}, {3, 6, 3}, {6, 9, 3}});
+
+  REQUIRE(ls->find_bin({0, 3, 6}) == ls_comp->find_bin({0, 3, 6}));
+  REQUIRE(ls->find_bin({1, 3, 6}) == ls_comp->find_bin({1, 3, 6}));
+  REQUIRE(ls->find_bin({1, 3, 7}) == ls_comp->find_bin({1, 3, 7}));
+  REQUIRE(ls->find_bin({1, 4, 7}) == ls_comp->find_bin({1, 4, 7}));
+  REQUIRE(ls->find_bin({2, 5, 8}) == ls_comp->find_bin({2, 5, 8}));
+
+  // OOR above
+  REQUIRE(ls->find_bin({3, 3, 6}) == ls_comp->find_bin({3, 3, 6}));
+  REQUIRE(ls->find_bin({0, 6, 6}) == ls_comp->find_bin({0, 6, 6}));
+  REQUIRE(ls->find_bin({0, 3, 9}) == ls_comp->find_bin({0, 3, 9}));
+
+  // OOR below
+  REQUIRE(ls->find_bin({-0.1, 3, 6}) == ls_comp->find_bin({-0.1, 3, 6}));
+  REQUIRE(ls->find_bin({0, 2.9, 6}) == ls_comp->find_bin({0, 2.9, 6}));
+  REQUIRE(ls->find_bin({0, 3, 5.9}) == ls_comp->find_bin({0, 3, 5.9}));
 }
 
 TEST_CASE("from_extents::func -- reversed", "[Binning]") {

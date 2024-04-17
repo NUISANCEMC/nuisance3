@@ -15,6 +15,9 @@ bool binning_has_overlaps(std::vector<Binning::BinExtents> const &bins,
 bool binning_has_overlaps(std::vector<Binning::BinExtents> const &bins,
                           size_t proj_to_axis);
 
+bool is_contiguous(std::vector<Binning::BinExtents> const &bins);
+std::vector<std::vector<double>> get_contiguous_axes(std::vector<Binning::BinExtents> const &bins);
+
 std::vector<std::vector<double>>
 get_bin_centers(std::vector<Binning::BinExtents> const &bins);
 std::vector<double>

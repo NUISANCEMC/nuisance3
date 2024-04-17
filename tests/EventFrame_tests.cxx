@@ -1,12 +1,12 @@
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/matchers/catch_matchers_floating_point.hpp"
 
-#include "nuis/frame/Frame.h"
+#include "nuis/eventframe/EventFrame.h"
 
 #include <cassert>
 
-TEST_CASE("Frame::find_column_index", "[Frame]") {
-  nuis::Frame f;
+TEST_CASE("EventFrame::find_column_index", "[EventFrame]") {
+  nuis::EventFrame f;
   f.column_names.push_back("a");
   f.column_names.push_back("b");
   f.column_names.push_back("c");
@@ -15,11 +15,11 @@ TEST_CASE("Frame::find_column_index", "[Frame]") {
   REQUIRE(f.find_column_index("a") == 0);
   REQUIRE(f.find_column_index("b") == 1);
   REQUIRE(f.find_column_index("c") == 2);
-  REQUIRE(f.find_column_index("d") == nuis::Frame::npos);
+  REQUIRE(f.find_column_index("d") == nuis::EventFrame::npos);
 }
 
-TEST_CASE("Frame::col(string)", "[Frame]") {
-  nuis::Frame f;
+TEST_CASE("EventFrame::col(string)", "[EventFrame]") {
+  nuis::EventFrame f;
   f.column_names.push_back("a");
   f.column_names.push_back("b");
   f.column_names.push_back("c");
@@ -31,8 +31,8 @@ TEST_CASE("Frame::col(string)", "[Frame]") {
   REQUIRE_THROWS_AS(f.col("d"), nuis::InvalidFrameColumnName);
 }
 
-TEST_CASE("Set Eigen::Ref from Frame::col(string)", "[Frame]") {
-  nuis::Frame f;
+TEST_CASE("Set Eigen::Ref from EventFrame::col(string)", "[EventFrame]") {
+  nuis::EventFrame f;
   f.column_names.push_back("a");
   f.column_names.push_back("b");
   f.column_names.push_back("c");
@@ -50,8 +50,8 @@ TEST_CASE("Set Eigen::Ref from Frame::col(string)", "[Frame]") {
   REQUIRE(f.col("c")[0] == -123);
 }
 
-TEST_CASE("Set Eigen::Ref from Frame::cols(strings)", "[Frame]") {
-  nuis::Frame f;
+TEST_CASE("Set Eigen::Ref from EventFrame::cols(strings)", "[EventFrame]") {
+  nuis::EventFrame f;
   f.column_names.push_back("a");
   f.column_names.push_back("b");
   f.column_names.push_back("c");

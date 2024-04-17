@@ -96,9 +96,9 @@ TEST_CASE("2D swap", "[Projection]") {
   auto bin2 = hf.find_bin({1, 0});
   auto bin3 = hf.find_bin({2, 0});
 
-  hf.fill_bin(bin1, 1);
-  hf.fill_bin(bin2, 1);
-  hf.fill_bin(bin3, 1);
+  hf.fill_bin(bin1, 1, 0);
+  hf.fill_bin(bin2, 1, 0);
+  hf.fill_bin(bin3, 1, 0);
 
   nuis::HistFrame hfp = Project(hf, {1, 0});
 
@@ -149,9 +149,9 @@ TEST_CASE("3D->2D", "[Projection]") {
   auto bin2 = hf.find_bin({1, 1, 0});
   auto bin3 = hf.find_bin({2, 0, 2});
 
-  hf.fill_bin(bin1, 1);
-  hf.fill_bin(bin2, 1);
-  hf.fill_bin(bin3, 1);
+  hf.fill_bin(bin1, 1, 0);
+  hf.fill_bin(bin2, 1, 0);
+  hf.fill_bin(bin3, 1, 0);
 
   nuis::HistFrame hfp = Project(hf, {0, 1});
 
@@ -219,9 +219,9 @@ TEST_CASE("3D->1D", "[Projection]") {
   auto bin2 = hf.find_bin({1, 1, 0});
   auto bin3 = hf.find_bin({2, 0, 2});
 
-  hf.fill_bin(bin1, 1);
-  hf.fill_bin(bin2, 1);
-  hf.fill_bin(bin3, 1);
+  hf.fill_bin(bin1, 1, 0);
+  hf.fill_bin(bin2, 1, 0);
+  hf.fill_bin(bin3, 1, 0);
 
   nuis::HistFrame hfp = Project(hf, 0);
 

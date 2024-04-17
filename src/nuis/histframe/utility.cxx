@@ -62,6 +62,41 @@ ProjectionMap BuildProjectionMap(BinningPtr const bin_info,
   return pm;
 }
 
+struct SliceMap {
+  std::vector<Binning::index_t> bins_to_include;
+  bool remove_sliced_axis;
+};
+
+SliceMap BuildSliceMap(BinningPtr const bin_info,
+                       std::tuple<size_t, double, double> const &axes_limits) {
+  auto ax = std::get<0>(axes_limits);
+  auto min = std::get<1>(axes_limits);
+  auto max = std::get<2>(axes_limits);
+
+  SliceMap sm;
+  // only remove the axis if there is more than one axis
+  sm.remove_sliced_axis = bin_info->bins.front().size() > 1 ? true : false;
+
+  SingleExtent firstext{0xdeadbeef, 0xdeadbeef};
+
+  for (Binning::index_t bi_it = 0; bi_it < bin_info->bins.size(); ++bi_it) {
+    if ((bin_info->bins[bi_it][ax].high <= min) ||
+        (bin_info->bins[bi_it][ax].low > max)) {
+      continue;
+    }
+    if (firstext.low == 0xdeadbeef) {
+      firstext = bin_info->bins[bi_it][ax];
+    } else {
+      if (!(firstext == bin_info->bins[bi_it][ax])) {
+        sm.remove_sliced_axis = false;
+      }
+    }
+    sm.bins_to_include.push_back(bi_it);
+  }
+
+  return sm;
+}
+
 } // namespace nuis
 
 std::ostream &operator<<(std::ostream &os, nuis::ProjectionMap const &pm) {
@@ -77,7 +112,8 @@ std::ostream &operator<<(std::ostream &os, nuis::ProjectionMap const &pm) {
 namespace nuis {
 
 template <typename T>
-T Project_impl(T const &histlike, std::vector<size_t> const &proj_to_axes) {
+T Project_impl(T const &histlike, std::vector<size_t> const &proj_to_axes,
+               bool result_has_binning) {
   auto const &pm = BuildProjectionMap(histlike.binning, proj_to_axes);
 
   std::vector<std::string> labels;
@@ -85,7 +121,17 @@ T Project_impl(T const &histlike, std::vector<size_t> const &proj_to_axes) {
     labels.push_back(histlike.binning->axis_labels[proj_to_axis]);
   }
 
-  T projhl(Binning::from_extents(pm.projected_extents, labels));
+  T projhl;
+
+  if (result_has_binning) {
+    projhl.binning = Binning::from_extents(pm.projected_extents, labels);
+  } else { // make a binning that cannot be used to find a bin or fill useful
+           // for expensive constructors
+    projhl.binning = std::make_shared<nuis::Binning>();
+    projhl.binning->axis_labels = labels;
+    projhl.binning->bins = pm.projected_extents;
+  }
+
   projhl.column_info = histlike.column_info;
   projhl.resize();
 
@@ -94,7 +140,7 @@ T Project_impl(T const &histlike, std::vector<size_t> const &proj_to_axes) {
       if constexpr (std::is_same_v<T, HistFrame>) {
         projhl.sumweights.row(row_i) += histlike.sumweights.row(bi_it);
         projhl.variances.row(row_i) += histlike.variances.row(bi_it);
-      } else if (std::is_same_v<T, BinnedValues>) {
+      } else if constexpr (std::is_same_v<T, BinnedValues>) {
         projhl.values.row(row_i) += histlike.values.row(bi_it);
         projhl.errors.row(row_i) += histlike.errors.row(bi_it).square();
       }
@@ -111,20 +157,121 @@ T Project_impl(T const &histlike, std::vector<size_t> const &proj_to_axes) {
   return projhl;
 }
 
-HistFrame Project(HistFrame const &hf,
-                  std::vector<size_t> const &proj_to_axes) {
-  return Project_impl<HistFrame>(hf, proj_to_axes);
+HistFrame Project(HistFrame const &hf, std::vector<size_t> const &proj_to_axes,
+                  bool result_has_binning) {
+  return Project_impl<HistFrame>(hf, proj_to_axes, result_has_binning);
 }
-HistFrame Project(HistFrame const &hf, size_t proj_to_axis) {
-  return Project(hf, std::vector<size_t>{proj_to_axis});
+HistFrame Project(HistFrame const &hf, size_t proj_to_axis,
+                  bool result_has_binning) {
+  return Project(hf, std::vector<size_t>{proj_to_axis}, result_has_binning);
 }
 
 BinnedValues Project(BinnedValues const &hf,
-                     std::vector<size_t> const &proj_to_axes) {
-  return Project_impl<BinnedValues>(hf, proj_to_axes);
+                     std::vector<size_t> const &proj_to_axes,
+                     bool result_has_binning) {
+  return Project_impl<BinnedValues>(hf, proj_to_axes, result_has_binning);
 }
-BinnedValues Project(BinnedValues const &hf, size_t proj_to_axis) {
-  return Project(hf, std::vector<size_t>{proj_to_axis});
+BinnedValues Project(BinnedValues const &hf, size_t proj_to_axis,
+                     bool result_has_binning) {
+  return Project(hf, std::vector<size_t>{proj_to_axis}, result_has_binning);
+}
+
+template <typename T>
+T Slice_impl(T const &histlike,
+             std::tuple<size_t, double, double> const &axes_limits,
+             bool result_has_binning) {
+  auto const &sm = BuildSliceMap(histlike.binning, axes_limits);
+
+  auto ax = std::get<0>(axes_limits);
+  size_t nax = histlike.binning->bins.front().size();
+
+  std::vector<std::string> labels;
+  for (size_t ax_it = 0; ax_it < nax; ++ax_it) {
+    if ((ax == ax_it) &&
+        sm.remove_sliced_axis) { // skip the label if we're removing the axis
+      continue;
+    }
+    labels.push_back(histlike.binning->axis_labels[ax_it]);
+  }
+
+  std::vector<Binning::BinExtents> sliced_extents;
+  for (auto bi_it : sm.bins_to_include) {
+    sliced_extents.emplace_back();
+    for (size_t ax_it = 0; ax_it < nax; ++ax_it) {
+      if ((ax == ax_it) &&
+          sm.remove_sliced_axis) { // skip the extent if we're removing the axis
+        continue;
+      }
+      sliced_extents.back().push_back(histlike.binning->bins[bi_it][ax_it]);
+    }
+  }
+
+  T projhl;
+
+  if (result_has_binning) {
+    projhl.binning = Binning::from_extents(sliced_extents, labels);
+  } else { // make a binning that cannot be used to find a bin or fill useful
+           // for expensive constructors
+    projhl.binning = std::make_shared<nuis::Binning>();
+    projhl.binning->axis_labels = labels;
+    projhl.binning->bins = sliced_extents;
+  }
+
+  projhl.column_info = histlike.column_info;
+  projhl.resize();
+
+  for (size_t new_bin_it = 0; new_bin_it < sm.bins_to_include.size();
+       ++new_bin_it) {
+    if constexpr (std::is_same_v<T, HistFrame>) {
+      projhl.sumweights.row(new_bin_it) =
+          histlike.sumweights.row(sm.bins_to_include[new_bin_it]);
+      projhl.variances.row(new_bin_it) =
+          histlike.variances.row(sm.bins_to_include[new_bin_it]);
+    } else if constexpr (std::is_same_v<T, BinnedValues>) {
+      projhl.values.row(new_bin_it) =
+          histlike.values.row(sm.bins_to_include[new_bin_it]);
+      projhl.errors.row(new_bin_it) =
+          histlike.errors.row(sm.bins_to_include[new_bin_it]);
+    }
+  }
+
+  if constexpr (std::is_same_v<T, HistFrame>) {
+    projhl.num_fills = histlike.num_fills;
+  }
+
+  return projhl;
+}
+
+HistFrame Slice(HistFrame const &hf,
+                std::tuple<size_t, double, double> const &axes_limits,
+                bool result_has_binning) {
+  return Slice_impl<HistFrame>(hf, axes_limits, result_has_binning);
+}
+BinnedValues Slice(BinnedValues const &hf,
+                   std::tuple<size_t, double, double> const &axes_limits,
+                   bool result_has_binning) {
+  return Slice_impl<BinnedValues>(hf, axes_limits, result_has_binning);
+}
+
+HistFrame Slice(HistFrame const &hf, size_t ax, double slice_min,
+                double slice_max, bool result_has_binning) {
+  return Slice_impl<HistFrame>(hf, {ax, slice_min, slice_max},
+                               result_has_binning);
+}
+HistFrame Slice(HistFrame const &hf, size_t ax, double slice_val,
+                bool result_has_binning) {
+  return Slice_impl<HistFrame>(hf, {ax, slice_val, slice_val},
+                               result_has_binning);
+}
+BinnedValues Slice(BinnedValues const &hf, size_t ax, double slice_min,
+                   double slice_max, bool result_has_binning) {
+  return Slice_impl<BinnedValues>(hf, {ax, slice_min, slice_max},
+                                  result_has_binning);
+}
+BinnedValues Slice(BinnedValues const &hf, size_t ax, double slice_val,
+                   bool result_has_binning) {
+  return Slice_impl<BinnedValues>(hf, {ax, slice_val, slice_val},
+                                  result_has_binning);
 }
 
 std::ostream &operator<<(std::ostream &os, nuis::BinnedValuesBase const &bvb) {
@@ -606,35 +753,81 @@ void fill_procid_columns_from_RecordBatch_if_impl(
   }
 }
 
-void fill_from_RecordBatch(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &weight_column_names) {
+template <>
+void fill_from_Arrow(HistFrame &hf,
+                     std::shared_ptr<arrow::RecordBatch> const &rb,
+                     std::vector<std::string> const &projection_column_names,
+                     std::vector<std::string> const &weight_column_names) {
+
   fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false>(
       hf, rb, "", projection_column_names, "", {}, weight_column_names);
 }
 
-void fill_from_RecordBatch_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::string const &conditional_column_name,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &weight_column_names) {
+template <>
+void fill_from_Arrow(HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+                     std::vector<std::string> const &projection_column_names,
+                     std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false>(
+        hf, rb.ValueOrDie(), "", projection_column_names, "", {},
+        weight_column_names);
+  }
+}
+
+template <>
+void fill_from_Arrow_if(HistFrame &hf,
+                        std::shared_ptr<arrow::RecordBatch> const &rb,
+                        std::string const &conditional_column_name,
+                        std::vector<std::string> const &projection_column_names,
+                        std::vector<std::string> const &weight_column_names) {
+
   fill_procid_columns_from_RecordBatch_if_impl<false, true, false, false>(
       hf, rb, conditional_column_name, projection_column_names, "", {},
       weight_column_names);
 }
 
-void fill_columns_from_RecordBatch(
+template <>
+void fill_from_Arrow_if(HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+                        std::string const &conditional_column_name,
+                        std::vector<std::string> const &projection_column_names,
+                        std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, true, false, false>(
+        hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
+        "", {}, weight_column_names);
+  }
+}
+
+template <>
+void fill_columns_from_Arrow(
     HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names) {
+
   fill_procid_columns_from_RecordBatch_if_impl<true, false, false, false>(
       hf, rb, "", projection_column_names, column_selector_column_name, {},
       weight_column_names);
 }
 
-void fill_columns_from_RecordBatch_if(
+template <>
+void fill_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_selector_column_name,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<true, false, false, false>(
+        hf, rb.ValueOrDie(), "", projection_column_names,
+        column_selector_column_name, {}, weight_column_names);
+  }
+}
+
+template <>
+void fill_columns_from_Arrow_if(
     HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
@@ -645,43 +838,122 @@ void fill_columns_from_RecordBatch_if(
       column_selector_column_name, {}, weight_column_names);
 }
 
-void fill_weighted_columns_from_RecordBatch(
+template <>
+void fill_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_selector_column_name,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<true, true, false, false>(
+        hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
+        column_selector_column_name, {}, weight_column_names);
+  }
+}
+
+template <>
+void fill_weighted_columns_from_Arrow(
     HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names) {
+
   fill_procid_columns_from_RecordBatch_if_impl<false, false, false, true>(
       hf, rb, "", projection_column_names, "", column_weighter_names,
       weight_column_names);
 }
 
-void fill_weighted_columns_from_RecordBatch_if(
+template <>
+void fill_weighted_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, false, false, true>(
+        hf, rb.ValueOrDie(), "", projection_column_names, "",
+        column_weighter_names, weight_column_names);
+  }
+}
+
+template <>
+void fill_weighted_columns_from_Arrow_if(
     HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names) {
+
   fill_procid_columns_from_RecordBatch_if_impl<false, true, false, true>(
       hf, rb, conditional_column_name, projection_column_names, "",
       column_weighter_names, weight_column_names);
 }
 
-void fill_procid_columns_from_RecordBatch(
+template <>
+void fill_weighted_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, true, false, true>(
+        hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
+        "", column_weighter_names, weight_column_names);
+  }
+}
+
+template <>
+void fill_procid_columns_from_Arrow(
     HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
+
   fill_procid_columns_from_RecordBatch_if_impl<false, false, true, false>(
       hf, rb, "", projection_column_names, "", {}, weight_column_names);
 }
 
-void fill_procid_columns_from_RecordBatch_if(
+template <>
+void fill_procid_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, false, true, false>(
+        hf, rb.ValueOrDie(), "", projection_column_names, "", {},
+        weight_column_names);
+  }
+}
+
+template <>
+void fill_procid_columns_from_Arrow_if(
     HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
+
   fill_procid_columns_from_RecordBatch_if_impl<false, true, true, false>(
       hf, rb, conditional_column_name, projection_column_names, "", {},
       weight_column_names);
+}
+
+template <>
+void fill_procid_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, true, true, false>(
+        hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
+        "", {}, weight_column_names);
+  }
 }
 #endif
 

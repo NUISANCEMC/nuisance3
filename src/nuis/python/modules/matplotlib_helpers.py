@@ -3,6 +3,7 @@ from ._pyNUISANCE import HistFrame, BinnedValues
 
 import matplotlib.pyplot as plt
 import numpy as np
+from math import isfinite, nan
 
 class EventFrameGen_mpl_helper():
     def __init__(self, fr):
@@ -16,12 +17,12 @@ class EventFrameGen_mpl_helper():
         obj = plt.scatter( df[x], df[y], *args, **kwargs )
         return obj
     
-    def hist(self, x, y, weights="cvw", *args, **kwargs):
+    def hist(self, x, y, weights="weight.cv", *args, **kwargs):
         df = self.fr.all()
         obj = plt.hist( df[x], self.df[weights], *args, **kwargs )
         return obj
     
-    def hist2d(self, x, y, weights="cvw", *args, **kwargs):
+    def hist2d(self, x, y, weights="weight.cv", *args, **kwargs):
         df = self.fr.all()
         obj = plt.hist2d( df[x], df[y], self.df[weights], *args, **kwargs )
         return obj
@@ -34,23 +35,18 @@ class EventFrame_mpl_helper():
         obj = plt.scatter( self.df[x], self.df[y], *args, **kwargs )
         return obj
     
-    def hist(self, x, weights="cvw", *args, **kwargs):
+    def hist(self, x, weights="weight.cv", *args, **kwargs):
         obj = plt.hist( self.df[x], weights=self.df[weights], *args, **kwargs )
         return obj
     
-    def hist2d(self, x, y, weights="cvw", *args, **kwargs):
+    def hist2d(self, x, y, weights="weight.cv", *args, **kwargs):
         print(self.df, x, y)
         obj = plt.hist2d( self.df[x], self.df[y], weights=self.df[weights], *args, **kwargs )
         return obj
 
-
-
 class HistFrame_matplotlib_helper:
     def __init__(self, hf):
         self.hf = hf
-
-    def fc(self):
-        return self.hf.column_info[0].name
         
     def x(self): return [(x[0].low+x[0].high)/2 for x in self.hf.binning.bins]
     def ex(self): return [(x[0].high-x[0].high)/2 for x in self.hf.binning.bins]
@@ -65,19 +61,19 @@ class HistFrame_matplotlib_helper:
     def ey(self): return [(x[1].high-x[1].high)/2 for x in self.hf.binning.bins]
     def ly(self): return self.hf.binning.axis_labels[1]
     
-    def  c(self, col=None): 
-        if not col: col = self.fc()
-        if "count" in self.hf[col]: return self.hf[col]["count"]
-        if "value" in self.hf[col]: return self.hf[col]["value"]
+    def c(self, column=None): 
+        if not column: column = self.hf.column_info[0].name
+        if "count" in self.hf[column]: return self.hf[column]["count"]
+        if "value" in self.hf[column]: return self.hf[column]["value"]
 
-    def ec(self, col=None): 
-        if not col: col = self.fc()
-        if "variance" in self.hf[col]: return np.sqrt(self.hf[col]["variance"])
-        if "error" in self.hf[col]: return self.hf[col]["error"]
+    def ec(self, column=None): 
+        if not column: column = self.hf.column_info[0].name
+        if "variance" in self.hf[column]: return np.sqrt(self.hf[column]["variance"])
+        if "error" in self.hf[column]: return self.hf[column]["error"]
 
-    def form_title(self, col, **kwargs):
+    def form_title(self, column, **kwargs):
         if "label" not in kwargs:
-            kwargs["label"] = col
+            kwargs["label"] = column
         return kwargs
 
     def get_1d_plotdim(self, axis):
@@ -100,91 +96,115 @@ class HistFrame_matplotlib_helper:
             return ([(x[0].low) for x in self.hf.binning.bins]
                 + [self.hf.binning.bins[-1][0].high])
             
-    def errorbar(self, axis="x", col=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
+    def errorbar(self, axis="x", column=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plt.errorbar(pdim, self.c(col), xerr=perr, 
+        obj = plt.errorbar(pdim, self.c(column), xerr=perr, 
                             yerr=self.ec(), *args, **kwargs )
-        plot_axis.xlabel(plab)
+        plot_axis.set_xlabel(plab)
         return obj
 
-    def plot(self, axis="x", col=None, fill=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
+    def plot(self, axis="x", column=None, fill=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plot_axis.plot( pdim, self.c(col), *args, **kwargs )
+        obj = plot_axis.plot(pdim, self.c(column), *args, **kwargs)
         if fill == "tozeroy":
-            plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(col))
-        plot_axis.xlabel(plab)
+            plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(column))
+        plot_axis.set_xlabel(plab)
         return obj
     
-    def plot_all(self, axis="x", cols=None, labels=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
-        if not cols: cols = [x.name for x in self.hf.column_info]
-        if not labels: labels = cols
-        for col, label in zip(cols,labels):
+    def plot_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
+        if not columns: columns = [x.name for x in self.hf.column_info]
+        if not labels: labels = columns
+
+        for i, (column, label) in enumerate(zip(columns,labels)):
             kwargs["label"] = label
-            self.plot(axis, col, *args, **kwargs)
+            if not colors == None: kwargs["color"] = colors[i % len(colors)]
+            self.plot(axis=axis, column=column, plot_axis=plot_axis, *args, **kwargs)
         return 
 
-    def fill(self, axis="x", col="mc", fill=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
+    def plot_sum(self, axis="x", columns=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
+        if not columns: columns = [x.name for x in self.hf.column_info]
+
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(col), *args, **kwargs )
+        y = np.zeros(len(pdim))
+        for column in columns:
+          y = np.add(y, self.c(column))
+
+        obj = plot_axis.plot(pdim, y, *args, **kwargs )
+        plot_axis.set_xlabel(plab)
+        return obj
+
+    def fill(self, axis="x", column="mc", fill=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
+        pdim, perr, plab = self.get_1d_plotdim(axis)
+        obj = plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(column), *args, **kwargs )
         return obj
         
-    def fill_all(self, axis="x", cols=None, labels=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
-        if not cols: cols = [x.name for x in self.hf.column_info]
-        if not labels: labels = cols
-        for col, label in zip(cols,labels):
+    def fill_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
+        if not columns: columns = [x.name for x in self.hf.column_info]
+        if not labels: labels = columns
+
+        for i, (column, label) in enumerate(zip(columns,labels)):
             kwargs["label"] = label
-            self.fill(axis, col, *args, **kwargs)
+            if not colors == None: kwargs["color"] = colors[i % len(colors)]
+            self.fill(axis=axis, column=column, plot_axis=plot_axis, *args, **kwargs)
         return 
 
-    def scatter(self, axis="x", col=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
+    def scatter(self, axis="x", column=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plot_axis.scatter( pdim, self.c(col), *args, **kwargs )
-        plot_axis.xlabel(plab)
+        obj = plot_axis.scatter(pdim, self.c(column), *args, **kwargs )
+        plot_axis.set_xlabel(plab)
         return obj
 
-    def scatter_all(self, axis="x", cols=None, labels=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
-        if not cols: cols = self.hf.column_info
-        if not labels: labels = cols
-        for col in cols:
-            self.scatter(axis, col, *args, **kwargs)
+    def scatter_all(self, axis="x", columns=None, labels=None, plot_axis=None, colors=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
+        if not columns: columns = [x.name for x in self.hf.column_info]
+        if not labels: labels = columns
+
+        for i, (column, label) in enumerate(zip(columns,labels)):
+            kwargs["label"] = label
+            if not colors == None: kwargs["color"] = colors[i % len(colors)]
+            self.scatter(axis=axis, column=column, plot_axis=plot_axis, *args, **kwargs)
         return 
     
-    def hist(self, axis="x", col=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
+    def hist(self, axis="x", column=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plot_axis.hist( pdim, weights=self.c(col), bins=self.get_1d_bins(axis), *args, **kwargs )
-        plot_axis.xlabel(plab)
+        obj = plot_axis.hist(pdim, weights=self.c(column), bins=self.get_1d_bins(axis), *args, **kwargs )
+        plot_axis.set_xlabel(plab)
         return obj
     
-    def hist_all(self, axis="x", cols=None, labels=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
-        if not cols: cols = [x.name for x in self.hf.column_info]
-        if not labels: labels = cols
-        for col, label in zip(cols,labels):
+    def hist_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
+        if not columns: columns = [x.name for x in self.hf.column_info]
+        if not labels: labels = columns
+
+        for i, (column, label) in enumerate(zip(columns,labels)):
             kwargs["label"] = label
-            self.hist(axis, col, *args, **kwargs)
+            if not colors == None: kwargs["color"] = colors[i % len(colors)]
+            self.hist(axis=axis, column=column, plot_axis=plot_axis, *args, **kwargs)
         return 
  
 
-    def hist2d(self, xaxis="x", yaxis="y", col=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
+    def hist2d(self, xaxis="x", yaxis="y", column=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(xaxis)
         pdim2, perr2, plab2 = self.get_1d_plotdim(yaxis)
-        obj = plot_axis.hist2d( pdim, pdim2, weights=self.c(col), bins=[np.unique(self.bx()), np.unique(self.by())], *args, **kwargs )
-        plot_axis.xlabel(plab)
-        plot_axis.ylabel(plab2)
+        obj = plot_axis.hist2d( pdim, pdim2, weights=self.c(column), bins=[np.unique(self.bx()), np.unique(self.by())], *args, **kwargs )
+        plot_axis.set_xlabel(plab)
+        plot_axis.set_ylabel(plab2)
         
         return obj
     
-    def colormesh(self, xaxis="x", yaxis="y", col=None, plot_axis=None, *args, **kwargs):
-        if not plot_axis: plot_axis = plt
+    def colormesh(self, xaxis="x", yaxis="y", column=None, plot_axis=None, *args, **kwargs):
+        if not plot_axis: plot_axis = plt.gca()
+
+        weights = self.c(column)
 
         # Placeholder for noow will update to arb axis
         nbins = len(self.hf.binning.bins)
@@ -204,11 +224,11 @@ class HistFrame_matplotlib_helper:
             X[2*i + 1, 1] = bin[0].high
             Y[2*i + 1, 1] = bin[1].high
 
-            C[2*i,0] = self.hf.sumweights[i,0]
+            C[2*i,0] = weights[i] if isfinite(weights[i]) else nan
             if (2*i + 2) != (2*nbins):
-                C[2*i + 1,0] = self.hf.sumweights[i,0]
+                C[2*i + 1,0] = weights[i] if isfinite(weights[i]) else nan
                 
-        plot_axis.pcolormesh(X, Y, C)
+        return plot_axis.pcolormesh(X, Y, C)
 
 def mpl_cern_template(page_dim=[3,3]):
     plt.minorticks_on()

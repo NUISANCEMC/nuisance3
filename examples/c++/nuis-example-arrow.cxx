@@ -122,8 +122,8 @@ void ProcessRBatch(std::shared_ptr<arrow::RecordBatch> &rbatch) {
   auto hf2 =
       nuis::HistFrame(nuis::Binning::lin_spaceND({{0, 2E3, 10}, {0, 2E3, 10}}));
 
-  nuis::fill_from_RecordBatch(hf, rbatch, {"true.event.lep.q0"});
-  nuis::fill_from_RecordBatch(hf, rbatch,
+  nuis::fill_from_Arrow(hf, rbatch, {"true.event.lep.q0"});
+  nuis::fill_from_Arrow(hf, rbatch,
                               {"true.event.lep.q0", "true.event.lep.q3"});
 
   std::cout << hf << std::endl;
