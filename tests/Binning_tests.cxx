@@ -518,6 +518,32 @@ TEST_CASE("from_extents::func -- pyramids", "[Binning]") {
   REQUIRE(ls->find_bin({1.5, 1.5}) == 0);
 }
 
+TEST_CASE("from_extents::func -- packing", "[Binning]") {
+
+  std::vector<nuis::Binning::BinExtents> bins;
+
+  bins.push_back({{0, 1}, {1, 4}}); // 0
+  bins.push_back({{1, 2}, {1, 2}}); // 1
+  bins.push_back({{1, 2}, {2, 4}}); // 2
+  bins.push_back({{2, 3}, {0, 1}}); // 3
+  bins.push_back({{2, 3}, {1, 2}}); // 4
+  bins.push_back({{2, 3}, {2, 4}}); // 5
+  bins.push_back({{3, 4}, {0, 4}}); // 6
+  bins.push_back({{0, 4}, {4, 5}}); // 7
+
+  auto ls = nuis::Binning::from_extents(bins, {"x", "y"});
+
+  REQUIRE(ls->find_bin({0.5, 1.5}) == 0);
+  REQUIRE(ls->find_bin({1.5, 1.5}) == 1);
+  REQUIRE(ls->find_bin({1.5, 3}) == 2);
+  REQUIRE(ls->find_bin({2.5, 0.5}) == 3);
+  REQUIRE(ls->find_bin({2.5, 1.5}) == 4);
+  REQUIRE(ls->find_bin({2.5, 3}) == 5);
+  REQUIRE(ls->find_bin({3.5, 1.5}) == 6);
+  REQUIRE(ls->find_bin({3.5, 4.5}) == 7);
+
+}
+
 TEST_CASE("from_extents::func -- sea", "[Binning]") {
 
   std::vector<nuis::Binning::BinExtents> bins = {

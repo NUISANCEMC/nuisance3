@@ -15,4 +15,6 @@ NEW_NUISANCE_EXCEPT(MismatchedAxisCount);
 NEW_NUISANCE_EXCEPT(AxisOverflow);
 NEW_NUISANCE_EXCEPT(CatastrophicBinningFailure);
 NEW_NUISANCE_EXCEPT(EmptyBinning);
+NEW_NUISANCE_EXCEPT(NonContiguousBinning);
+
 } // namespace nuis

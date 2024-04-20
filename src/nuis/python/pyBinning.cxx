@@ -45,6 +45,8 @@ void pyBinningInit(py::module &m) {
       .def_static("from_extents", &Binning::from_extents, py::arg("extents"),
                   py::arg("labels") = std::vector<std::string>{})
       .def_static("product", &Binning::product, py::arg("ops"))
+      .def_static("get_bin_edges1D", &get_bin_edges1D, py::arg("bins"),
+                  py::arg("ax") = 0)
       .def_static("get_bin_centers", &get_bin_centers)
       .def_static("get_bin_centers1D", &get_bin_centers1D)
       .def_static("log10_spaced_edges", &log10_spaced_edges)
@@ -52,5 +54,6 @@ void pyBinningInit(py::module &m) {
       .def_static("uniform_width_edges", &uniform_width_edges)
       .def_static("lin_spaced_edges", &lin_spaced_edges)
       .def_static("cat_bin_edges", &cat_bin_edges)
-      .def_static("edges_to_extents", &edges_to_extents);
+      .def_static("edges_to_extents", &edges_to_extents)
+      .def_static("get_sorted_bin_map", &get_sorted_bin_map);
 }

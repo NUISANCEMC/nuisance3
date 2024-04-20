@@ -87,14 +87,6 @@ NEW_NUISANCE_EXCEPT(ProSelectaGetProjectionFailure);
 
 
 std::string database() {
-  // Require ProSelectra input
-  auto PROSELECTA = std::getenv("PROSELECTA_DIR");
-  (void)PROSELECTA;
-  if (!PROSELECTA) {
-    log_critical("PROSELECTA_DIR environment variable not defined");
-    throw; // PROSELECTA_DIRUndefined();
-  }
-  ProSelecta::Get().AddIncludePath(PROSELECTA, ProSelecta::Interpreter::kCling);
 
   // Require Database Valid
   auto DATABASE = std::getenv("NUISANCEDB");

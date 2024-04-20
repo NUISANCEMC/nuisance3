@@ -148,9 +148,11 @@ TEST_CASE("contiguous", "[Binning]") {
 }
 
 TEST_CASE("from_extents", "[Binning]") {
-  auto lin_exts = nuis::edges_to_extents(nuis::lin_spaced_edges(-10, 10, 25));
+  auto lin_exts = nuis::edges_to_extents(nuis::lin_spaced_edges(-10, 10, 20));
+  auto lin_exts_long = nuis::edges_to_extents(nuis::lin_spaced_edges(-10, 10, 40));
 
   auto lin_bins = nuis::Binning::from_extents(lin_exts);
+  auto lin_bins_long = nuis::Binning::from_extents(lin_exts_long);
 
   std::random_device r;
 
@@ -188,12 +190,23 @@ TEST_CASE("from_extents", "[Binning]") {
   };
 
   auto lin_bins3D = nuis::Binning::from_extents(
-      nuis::Binning::product({lin_bins, lin_bins, lin_bins})->bins);
+      nuis::Binning::product({lin_bins, lin_bins, lin_bins_long})->bins);
 
   BENCHMARK("[nuis] from_extents:3D, n = 1E5") {
     int bin = 0;
     for (size_t i = 0; i < ntest; ++i) {
       bin = lin_bins3D->find_bin({rvalsx[i], rvalsy[i], rvalsz[i]});
+    }
+    return bin;
+  };
+
+  auto lin_bins3Dbf = nuis::Binning::brute_force(
+      nuis::Binning::product({lin_bins, lin_bins, lin_bins_long})->bins);
+
+  BENCHMARK("[nuis] brute_force:3D, n = 1E5") {
+    int bin = 0;
+    for (size_t i = 0; i < ntest; ++i) {
+      bin = lin_bins3Dbf->find_bin({rvalsx[i], rvalsy[i], rvalsz[i]});
     }
     return bin;
   };

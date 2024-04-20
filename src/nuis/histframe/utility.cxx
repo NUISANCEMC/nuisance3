@@ -67,11 +67,9 @@ struct SliceMap {
   bool remove_sliced_axis;
 };
 
-SliceMap BuildSliceMap(BinningPtr const bin_info,
-                       std::tuple<size_t, double, double> const &axes_limits) {
-  auto ax = std::get<0>(axes_limits);
-  auto min = std::get<1>(axes_limits);
-  auto max = std::get<2>(axes_limits);
+SliceMap BuildSliceMap(BinningPtr const bin_info, size_t ax,
+                       std::array<double, 2> slice_range,
+                       bool exclude_range_end_bin) {
 
   SliceMap sm;
   // only remove the axis if there is more than one axis
@@ -79,11 +77,31 @@ SliceMap BuildSliceMap(BinningPtr const bin_info,
 
   SingleExtent firstext{0xdeadbeef, 0xdeadbeef};
 
+  log_debug("[BuildSliceMap]<<<<<<<<<");
+  log_debug("Slice: ax: {}, range: {}, exclude_range_end_bin: {}", ax,
+            slice_range, exclude_range_end_bin);
+
   for (Binning::index_t bi_it = 0; bi_it < bin_info->bins.size(); ++bi_it) {
-    if ((bin_info->bins[bi_it][ax].high <= min) ||
-        (bin_info->bins[bi_it][ax].low > max)) {
-      continue;
+    log_debug("  bin {}", str_via_ss(bin_info->bins[bi_it]));
+
+    // if we are given a single value and it is in a bin, include that bin
+    if (!((slice_range[0] == slice_range[1]) &&
+          bin_info->bins[bi_it][ax].contains(slice_range[0]))) {
+      if ((bin_info->bins[bi_it][ax].high <= slice_range[0]) ||
+          (bin_info->bins[bi_it][ax].low >= slice_range[1])) {
+        log_debug("    excluded: {}, slice: {}",
+                  str_via_ss(bin_info->bins[bi_it][ax]), slice_range);
+        continue;
+      }
+      if (exclude_range_end_bin &&
+          bin_info->bins[bi_it][ax].contains(slice_range[1])) {
+        log_debug("    excluded: {}, slice_end: {}",
+                  str_via_ss(bin_info->bins[bi_it][ax]), slice_range[1]);
+
+        continue;
+      }
     }
+
     if (firstext.low == 0xdeadbeef) {
       firstext = bin_info->bins[bi_it][ax];
     } else {
@@ -92,7 +110,9 @@ SliceMap BuildSliceMap(BinningPtr const bin_info,
       }
     }
     sm.bins_to_include.push_back(bi_it);
+    log_debug("    included.");
   }
+  log_debug("[BuildSliceMap]>>>>>>>>>");
 
   return sm;
 }
@@ -177,12 +197,18 @@ BinnedValues Project(BinnedValues const &hf, size_t proj_to_axis,
 }
 
 template <typename T>
-T Slice_impl(T const &histlike,
-             std::tuple<size_t, double, double> const &axes_limits,
-             bool result_has_binning) {
-  auto const &sm = BuildSliceMap(histlike.binning, axes_limits);
+T Slice_impl(T const &histlike, size_t ax, std::array<double, 2> slice_range,
+             bool exclude_range_end_bin, bool result_has_binning) {
+  auto const &sm =
+      BuildSliceMap(histlike.binning, ax, slice_range, exclude_range_end_bin);
 
-  auto ax = std::get<0>(axes_limits);
+  if (!sm.bins_to_include.size()) {
+    log_critical("When slicing histogram along axes {}: {} ", ax, slice_range);
+    log_critical("Kept no bins from original binning:\n{}",
+                 str_via_ss(histlike.binning));
+    throw EmptyBinning();
+  }
+
   size_t nax = histlike.binning->bins.front().size();
 
   std::vector<std::string> labels;
@@ -242,35 +268,26 @@ T Slice_impl(T const &histlike,
   return projhl;
 }
 
-HistFrame Slice(HistFrame const &hf,
-                std::tuple<size_t, double, double> const &axes_limits,
+HistFrame Slice(HistFrame const &hf, size_t ax,
+                std::array<double, 2> slice_range, bool exclude_range_end_bin,
                 bool result_has_binning) {
-  return Slice_impl<HistFrame>(hf, axes_limits, result_has_binning);
-}
-BinnedValues Slice(BinnedValues const &hf,
-                   std::tuple<size_t, double, double> const &axes_limits,
-                   bool result_has_binning) {
-  return Slice_impl<BinnedValues>(hf, axes_limits, result_has_binning);
-}
-
-HistFrame Slice(HistFrame const &hf, size_t ax, double slice_min,
-                double slice_max, bool result_has_binning) {
-  return Slice_impl<HistFrame>(hf, {ax, slice_min, slice_max},
+  return Slice_impl<HistFrame>(hf, ax, slice_range, exclude_range_end_bin,
                                result_has_binning);
 }
 HistFrame Slice(HistFrame const &hf, size_t ax, double slice_val,
                 bool result_has_binning) {
-  return Slice_impl<HistFrame>(hf, {ax, slice_val, slice_val},
+  return Slice_impl<HistFrame>(hf, ax, {slice_val, slice_val}, false,
                                result_has_binning);
 }
-BinnedValues Slice(BinnedValues const &hf, size_t ax, double slice_min,
-                   double slice_max, bool result_has_binning) {
-  return Slice_impl<BinnedValues>(hf, {ax, slice_min, slice_max},
+BinnedValues Slice(BinnedValues const &hf, size_t ax,
+                   std::array<double, 2> slice_range,
+                   bool exclude_range_end_bin, bool result_has_binning) {
+  return Slice_impl<BinnedValues>(hf, ax, slice_range, exclude_range_end_bin,
                                   result_has_binning);
 }
 BinnedValues Slice(BinnedValues const &hf, size_t ax, double slice_val,
                    bool result_has_binning) {
-  return Slice_impl<BinnedValues>(hf, {ax, slice_val, slice_val},
+  return Slice_impl<BinnedValues>(hf, ax, {slice_val, slice_val}, false,
                                   result_has_binning);
 }
 

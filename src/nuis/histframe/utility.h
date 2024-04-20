@@ -16,12 +16,16 @@ BinnedValues Project(BinnedValues const &hf,
 BinnedValues Project(BinnedValues const &hf, size_t proj_to_axis,
                      bool result_has_binning = true);
 
-HistFrame Slice(HistFrame const &hf, size_t ax, double slice_min,
-                double slice_max, bool result_has_binning = true);
+HistFrame Slice(HistFrame const &hf, size_t ax,
+                std::array<double, 2> slice_range,
+                bool exclude_range_end_bin = false,
+                bool result_has_binning = true);
 HistFrame Slice(HistFrame const &hf, size_t ax, double slice_val,
                 bool result_has_binning = true);
-BinnedValues Slice(BinnedValues const &hf, size_t ax, double slice_min,
-                   double slice_max, bool result_has_binning = true);
+BinnedValues Slice(BinnedValues const &hf, size_t ax,
+                   std::array<double, 2> slice_range,
+                   bool exclude_range_end_bin = false,
+                   bool result_has_binning = true);
 BinnedValues Slice(BinnedValues const &hf, size_t ax, double slice_val,
                    bool result_has_binning = true);
 

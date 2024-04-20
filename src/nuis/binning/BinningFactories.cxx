@@ -405,23 +405,10 @@ BinningPtr Binning::contiguous(std::vector<double> const &edges,
 struct from_extentsHelper : public nuis_named_log("Binning") {
 
   std::vector<Binning::BinExtents> bins;
-  std::vector<Binning::index_t> sorted_bin_map;
+  std::pair<size_t, std::vector<std::vector<Binning::index_t>>> bin_columns;
 
   size_t nax;
   size_t nbins;
-  // skiplist for next bin along a given axis, helps bin finding
-  std::vector<std::vector<Binning::index_t>> next_ax_bin;
-
-  inline Binning::BinExtents const &sorted_bin(Binning::index_t bi) const {
-#ifndef NUIS_NDEBUG
-    if (bi >= nbins) {
-      log_critical("[from_extentsHelper::sorted_bin]: passed invalid bin {}/{}",
-                   bi, nbins);
-      throw CatastrophicBinningFailure();
-    }
-#endif
-    return bins[sorted_bin_map[bi]];
-  }
 
   from_extentsHelper(std::vector<Binning::BinExtents> const &bi) : bins(bi) {
 
@@ -433,165 +420,10 @@ struct from_extentsHelper : public nuis_named_log("Binning") {
     nax = bins.front().size();
     nbins = bins.size();
 
-    for (Binning::index_t bi_it = 0; bi_it < nbins; ++bi_it) {
-      sorted_bin_map.emplace_back(bi_it);
-    }
-    std::stable_sort(
-        sorted_bin_map.begin(), sorted_bin_map.end(),
-        [this](Binning::index_t const &a, Binning::index_t const &b) {
-          return bins[a] < bins[b];
-        });
-
-    // build the skiplist
-    NUIS_LOG_DEBUG("------------");
-    NUIS_LOG_DEBUG("Skip list. nbins = {}, nax = {}");
-    NUIS_LOG_DEBUG(str_via_ss(bins));
-    NUIS_LOG_DEBUG("------------");
-
-    for (Binning::index_t bi_it = 0; bi_it < nbins; ++bi_it) {
-      auto const &this_bin = sorted_bin(bi_it);
-
-      NUIS_LOG_TRACE("finding next bin for {}: {}", bi_it,
-                     str_via_ss(this_bin));
-
-      next_ax_bin.emplace_back(nax);
-      for (size_t ax = 0; ax < nax; ++ax) {
-        NUIS_LOG_TRACE("  - for ax {}", ax);
-
-        if (bi_it == (nbins - 1)) { // last bin
-          NUIS_LOG_TRACE("    + last bin {}", bi_it);
-          next_ax_bin.back()[ax] = Binning::npos;
-        }
-        // check the next bin
-        else if (this_bin[ax] < sorted_bin(bi_it + 1)[ax]) {
-          NUIS_LOG_TRACE("    + next bin: {}",
-                         str_via_ss(sorted_bin(bi_it + 1)));
-          next_ax_bin.back()[ax] = bi_it + 1;
-        }
-        // check the next bin from the previous bin
-        else if (bi_it && (next_ax_bin[bi_it - 1][ax] != Binning::npos) &&
-                 (this_bin[ax] < sorted_bin(next_ax_bin[bi_it - 1][ax])[ax])) {
-          NUIS_LOG_TRACE("    + previous bin's next bin: {}",
-                         str_via_ss(sorted_bin(next_ax_bin[bi_it - 1][ax])));
-          next_ax_bin.back()[ax] = next_ax_bin[bi_it][ax];
-        }
-        // we have to find it
-        else {
-          Binning::index_t start = bi_it + 2;
-
-          // if we are not the first bin, start the search from the previous
-          // one's next bin
-          if (bi_it && (next_ax_bin[bi_it - 1][ax] != Binning::npos) &&
-              (next_ax_bin[bi_it - 1][ax] > start)) {
-            start = next_ax_bin[bi_it - 1][ax];
-          }
-
-          if (start < nbins) {
-            NUIS_LOG_TRACE("    + hunting from: {}: {}", start,
-                           str_via_ss(sorted_bin(start)));
-          } else {
-            NUIS_LOG_TRACE("    + hunt start bin is the end.");
-          }
-
-          next_ax_bin.back()[ax] = Binning::npos;
-          for (Binning::index_t s = start; s < nbins; ++s) {
-            if (this_bin[ax] < sorted_bin(s)[ax]) {
-              NUIS_LOG_TRACE("    + found the next bin: {} < {}",
-                             str_via_ss(this_bin), str_via_ss(sorted_bin(s)));
-              next_ax_bin.back()[ax] = s;
-              break;
-            }
-          }
-          if (next_ax_bin.back()[ax] == Binning::npos) {
-            NUIS_LOG_TRACE("    + couldn't find a next bin.");
-          }
-        }
-      }
-
-      NUIS_LOG_DEBUG("{}: {}", bi_it, next_ax_bin.back());
-    }
-    NUIS_LOG_DEBUG("------------");
-  }
-
-  std::string tostr() const {
-    std::stringstream ss;
-    ss << "bins : " << bins;
-    ss << "sorted_bin_map: [" << std::endl;
-
-    size_t id = 0;
-    for (auto const &a : sorted_bin_map) {
-      ss << "  " << id++ << ": { index_t: " << a
-         << ", extent: " << sorted_bin(a) << " }." << std::endl;
-    }
-
-    ss << "]" << std::endl;
-    return ss.str();
-  }
-
-  std::pair<size_t, size_t> get_axis_bin_range(
-      std::vector<double> const &x, size_t from, size_t to, size_t ax) const {
-    NUIS_LOG_TRACE("[get_axis_bin_range]: x = {}, from = {}, to "
-                   "= {}, ax = {}",
-                   x[ax], from, to, ax);
-
-    if (from == Binning::npos) {
-      return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
-    }
-
-    if (sorted_bin(from)[ax].low > x[ax]) { // below any bins in this slice
-      NUIS_LOG_TRACE("[get_axis_bin_range]: x = {} < "
-                     "bins[from][ax].low = {}",
-                     x[ax], sorted_bin(from)[ax].low);
-      return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
-    }
-
-    auto stop = std::min(nbins, to);
-
-    if (sorted_bin(stop - 1)[ax].high <=
-        x[ax]) { // above any bins in this slice
-      NUIS_LOG_TRACE("[get_axis_bin_range]: x = {} < bins[stop - "
-                     "1][ax].high = {}",
-                     x[ax], sorted_bin(stop - 1)[ax].high);
-      return std::pair<size_t, size_t>{Binning::npos, Binning::npos};
-    }
-
-    size_t from_this_ax = Binning::npos;
-    size_t to_this_ax = stop;
-    for (size_t bi_it = from; bi_it < stop; bi_it = next_ax_bin[bi_it][ax]) {
-      if (sorted_bin(bi_it)[ax].contains(x[ax])) {
-        if (from_this_ax == Binning::npos) {
-          NUIS_LOG_TRACE("[get_axis_bin_range]: first bin in ax[{}]: {} = {}",
-                         ax, bi_it, str_via_ss(sorted_bin(bi_it)));
-          from_this_ax = bi_it;
-        }
-#if (NUIS_ACTIVE_LEVEL <= NUIS_LEVEL_TRACE)
-        else {
-          log_trace("    {} bin in ax[{}]: {} = {}", (bi_it - from_this_ax), ax,
-                    bi_it, str_via_ss(sorted_bin(bi_it)));
-        }
-#endif
-      } else if (from_this_ax != Binning::npos) {
-        to_this_ax = bi_it;
-        break;
-      }
-    }
-#if (NUIS_ACTIVE_LEVEL <= NUIS_LEVEL_TRACE)
-    if (to_this_ax < stop) {
-      log_trace("[get_axis_bin_range]: first bin not in ax[{}]: {} = {} ", ax,
-                to_this_ax, str_via_ss(sorted_bin(to_this_ax)));
-    } else {
-      log_trace("[get_axis_bin_range]: end of range for ax[{}] = {} >= {}, the "
-                "size of the binning array.",
-                ax, to_this_ax, stop);
-    }
-#endif
-
-    return (ax == 0) ? std::pair<size_t, size_t>{from_this_ax, to_this_ax}
-                     : get_axis_bin_range(x, from_this_ax, to_this_ax, ax - 1);
+    bin_columns = get_bin_columns(bins);
   }
 
   Binning::index_t operator()(std::vector<double> const &x) const {
-    NUIS_LOG_TRACE("[from_extentsHelper]: x = {}", x);
 
     if (x.size() < nax) {
       log_critical("[from_extentsHelper]: projections passed in: {} is "
@@ -600,37 +432,65 @@ struct from_extentsHelper : public nuis_named_log("Binning") {
       throw MismatchedAxisCount();
     }
 
-    auto contains_range = get_axis_bin_range(x, 0, nbins, nax - 1);
-    if ((contains_range.first == Binning::npos) ||
-        (contains_range.second == Binning::npos)) {
-      NUIS_LOG_TRACE(
-          "[from_extentsHelper]: Search yielded npos. Returning npos.\n{}",
-          tostr());
-      return Binning::npos;
+    auto longax = bin_columns.first;
+    bool found_column = false;
+
+    NUIS_LOG_TRACE(">>>>>>>>>>>>>>>>>>>>> Search begin x = {}", x);
+
+    for (size_t col_it = 0; col_it < bin_columns.second.size(); ++col_it) {
+      auto const &col = bin_columns.second[col_it];
+      auto const &ext = bins[col.front()][longax];
+
+      if (ext.contains(x[longax])) {
+
+#ifndef NUIS_NDEBUG
+        NUIS_LOG_TRACE("[from_extentsHelper]: "
+                       "++ x[{}] = {} in Column {}, {}",
+                       longax, x[longax], col_it, str_via_ss(ext));
+#endif
+
+        found_column = true;
+
+        for (Binning::index_t bi_it : col) {
+          bool found_bin = true;
+          for (size_t ax_it = 0; ax_it < nax; ++ax_it) {
+            if (!bins[bi_it][ax_it].contains(x[ax_it])) {
+              found_bin = false;
+              break;
+            }
+          }
+          if (found_bin) {
+            NUIS_LOG_TRACE("[from_extentsHelper]: Found bin x = {} in {}", x,
+                           str_via_ss(bins[bi_it]));
+            NUIS_LOG_TRACE("<<<<<<<<<<<<<<<<<<<<< Search end");
+            return bi_it;
+          }
+        }
+      } else {
+        NUIS_LOG_TRACE("[from_extentsHelper]: "
+                       "-- x[{}] = {} not in Column {}, {}",
+                       longax, x[longax], col_it, str_via_ss(ext));
+
+        if (found_column) { // left the columns that can contain this value
+          break;
+        }
+      }
     }
 
-    if ((contains_range.second - contains_range.first) != 1) {
-      log_critical("[from_extentsHelper]: When searching for bin, failed to "
-                   "find a unique bin. Either this is a bug in "
-                   "NUISANCE or the binning is not unique.");
-      std::stringstream ss;
-      ss << "REPORT INFO:\n>>>----------------------------\ninput "
-            "bins: \n"
-         << bins << "\n";
-      log_critical(ss.str());
-      log_critical("searching for x: {}", x);
-      log_critical("get_axis_bin_range: {}", contains_range);
-      throw CatastrophicBinningFailure();
-    }
-    // return the original index_t
-    NUIS_LOG_TRACE("[from_extentsHelper]: Found original bin: {}\n",
-                   sorted_bin_map[contains_range.first]);
-    return sorted_bin_map[contains_range.first];
+    NUIS_LOG_TRACE("[from_extentsHelper]: returning npos");
+    NUIS_LOG_TRACE("<<<<<<<<<<<<<<<<<<<<< Search end");
+
+    return Binning::npos;
   }
 };
 
 BinningPtr Binning::from_extents(std::vector<BinExtents> bins,
                                  std::vector<std::string> const &labels) {
+
+  if (!bins.size()) {
+    log_critical("from_extents passed an empty bin vector.");
+    throw EmptyBinning();
+  }
 
   BinningPtr bin_info = std::make_shared<Binning>();
   bin_info->axis_labels = labels;
@@ -662,6 +522,67 @@ BinningPtr Binning::from_extents(std::vector<BinExtents> bins,
   bin_info->binning_function =
       [bin_finder](std::vector<double> const &x) -> index_t {
     return bin_finder(x);
+  };
+
+  bin_info->bins = bins;
+  return bin_info;
+}
+
+BinningPtr Binning::brute_force(std::vector<BinExtents> bins,
+                                std::vector<std::string> const &labels) {
+
+  if (!bins.size()) {
+    log_critical("from_extents passed an empty bin vector.");
+    throw EmptyBinning();
+  }
+
+  BinningPtr bin_info = std::make_shared<Binning>();
+  bin_info->axis_labels = labels;
+  for (size_t i = bin_info->axis_labels.size(); i < bins.front().size(); ++i) {
+    bin_info->axis_labels.push_back("");
+  }
+
+  auto const &sorted_unique_bins = unique(bins);
+
+  if (bins.size() != sorted_unique_bins.size()) {
+    log_critical("[from_extents]: When building Binning from vector of "
+                 "BinExtents, the list of unique bins was {} long, while "
+                 "the original list was {}. Binnings must be unique.",
+                 sorted_unique_bins.size(), bins.size());
+    log_critical("Bins: {}", str_via_ss(bins));
+    throw BinningNotUnique();
+  }
+
+  if (binning_has_overlaps(bins)) {
+    log_critical("[from_extents]: When building Binning from vector of "
+                 "BinExtents, the list of bins appears to contain "
+                 "overlaps. Binnings must be non-overlapping.");
+    log_critical("Bins: {}", str_via_ss(bins));
+    throw BinningHasOverlaps();
+  }
+
+  bin_info->binning_function =
+      [=](std::vector<double> const &x) -> Binning::index_t {
+    for (size_t i = 0; i < bins.size(); i++) {
+      auto const &bin_info_slice = bins[i];
+
+      bool goodbin = true;
+      for (size_t j = 0; j < bin_info_slice.size(); j++) {
+        if (x[j] < bin_info_slice[j].low) {
+          goodbin = false;
+          break;
+        }
+        if (x[j] >= bin_info_slice[j].high) {
+          goodbin = false;
+          break;
+        }
+      }
+      if (!goodbin) {
+        continue;
+      }
+      return i;
+    }
+    return Binning::npos;
   };
 
   bin_info->bins = bins;

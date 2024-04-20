@@ -1,5 +1,5 @@
 from ._pyNUISANCE import EventFrameGen, EventFrame
-from ._pyNUISANCE import HistFrame, BinnedValues
+from ._pyNUISANCE import HistFrame, BinnedValues, Binning
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -99,7 +99,7 @@ class HistFrame_matplotlib_helper:
     def errorbar(self, axis="x", column=None, plot_axis=None, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plt.errorbar(pdim, self.c(column), xerr=perr, 
+        obj = plot_axis.errorbar(pdim, self.c(column), xerr=perr, 
                             yerr=self.ec(), *args, **kwargs )
         plot_axis.set_xlabel(plab)
         return obj
@@ -191,7 +191,7 @@ class HistFrame_matplotlib_helper:
         return 
  
 
-    def hist2d(self, xaxis="x", yaxis="y", column=None, *args, **kwargs):
+    def hist2d(self, xaxis="x", yaxis="y", column=None, plot_axis=None, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(xaxis)
         pdim2, perr2, plab2 = self.get_1d_plotdim(yaxis)
@@ -206,28 +206,42 @@ class HistFrame_matplotlib_helper:
 
         weights = self.c(column)
 
-        # Placeholder for noow will update to arb axis
+        # Placeholder for now will update to arb axis
         nbins = len(self.hf.binning.bins)
         X = np.zeros((2*nbins,2))
         Y = np.zeros((2*nbins,2))
         C = np.zeros(((2*nbins)-1,1))
-        for i,bin in enumerate(self.hf.binning.bins):
-            X[2*i,0] = bin[0].low
-            Y[2*i,0] = bin[1].low
-            
-            X[2*i + 1,0] = bin[0].low
-            Y[2*i + 1,0] = bin[1].high
-            
-            X[2*i, 1] = bin[0].high
-            Y[2*i, 1] = bin[1].low
 
-            X[2*i + 1, 1] = bin[0].high
-            Y[2*i + 1, 1] = bin[1].high
+        #    b) (X[i+1, j], Y[i+1, j])  d) (X[i+1, j+1], Y[i+1, j+1])
+        #                       ●╶───╴●
+        #                       │  i  │
+        #                       ●╶───╴●
+        #    a) (X[i, j], Y[i, j])      c) (X[i, j+1], Y[i, j+1])
 
-            C[2*i,0] = weights[i] if isfinite(weights[i]) else nan
-            if (2*i + 2) != (2*nbins):
-                C[2*i + 1,0] = weights[i] if isfinite(weights[i]) else nan
-                
+        #draw along x and then y or you can get some weird artefacts
+        for i,bit in enumerate(Binning.get_sorted_bin_map(self.hf.binning.bins)):
+            binext = self.hf.binning.bins[bit]
+            
+            # a)
+            X[2*i,0] = binext[0].low
+            Y[2*i,0] = binext[1].low
+            
+            # b)
+            X[2*i + 1,0] = binext[0].low
+            Y[2*i + 1,0] = binext[1].high
+            
+            # c)
+            X[2*i, 1] = binext[0].high
+            Y[2*i, 1] = binext[1].low
+
+            # d)
+            X[2*i + 1, 1] = binext[0].high
+            Y[2*i + 1, 1] = binext[1].high
+
+            C[2*i,0] = weights[i]
+            if (2*i + 1) != len(C):
+                C[2*i + 1,0] = weights[i]
+        
         return plot_axis.pcolormesh(X, Y, C)
 
 def mpl_cern_template(page_dim=[3,3]):

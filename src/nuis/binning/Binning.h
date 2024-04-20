@@ -73,6 +73,10 @@ struct Binning : public nuis_named_log("Binning") {
   static BinningPtr from_extents(std::vector<BinExtents> extents,
                                  std::vector<std::string> const &labels = {});
 
+  // like from_extents but with no heuristic optimisation
+  static BinningPtr brute_force(std::vector<BinExtents> extents,
+                                std::vector<std::string> const &labels = {});
+
   static BinningPtr product(std::vector<BinningPtr> ops);
 };
 

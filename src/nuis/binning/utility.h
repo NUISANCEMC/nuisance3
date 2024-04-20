@@ -16,7 +16,11 @@ bool binning_has_overlaps(std::vector<Binning::BinExtents> const &bins,
                           size_t proj_to_axis);
 
 bool is_contiguous(std::vector<Binning::BinExtents> const &bins);
-std::vector<std::vector<double>> get_contiguous_axes(std::vector<Binning::BinExtents> const &bins);
+std::vector<std::vector<double>>
+get_contiguous_axes(std::vector<Binning::BinExtents> const &bins);
+
+std::vector<double>
+get_bin_edges1D(std::vector<Binning::BinExtents> const &bins, size_t ax = 0);
 
 std::vector<std::vector<double>>
 get_bin_centers(std::vector<Binning::BinExtents> const &bins);
@@ -36,4 +40,10 @@ cat_bin_edges(std::vector<std::vector<double>> const &edge_series);
 
 std::vector<Binning::BinExtents>
 edges_to_extents(std::vector<double> const &edges);
+
+std::vector<std::vector<Binning::index_t>>
+get_sorted_bin_map(std::vector<Binning::BinExtents> const &bins);
+
+std::pair<size_t, std::vector<std::vector<Binning::index_t>>>
+get_bin_columns(std::vector<Binning::BinExtents> const &bins);
 } // namespace nuis

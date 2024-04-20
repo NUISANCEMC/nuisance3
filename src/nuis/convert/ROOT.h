@@ -4,6 +4,7 @@
 #include "nuis/binning/utility.h"
 
 #include "nuis/histframe/BinnedValues.h"
+#include "nuis/histframe/utility.h"
 
 #include "nuis/eventframe/missing_datum.h"
 
@@ -16,42 +17,21 @@
 #include "TH3.h"
 
 #include "fmt/core.h"
+#include "fmt/ranges.h"
 
 // This should be header-only so that ROOT is not required by NUISANCE core
 //   but is available for user scripts that want to write out ROOT histograms
 
-NEW_NUISANCE_EXCEPT(NonContiguousBinning);
-
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
 namespace nuis {
-
-std::vector<double> GetBinEdges(BinnedValuesBase const &hf, size_t dim) {
-  auto projected_bins = project_to_unique_bins(hf.binning->bins, {
-                                                                     dim,
-                                                                 });
-
-  std::vector<double> contiguous_bin_edges = {
-      projected_bins.front().front().low};
-  for (auto bin : projected_bins) {
-    auto dim_bin = bin.front();
-    if (dim_bin.low != contiguous_bin_edges.back()) {
-      log_critical("bin edges are not contiguous: {} != {}", dim_bin.low,
-                   contiguous_bin_edges.back());
-      throw NonContiguousBinning();
-    }
-    contiguous_bin_edges.push_back(dim_bin.high);
-  }
-
-  return contiguous_bin_edges;
-}
 
 template <typename BV>
 std::unique_ptr<TH1> ToTH1(BV const &hf, std::string const &name,
                            bool divide_by_bin_width,
                            BinnedValuesBase::column_t col = 1) {
   auto hfp = Project(hf, 0);
-  auto bins = GetBinEdges(hfp, 0);
+  auto bins = get_bin_edges1D(hfp.binning->bins, 0);
 
   auto root_hist =
       std::make_unique<TH1D>(name.c_str(), "", bins.size() - 1, bins.data());
@@ -75,20 +55,21 @@ std::unique_ptr<TH1> ToTH1(BV const &hf, std::string const &name,
 
 template <typename BV>
 std::unique_ptr<TH2> ToTH2(BV const &hf, std::string const &name,
-                           bool divide_by_bin_width,
+                           bool divide_by_bin_area,
                            BinnedValuesBase::column_t col = 1) {
   auto hfp = Project(hf, {0, 1});
 
-  auto binsx = GetBinEdges(hfp, 0);
-  auto binsy = GetBinEdges(hfp, 1);
+  auto binsx = get_bin_edges1D(hfp.binning->bins, 0);
+  auto binsy = get_bin_edges1D(hfp.binning->bins, 1);
 
   auto root_hist =
       std::make_unique<TH2D>(name.c_str(), "", binsx.size() - 1, binsx.data(),
                              binsy.size() - 1, binsy.data());
 
-  Eigen::ArrayXd bin_scales = Eigen::ArrayXd::Constant(hfp.contents.rows(), 1);
-  if (divide_by_bin_width) {
-    bin_scales = hfp.binning.bin_sizes();
+  Eigen::ArrayXd bin_scales =
+      Eigen::ArrayXd::Constant(hfp.get_bin_contents().rows(), 1);
+  if (divide_by_bin_area) {
+    bin_scales = hfp.binning->bin_sizes();
   }
 
   for (size_t bix = 0; bix < binsx.size(); ++bix) {
@@ -97,28 +78,29 @@ std::unique_ptr<TH2> ToTH2(BV const &hf, std::string const &name,
       Binning::BinExtents bin{{binsx[bix], binsy[biy]}};
 
       auto bi_it =
-          std::find(hfp.binning.bins.begin(), hfp.binning.bins.end(), bin);
+          std::find(hfp.binning->bins.begin(), hfp.binning->bins.end(), bin);
 
-      if (bi_it == hfp.binning.bins.end()) {
+      if (bi_it == hfp.binning->bins.end()) {
         std::stringstream ss;
         ss << fmt::format(
                   "[ToTH2]: When looking for bin id [{},{}] = ({},{}), ({},{})",
                   bix, biy, binsx[bix], binsx[bix + 1], binsy[biy],
                   binsy[biy + 1])
            << ". Failed to find it.\nInput hist:" << hf
-           << "\n  - Projected binning: " << hfp.binning.bins
+           << "\n  - Projected binning: " << hfp.binning->bins
            << "\n  - bin edges x = " << fmt::format("{}", binsx)
            << "\n  - bin edges y = " << fmt::format("{}", binsy) << std::endl;
         log_critical(ss.str());
         throw CatastrophicBinningFailure();
       }
 
-      auto bi = std::distance(hfp.binning.bins.begin(), bi_it);
+      auto bi = std::distance(hfp.binning->bins.begin(), bi_it);
 
-      root_hist->SetBinContent(bix + 1, biy + 1,
-                               hfp.contents(bi, col) / bin_scales(bi));
-      root_hist->SetBinError(bix + 1, biy + 1,
-                             std::sqrt(hfp.variance(bi, col) / bin_scales(bi)));
+      root_hist->SetBinContent(
+          bix + 1, biy + 1, hfp.get_bin_contents()(bi, col) / bin_scales(bi));
+      root_hist->SetBinError(
+          bix + 1, biy + 1,
+          std::sqrt(hfp.get_bin_uncertainty()(bi, col) / bin_scales(bi)));
     }
   }
   return root_hist;

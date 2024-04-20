@@ -33,37 +33,4 @@ std::string to_plotly1D(BinnedValuesBase const &bvb) {
   return boost::json::serialize(data);
 }
 
-// motivated from here:
-// https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.pcolormesh.html
-std::map<std::string, Eigen::ArrayXXd>
-to_mpl_pcolormesh(BinnedValuesBase const &bvb,
-                  BinnedValuesBase::column_t colid) {
-  auto nbins = bvb.binning->bins.size();
-  Eigen::ArrayXXd X = Eigen::ArrayXXd::Zero(2 * nbins, 2);
-  Eigen::ArrayXXd Y = Eigen::ArrayXXd::Zero(2 * nbins, 2);
-  Eigen::ArrayXXd C = Eigen::ArrayXXd::Zero((2 * nbins) - 1, 1);
-
-  auto values = bvb.get_bin_contents();
-
-  for (size_t bi = 0; bi < nbins; ++bi) {
-    X(2 * bi, 0) = bvb.binning->bins[bi][0].low;
-    Y(2 * bi, 0) = bvb.binning->bins[bi][1].low;
-
-    X(2 * bi + 1, 0) = bvb.binning->bins[bi][0].low;
-    Y(2 * bi + 1, 0) = bvb.binning->bins[bi][1].high;
-
-    X(2 * bi, 1) = bvb.binning->bins[bi][0].high;
-    Y(2 * bi, 1) = bvb.binning->bins[bi][1].low;
-
-    X(2 * bi + 1, 1) = bvb.binning->bins[bi][0].high;
-    Y(2 * bi + 1, 1) = bvb.binning->bins[bi][1].high;
-
-    C(2 * bi, 0) = values(bi, colid);
-    if ((2 * bi + 2) != (2 * nbins)) {
-      C(2 * bi + 1, 0) = values(bi, colid);
-    }
-  }
-  return {{"X", X}, {"Y", Y}, {"C", C}};
-}
-
 } // namespace nuis

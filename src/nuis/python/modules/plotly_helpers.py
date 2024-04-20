@@ -1,6 +1,6 @@
 import plotly.graph_objects as go
-import plotly.graph_objects as go
 import plotly.io as pio
+
 def plotly_cern_template():
 
     # Define a custom template

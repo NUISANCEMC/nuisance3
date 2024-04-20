@@ -22,7 +22,7 @@ bool operator==(SingleExtent const &a, SingleExtent const &b) {
   return (a.low == b.low) && (a.high == b.high);
 }
 bool operator<(SingleExtent const &a, SingleExtent const &b) {
-  return (a.low != b.low) ? (a.low < b.low) : (a.high < b.high);
+  return (a.high == b.high) ? (a.low < b.low) : (a.high < b.high);
 }
 std::ostream &operator<<(std::ostream &os, nuis::SingleExtent const &sext) {
   return os << fmt::format("({:.2f} - {:.2f})", sext.low, sext.high);

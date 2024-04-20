@@ -59,7 +59,12 @@ void pyHistFrameInit(py::module &m) {
                            &BinnedValuesBase::find_bin, py::const_))
       .def("find_bin",
            py::overload_cast<double>(&BinnedValuesBase::find_bin, py::const_))
-      .def("find_column_index", &BinnedValuesBase::find_column_index);
+      .def("find_column_index", &BinnedValuesBase::find_column_index)
+      .def("resize", &BinnedValuesBase::resize)
+      .def("get_bin_contents", &BinnedValuesBase::get_bin_contents)
+      .def("get_bin_uncertainty", &BinnedValuesBase::get_bin_uncertainty)
+      .def("get_bin_uncertainty_squared",
+           &BinnedValuesBase::get_bin_uncertainty_squared);
 
   py::class_<HistFrame, BinnedValuesBase>(m, "HistFrame")
       .def(py::init<BinningPtr, std::string const &, std::string const &>(),
@@ -128,11 +133,24 @@ void pyHistFrameInit(py::module &m) {
            })
       .def("project",
            [](HistFrame const &hf, size_t col) { return Project(hf, col); })
-      .def("slice",
-           [](HistFrame const &hf, size_t ax, double slice_min,
-              double slice_max) { return Slice(hf, ax, slice_min, slice_max); })
-      .def("slice", [](HistFrame const &hf, size_t ax,
-                       double slice_val) { return Slice(hf, ax, slice_val); })
+      .def(
+          "slice",
+          [](HistFrame const &hf, size_t ax, std::array<double, 2> slice_range,
+             bool exclude_range_end_bin, bool result_has_binning) {
+            return Slice(hf, ax, slice_range, exclude_range_end_bin,
+                         result_has_binning);
+          },
+          py::arg("ax"), py::arg("slice_range"),
+          py::arg("exclude_range_end_bin") = false,
+          py::arg("result_has_binning") = true)
+      .def(
+          "slice",
+          [](HistFrame const &hf, size_t ax, double slice_val,
+             bool result_has_binning) {
+            return Slice(hf, ax, slice_val, result_has_binning);
+          },
+          py::arg("ax"), py::arg("slice_val"),
+          py::arg("result_has_binning") = true)
       .def(
           "fill_from_EventFrame",
           [](HistFrame &hf, EventFrame &ef,
@@ -408,10 +426,23 @@ void pyHistFrameInit(py::module &m) {
            })
       .def("project",
            [](BinnedValues const &bv, size_t col) { return Project(bv, col); })
-      .def("slice",
-           [](BinnedValues const &bv, size_t ax, double slice_min,
-              double slice_max) { return Slice(bv, ax, slice_min, slice_max); })
-      .def("slice", [](BinnedValues const &bv, size_t ax, double slice_val) {
-        return Slice(bv, ax, slice_val);
-      });
+      .def(
+          "slice",
+          [](BinnedValues const &bv, size_t ax,
+             std::array<double, 2> slice_range, bool exclude_range_end_bin,
+             bool result_has_binning) {
+            return Slice(bv, ax, slice_range, exclude_range_end_bin,
+                         result_has_binning);
+          },
+          py::arg("ax"), py::arg("slice_range"),
+          py::arg("exclude_range_end_bin") = false,
+          py::arg("result_has_binning") = true)
+      .def(
+          "slice",
+          [](BinnedValues const &bv, size_t ax, double slice_val,
+             bool result_has_binning) {
+            return Slice(bv, ax, slice_val, result_has_binning);
+          },
+          py::arg("ax"), py::arg("slice_val"),
+          py::arg("result_has_binning") = true);
 }
