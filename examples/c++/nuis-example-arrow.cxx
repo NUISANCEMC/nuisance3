@@ -6,6 +6,7 @@
 
 #include "nuis/histframe/HistFrame.h"
 #include "nuis/histframe/utility.h"
+#include "nuis/histframe/fill_from_EventFrame.h"
 
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"

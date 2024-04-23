@@ -249,40 +249,47 @@ get_bin_columns(std::vector<Binning::BinExtents> const &bins) {
   for (size_t ax = 0; ax < nax; ++ax) {
     all_axes_bin_columns.emplace_back();
 
+    auto &ax_columns = all_axes_bin_columns.back();
+
     for (auto bi_it : sorted_bin_map[ax]) {
 
       if (!all_axes_bin_columns[ax].size()) {
-        all_axes_bin_columns.back().emplace_back();
+        ax_columns.emplace_back();
         last_bi_it = bi_it;
-        all_axes_bin_columns.back().back().emplace_back(bi_it);
+        ax_columns.back().emplace_back(bi_it);
       } else if (bins[bi_it][ax] ==
                  bins[last_bi_it][ax]) { // if its the same add it to the column
-        all_axes_bin_columns.back().back().emplace_back(bi_it);
+        ax_columns.back().emplace_back(bi_it);
       } else { // start a new column
-        all_axes_bin_columns.back().emplace_back();
+        ax_columns.emplace_back();
         last_bi_it = bi_it;
-        all_axes_bin_columns.back().back().emplace_back(bi_it);
+        ax_columns.back().emplace_back(bi_it);
       }
     }
-    if (all_axes_bin_columns.back().size() > nlongest) {
+    if (ax_columns.size() > nlongest) {
       longest_ax = ax;
-      nlongest = all_axes_bin_columns.back().size();
+      nlongest = ax_columns.size();
     }
   }
 
 #if (NUIS_ACTIVE_LEVEL <= NUIS_LEVEL_DEBUG)
   NUIS_LOGGER_DEBUG("Binning", "Columns ----- ");
+  size_t total_bins = 0;
   for (size_t col_it = 0; col_it < all_axes_bin_columns[longest_ax].size();
        ++col_it) {
     auto const &col = all_axes_bin_columns[longest_ax][col_it];
-    NUIS_LOGGER_DEBUG("Binning", "  Column[{}] with extent {} along axis {}",
+    NUIS_LOGGER_DEBUG("Binning",
+                      "  Column[{}] with extent {} along axis {} with {} bins",
                       col_it, str_via_ss(bins[col.front()][longest_ax]),
-                      longest_ax);
+                      longest_ax, col.size());
+    total_bins += col.size();
     for (size_t level_it = 0; level_it < col.size(); ++level_it) {
       NUIS_LOGGER_DEBUG("Binning", "    bin: {}",
                         str_via_ss(bins[col[level_it]]));
     }
   }
+  NUIS_LOGGER_DEBUG("Binning", "  Have {} columns with a total of {} bins.",
+                    all_axes_bin_columns[longest_ax].size(), total_bins);
   NUIS_LOGGER_DEBUG("Binning", "----- Columns");
 #endif
 

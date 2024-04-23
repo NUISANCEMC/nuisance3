@@ -12,4 +12,7 @@ std::string to_yaml_str(BinnedValues const &hf);
 
 BinnedValues from_yaml(YAML::Node const &yhf);
 BinnedValues from_yaml_str(std::string const &shf);
+
+Eigen::ArrayXXd covar_from_yaml(YAML::Node const &yhf);
+Eigen::ArrayXXd covar_from_yaml_str(std::string const &shf);
 } // namespace nuis

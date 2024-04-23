@@ -453,6 +453,10 @@ struct from_extentsHelper : public nuis_named_log("Binning") {
 
         for (Binning::index_t bi_it : col) {
           bool found_bin = true;
+#ifndef NUIS_NDEBUG
+          NUIS_LOG_TRACE("[from_extentsHelper]:   checking x = {} in bin ={}",
+                         x, str_via_ss(bins[bi_it]));
+#endif
           for (size_t ax_it = 0; ax_it < nax; ++ax_it) {
             if (!bins[bi_it][ax_it].contains(x[ax_it])) {
               found_bin = false;
@@ -465,15 +469,22 @@ struct from_extentsHelper : public nuis_named_log("Binning") {
             NUIS_LOG_TRACE("<<<<<<<<<<<<<<<<<<<<< Search end");
             return bi_it;
           }
+#ifndef NUIS_NDEBUG
+          else {
+            NUIS_LOG_TRACE("[from_extentsHelper]:   -- Nope.");
+          }
+#endif
         }
       } else {
         NUIS_LOG_TRACE("[from_extentsHelper]: "
                        "-- x[{}] = {} not in Column {}, {}",
                        longax, x[longax], col_it, str_via_ss(ext));
 
-        if (found_column) { // left the columns that can contain this value
-          break;
-        }
+        // we should be able to make this optimization but can't currently figure out how to order the bins correctly.
+        (void)found_column;
+        // if (found_column) { // left the columns that can contain this value
+        //   break;
+        // }
       }
     }
 
@@ -517,12 +528,7 @@ BinningPtr Binning::from_extents(std::vector<BinExtents> bins,
     throw BinningHasOverlaps();
   }
 
-  from_extentsHelper bin_finder(bins);
-
-  bin_info->binning_function =
-      [bin_finder](std::vector<double> const &x) -> index_t {
-    return bin_finder(x);
-  };
+  bin_info->binning_function = from_extentsHelper(bins);
 
   bin_info->bins = bins;
   return bin_info;

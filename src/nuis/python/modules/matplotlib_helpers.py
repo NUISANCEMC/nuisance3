@@ -3,6 +3,7 @@ from ._pyNUISANCE import HistFrame, BinnedValues, Binning
 
 import matplotlib.pyplot as plt
 import numpy as np
+from copy import copy
 from math import isfinite, nan
 
 class EventFrameGen_mpl_helper():
@@ -172,12 +173,31 @@ class HistFrame_matplotlib_helper:
             self.scatter(axis=axis, column=column, plot_axis=plot_axis, *args, **kwargs)
         return 
     
+    def _hist_errorband(self, axis="x", column=None, plot_axis=None, color=None):
+      if not plot_axis: plot_axis = plt.gca()
+
+      yc = np.array([ c for c in self.c(column) ] + [ self.c(column)[-1] ])
+      yerr = np.array([ c for c in self.ec(column) ] + [ self.ec(column)[-1] ])
+    
+      return plot_axis.fill_between(self.get_1d_bins(axis), yc+yerr, y2=yc-yerr, step="post", color=color)
+
     def hist(self, axis="x", column=None, plot_axis=None, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
+
+        errbar_obj = None
+        if "errorband_color" in kwargs:
+          errbar_obj = self._hist_errorband(axis, column, plot_axis, kwargs["errorband_color"])
+          kwargs = copy(kwargs)
+          kwargs.pop("errorband_color", None)
+        
         obj = plot_axis.hist(pdim, weights=self.c(column), bins=self.get_1d_bins(axis), *args, **kwargs )
         plot_axis.set_xlabel(plab)
-        return obj
+        
+        if errbar_obj:
+          return (obj, errbar_obj)
+        else:
+          return obj
     
     def hist_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()

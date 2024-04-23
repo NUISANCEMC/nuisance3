@@ -29,9 +29,11 @@ namespace nuis {
 template <typename BV>
 std::unique_ptr<TH1> ToTH1(BV const &hf, std::string const &name,
                            bool divide_by_bin_width,
-                           BinnedValuesBase::column_t col = 1) {
+                           BinnedValuesBase::column_t col = 0) {
   auto hfp = Project(hf, 0);
   auto bins = get_bin_edges1D(hfp.binning->bins, 0);
+
+  nuis_named_log("convert")::log_debug("[ToTH1]: bin edges: {}", bins);
 
   auto root_hist =
       std::make_unique<TH1D>(name.c_str(), "", bins.size() - 1, bins.data());
@@ -42,12 +44,17 @@ std::unique_ptr<TH1> ToTH1(BV const &hf, std::string const &name,
     bin_scales = hfp.binning->bin_sizes();
   }
 
+  nuis_named_log("convert")::log_debug("[ToTH1]: bin scales: {}", bin_scales);
+
   Eigen::ArrayXd contents = hfp.get_bin_contents().col(col) / bin_scales;
   Eigen::ArrayXd error = hfp.get_bin_uncertainty().col(col) / bin_scales;
 
   for (int bi = 0; bi < contents.rows(); ++bi) {
     root_hist->SetBinContent(bi + 1, contents(bi));
     root_hist->SetBinError(bi + 1, error(bi));
+
+    nuis_named_log("convert")::log_debug("[ToTH1]: bin[{}] = {} +/- {}", bi + 1,
+                                         contents(bi), error(bi));
   }
 
   return root_hist;

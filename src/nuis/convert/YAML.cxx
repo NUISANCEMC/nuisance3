@@ -95,6 +95,7 @@ template <> struct convert<nuis::BinningPtr> {
     return true;
   }
 };
+
 template <> struct convert<nuis::BinnedValues> {
   static Node encode(nuis::BinnedValues const &rhs) {
 
@@ -175,4 +176,48 @@ BinnedValues from_yaml(YAML::Node const &yhf) { return yhf.as<BinnedValues>(); }
 BinnedValues from_yaml_str(std::string const &shf) {
   return YAML::Load(shf).as<BinnedValues>();
 }
+
+NEW_NUISANCE_EXCEPT(InvalidYAML);
+
+Eigen::ArrayXXd covar_from_yaml(YAML::Node const &node) {
+  if (!node.IsMap() || !node["independent_variables"] ||
+      !node["dependent_variables"]) {
+    throw InvalidYAML() << "Could not parse covariance from input YAML";
+  }
+
+  auto bin_i = node["independent_variables"][0]["values"];
+  auto bin_j = node["independent_variables"][1]["values"];
+
+  size_t max_i = 0, max_j = 0;
+
+  auto covar_vals = node["dependent_variables"][0]["values"];
+
+  for (size_t ci = 0; ci < covar_vals.size(); ++ci) {
+    max_i = std::max(max_i, bin_i[ci]["value"].as<size_t>());
+    max_j = std::max(max_j, bin_j[ci]["value"].as<size_t>());
+  }
+
+  if (max_i != max_j) {
+    throw InvalidYAML() << "When parsing covariance from input YAML, "
+                           "independent_variable[0] had "
+                        << max_i
+                        << " values, and independent_variable[1] had "
+                        << max_j << " values";
+  }
+
+  Eigen::ArrayXXd covar = Eigen::ArrayXXd::Zero(max_i+1, max_j+1);
+
+  for (size_t ci = 0; ci < covar_vals.size(); ++ci) {
+    size_t i = bin_i[ci]["value"].as<size_t>();
+    size_t j = bin_j[ci]["value"].as<size_t>();
+    covar(i, j) = covar_vals[ci]["value"].as<double>();
+  }
+
+  return covar;
+}
+
+Eigen::ArrayXXd covar_from_yaml_str(std::string const &shf) {
+  return covar_from_yaml(YAML::Load(shf));
+}
+
 } // namespace nuis

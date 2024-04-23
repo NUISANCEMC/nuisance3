@@ -4,6 +4,7 @@ pybind11_add_module(_pyNUISANCE SHARED
   pyEventInput.cxx 
   pyEventFrame.cxx 
   pyHistFrame.cxx 
+  pyHistFrameFillers.cxx
   pyRecord.cxx 
   pyWeightCalc.cxx 
   pyNUISANCELog.cxx 
