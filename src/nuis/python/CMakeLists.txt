@@ -33,3 +33,12 @@ install(TARGETS _pyNUISANCE
     LIBRARY DESTINATION ${NUISANCE_PYTHONPATH})
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/nuis/python/modules/ DESTINATION ${NUISANCE_PYTHONPATH})
+
+CPMFindPackage(
+    NAME nuisancehepdata
+    GITHUB_REPOSITORY NUISANCEMC/HEPData
+    GIT_TAG main
+    DOWNLOAD_ONLY TRUE
+)
+
+install(FILES ${nuisancehepdata_SOURCE_DIR}/HepDataRefResolver.py DESTINATION ${NUISANCE_PYTHONPATH}/)
