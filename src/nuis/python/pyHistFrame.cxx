@@ -37,8 +37,9 @@ binnedvalues_gettattr(BinnedValues &s, std::string const &column) {
 void pyHistFrameInit(py::module &m) {
 
   py::class_<BinnedValuesBase::ColumnInfo>(m, "ColumnInfo")
-      .def_readonly("name", &BinnedValuesBase::ColumnInfo::name)
-      .def_readonly("column_label", &BinnedValuesBase::ColumnInfo::column_label)
+      .def_readwrite("name", &BinnedValuesBase::ColumnInfo::name)
+      .def_readwrite("column_label",
+                     &BinnedValuesBase::ColumnInfo::column_label)
       .def("__str__", [](BinnedValuesBase::ColumnInfo const &s) {
         return fmt::format("Column: name={}{}", s.name,
                            s.column_label.size()
@@ -49,7 +50,7 @@ void pyHistFrameInit(py::module &m) {
   py::class_<BinnedValuesBase>(m, "BinnedValuesBase")
       .def_readonly_static("npos", &BinnedValuesBase::npos)
       .def_readonly("binning", &BinnedValuesBase::binning)
-      .def_readonly("column_info", &BinnedValuesBase::column_info)
+      .def_readwrite("column_info", &BinnedValuesBase::column_info)
       .def("add_column", &BinnedValuesBase::add_column, py::arg("name"),
            py::arg("label") = "")
       .def("find_bin", py::overload_cast<std::vector<double> const &>(
@@ -163,6 +164,8 @@ void pyHistFrameInit(py::module &m) {
       .def("make_HistFrame", &BinnedValues::make_HistFrame, py::arg("col") = 0)
       .def("__getattr__", &binnedvalues_gettattr)
       .def("__getitem__", &binnedvalues_gettattr)
+      .def("__copy__",
+           [](BinnedValues const &self) { return BinnedValues(self); })
       .def("__str__", &str_via_ss<BinnedValues>)
       .def("project",
            [](BinnedValues const &bv, std::vector<size_t> const &cols) {

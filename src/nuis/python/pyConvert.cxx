@@ -25,19 +25,14 @@ void pyConvertInit(py::module &m) {
            &get_EnergyDistribution_from_ROOT, py::arg("fname"),
            py::arg("hname"), py::arg("energy_unit") = std::string(""),
            py::arg("is_per_width") = false)
-      .def(
-          "DumpTH1s",
-          [](std::string const &foutname,
-             std::vector<std::pair<
-                 std::string, std::reference_wrapper<BinnedValues const>>> const
-                 &hfs) {
-            TFile fout(foutname.c_str(), "RECREATE");
-            for (auto const &[hname, hf] : hfs) {
-              auto h = ToTH1(hf, hname, false);
-              fout.WriteTObject(h.get(), hname.c_str());
-              h->SetDirectory(nullptr);
-            }
-            fout.Write();
-            fout.Close();
-          });
+      .def("write_TH1", [](std::string const &foutname,
+                           std::string const &hname, BinnedValues const &hf,
+                           bool divide_by_bin_width, std::string const &opts) {
+        TFile fout(foutname.c_str(), opts.c_str());
+        auto h = ToTH1(hf, hname, divide_by_bin_width);
+        fout.WriteTObject(h.get(), hname.c_str());
+        h->SetDirectory(nullptr);
+        fout.Write();
+        fout.Close();
+      });
 }

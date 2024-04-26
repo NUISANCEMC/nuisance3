@@ -1,0 +1,149 @@
+#!/bin/bash
+
+COMMAND_FQP=${0}
+COMMAND=$(basename ${COMMAND_FQP})
+
+if [ ! -z ${NUIS_CLI_DEBUG} ]; then
+echo "[CLI DEBUG](BrCr: ${NUIS_BREADCRUMBS}): ${COMMAND} Arguments(${#}): ${@}"
+fi
+
+function nuis_hepdata_help {
+  echo "Run like: ${NUIS_BREADCRUMBS} <command>"
+  echo -e "\tCommands:"
+  echo -e "\t  help                                           : Display this message"
+  echo -e "\t  get-local-path [type:]<recid>[/resource]       : Get a local path to a resource."
+  echo -e "\t                                                   <type> can be hepdata or hepdata-sandbox."
+  echo -e "\t                                                   <recid> is the record identifier."
+  echo -e "\t                                                   <resource> is the specific resource,"
+  echo -e "\t                                                   if omitted, get local path to submission"
+  echo -e "\t  get-data-tables [type:]<recid>                 : Get the data tables provided by a hepdata record"
+  echo -e "\t  get-independent-variables [type:]<recid>/table : Get independent variables for a given table"
+  echo -e "\t  get-dependent-variables [type:]<recid>/table   : Get dependent variables for a given table"
+  echo -e "\t  get-qualifiers [type:]<recid>/table [qual]     : Get qualifiers on the first dependent variable "
+  echo -e "\t                                                   If <qual> is passed and is a valid qualifier key"
+  echo -e "\t                                                   then only print the value of that qualifier."
+  echo -e "\t  get-local-additional-resources [type:]<recid>  : Get the filenames of any additional resources"
+  echo -e "\t                                                   for a given table"
+  echo -e "\t  get-ref-components [type:]<recid> [comp]       : Resolves a reference and then prints it"
+  echo -e "\t                                                   If <comp> is passed only that component will be"
+  echo -e "\t                                                   printed. Valid components: type, recordid, "
+  echo -e "\t                                                                  version, resource, qualifier"
+  echo -e "\nExample: ${NUIS_BREADCRUMBS} get-local-path hepdata-sandbox:1713531371"
+}
+
+if [ "${#}" -lt 1 ]; then
+  echo -e "[ERROR]: Insufficient arguments passed to ${NUIS_BREADCRUMBS}"
+  nuis_hepdata_help
+  exit 1
+fi
+
+
+
+KEYARG="${1}"
+shift
+
+case $KEYARG in
+  get-local-path)
+    python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.get_local_path_to_resource('${1}', reftype='hepdata')[1])"
+    ;;
+
+  get-data-tables)
+    python3 -c "import pyNUISANCE; [ print(x) for x in pyNUISANCE.hpd.get_table_names('${1}', reftype='hepdata') ]"
+    ;;
+
+  get-local-additional-resources)
+    python3 -c "import pyNUISANCE; [ print('%s: %s' % (k, ', '.join(l))) for k,l in pyNUISANCE.hpd.get_local_additional_resources('${1}', reftype='hepdata').items() ]"
+    ;;
+
+  get-independent-variables)
+    python3 -c "import pyNUISANCE; [ print('%s: %s' % x) for x in enumerate(pyNUISANCE.hpd.get_independent_variables('${1}', reftype='hepdata')) ]"
+    ;;
+
+  get-dependent-variables)
+    python3 -c "import pyNUISANCE; [ print('%s: %s' % x) for x in enumerate(pyNUISANCE.hpd.get_dependent_variables('${1}', reftype='hepdata')) ]"
+    ;;
+
+  get-qualifiers)
+    if [ ! -z "${2}" ]; then
+      python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.get_qualifiers('${1}', reftype='hepdata')['${2}'])"
+    else
+      python3 -c "import pyNUISANCE; [ print('%s: %s' % x) for x in pyNUISANCE.hpd.get_qualifiers('${1}', reftype='hepdata').items() ]"
+    fi
+    ;;
+
+  get-ref-components)
+
+    REF=${1}
+    ALLCOMPS=${2}
+
+    if [ -z "${ALLCOMPS}" ] || [ "${ALLCOMPS}" == "all" ]; then
+      python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.context_to_ref(**pyNUISANCE.hpd.get_local_path_to_resource('${REF}', reftype='hepdata')[2]))"
+      exit 0
+    fi
+
+    OLDIFS=${IFS}
+    IFS=","
+    set -- ${ALLCOMPS}
+    IFS=${OLDIFS}
+
+    FIRST=1
+    while [[ ${#} -gt 0 ]]; do
+      COMP="${1}"
+      case $COMP in
+        type)
+          echo -n $(python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.get_local_path_to_resource('${REF}', reftype='hepdata')[2].get('reftype'))")
+        ;;
+        recordid)
+          if [ ${FIRST} -eq 0 ]; then
+            echo -n ":"
+          fi
+          echo -n $(python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.get_local_path_to_resource('${REF}', reftype='hepdata')[2].get('recordid'))")
+        ;;
+        version)
+          VERSION=$(python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.get_local_path_to_resource('${REF}', reftype='hepdata')[2].get('recordvers'))")
+          if [ "${VERSION:0:4}" == "None" ]; then
+            shift
+            continue
+          fi
+          if [ ${FIRST} -eq 0 ]; then
+            echo -n "v"
+          fi
+          echo -n ${VERSION}
+        ;;
+        resource)
+          if [ ${FIRST} -eq 0 ]; then
+            echo -n "/"
+          fi
+          echo -n $(python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.get_local_path_to_resource('${REF}', reftype='hepdata')[2].get('resourcename'))")
+        ;;
+        qualifier)
+          if [ ${FIRST} -eq 0 ]; then
+            echo -n ":"
+          fi
+          echo -n $(python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.get_local_path_to_resource('${REF}', reftype='hepdata')[2].get('qualifier'))")
+        ;;
+        *)
+          echo -e "\n[ERROR]: Invalid reference component specifier: ${COMP}"
+          exit 1
+        ;;
+      esac
+      shift
+      FIRST=0
+    done
+    if [ ${FIRST} -eq 0 ]; then
+      echo ""
+    fi
+    exit 0
+    ;;
+
+  help)
+    nuis_hepdata_help
+    exit 0
+    ;;
+
+  *)
+    echo "[ERROR] Unknown command ${KEYARG}"
+    nuis_hepdata_help
+    exit 1
+    ;;
+esac

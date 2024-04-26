@@ -1,0 +1,12 @@
+#!/bin/bash
+while [[ ${#} -gt 0 ]]; do
+  key="$1"
+  case $key in
+    nuis-flux-yaml2root)
+      echo -n ${NUISANCE3_ROOT}/var/internal/nuis-flux-yaml2root.py
+      ;;
+    *) # This script is free to ignore unknown options
+      ;;
+  esac
+  shift
+done

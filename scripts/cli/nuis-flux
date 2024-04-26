@@ -1,0 +1,124 @@
+#!/bin/bash
+
+COMMAND_FQP=${0}
+COMMAND=$(basename ${COMMAND_FQP})
+
+if [ ! -z ${NUIS_CLI_DEBUG} ]; then
+echo "[CLI DEBUG](BrCr: ${NUIS_BREADCRUMBS}): ${COMMAND} Arguments(${#}): ${@}"
+fi
+
+function nuis_flux_help {
+  echo "Run like: ${NUIS_BREADCRUMBS} [command] <reference> [options...] "
+  echo -e "\tCommands:"
+  echo -e "\t  help                           : Display this message"
+  echo -e "\t  get-local-uri                  : Get a local path/histogram name to the referenced flux"
+  echo -e "\t  get-probe-pid                  : Get the probe pid for the referenced flux"
+  echo -e "\t  yaml2root <out.root> <in.yaml> : Convert a referenced HepData-format yaml table to a root flux."
+  echo -e "\t                                   Useful for testing local flux tables without requiring a HepData recordid."
+  echo -e "\t  range                          : Say the X axis range of the referenced histogram"
+  echo -e "\tOptions:"
+  echo -e "\t  -r|--root                      : Returned URI points to a ROOT histogram, rather than a "
+  echo -e "\t                                   HepData data table."
+  echo -e "\t  -c|--bin-content               : Get a histogram where the bin content is the "
+  echo -e "\t                                   rate, rather than the area under the bin."
+  echo -e "\t                                   The distinction is important for non-uniformly"
+  echo -e "\t                                   binned fluxes:"
+  echo -e "\t                                     GENIE should not use this option"
+  echo -e "\t                                     NEUT, NuWro should"
+}
+
+if [ "${#}" -lt 1 ]; then
+  echo -e "[ERROR]: Insufficient arguments passed to ${NUIS_BREADCRUMBS}"
+  nuis_flux_help
+  exit 1
+fi
+
+KEYARG="${1}"
+shift
+
+REFERENCE=""
+
+case $KEYARG in
+  range)
+
+    if [[ ${#} -lt 1 ]]; then
+      echo "[ERROR]: ${KEYARG} expected a value."
+      exit 1
+    fi
+
+    nuishistrange ${1}
+    exit 0
+    ;;
+
+  help)
+    nuis_flux_help
+    exit 0
+    ;;
+
+  get-local-uri)
+    REFERENCE=${1}
+    ;;
+
+  yaml2root)
+    if [ ! -e  "${1}" ]; then
+       echo "[ERROR]: ${NUIS_BREADCRUMBS} yaml2root requires two options, but was missing the input YAML file doesn't exist: ${1}"
+      exit 1
+    fi
+    
+    if [ -z  "${2}" ]; then
+      echo "[ERROR]: ${NUIS_BREADCRUMBS} yaml2root requires two options, but was missing the name of the output root file"
+      exit 1
+    fi
+
+    FILE_NAME=${1##*/}
+    TABLE_NAME=${FILE_NAME%%.yaml}
+    python3 $(nuis internal nuis-flux-yaml2root) ${2} ${TABLE_NAME} ${1}
+    exit 0
+    ;;
+
+  get-probe-pid)
+    nuis-hepdata get-qualifiers ${1} probe_species
+    exit 0
+    ;;
+esac
+
+ISROOT=0
+ISCONTENT=0
+
+while [[ ${#} -gt 0 ]]; do
+
+  key="$1"
+  case $key in
+    -r|--root)
+      ISROOT=1
+    ;;
+    -c|--content)
+      ISCONTENT=1
+    ;;
+  esac
+
+  shift
+done
+
+if [ ${ISROOT} -eq 1 ]; then
+  RECORD_ID=$(nuis-hepdata get-ref-components ${REFERENCE} recordid,version)
+  TABLE_NAME=$(nuis-hepdata get-ref-components ${REFERENCE} resource)
+  ROOT_RECORD_DIR="${NUISANCE_RECORD_DATABASE}/nuis/flux/root/hepdata/${RECORD_ID}"
+
+  mkdir -p ${ROOT_RECORD_DIR}
+  
+  ROOT_RECORD_PATH="${ROOT_RECORD_DIR}/${TABLE_NAME}.root"
+
+  if [ ! -e ${ROOT_RECORD_PATH} ]; then
+    python3 $(nuis internal nuis-flux-yaml2root) ${ROOT_RECORD_PATH} ${TABLE_NAME} ${REFERENCE}
+  fi
+
+  if [ ${ISCONTENT} -eq 1 ]; then
+    echo "${ROOT_RECORD_PATH},${TABLE_NAME}_count"
+  else
+    echo "${ROOT_RECORD_PATH},${TABLE_NAME}_count_per_width"
+  fi
+else
+  nuis-hepdata get-local-path ${REFERENCE}
+fi
+

@@ -57,6 +57,13 @@ std::unique_ptr<TH1> ToTH1(BV const &hf, std::string const &name,
                                          contents(bi), error(bi));
   }
 
+  root_hist->GetXaxis()->SetTitle(hf.binning->axis_labels.size()
+                                      ? hf.binning->axis_labels.front().c_str()
+                                      : "");
+  root_hist->GetYaxis()->SetTitle(fmt::format("{} [{}]",
+                                              hf.column_info[col].name,
+                                              hf.column_info[col].column_label)
+                                      .c_str());
   return root_hist;
 }
 
