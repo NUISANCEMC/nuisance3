@@ -10,25 +10,30 @@ fi
 function nuis_hepdata_help {
   echo "Run like: ${NUIS_BREADCRUMBS} <command>"
   echo -e "\tCommands:"
-  echo -e "\t  help                                           : Display this message"
-  echo -e "\t  get-local-path [type:]<recid>[/resource]       : Get a local path to a resource."
-  echo -e "\t                                                   <type> can be hepdata or hepdata-sandbox."
-  echo -e "\t                                                   <recid> is the record identifier."
-  echo -e "\t                                                   <resource> is the specific resource,"
-  echo -e "\t                                                   if omitted, get local path to submission"
-  echo -e "\t  get-data-tables [type:]<recid>                 : Get the data tables provided by a hepdata record"
-  echo -e "\t  get-independent-variables [type:]<recid>/table : Get independent variables for a given table"
-  echo -e "\t  get-dependent-variables [type:]<recid>/table   : Get dependent variables for a given table"
-  echo -e "\t  get-qualifiers [type:]<recid>/table [qual]     : Get qualifiers on the first dependent variable "
-  echo -e "\t                                                   If <qual> is passed and is a valid qualifier key"
-  echo -e "\t                                                   then only print the value of that qualifier."
-  echo -e "\t  get-local-additional-resources [type:]<recid>  : Get the filenames of any additional resources"
-  echo -e "\t                                                   for a given table"
-  echo -e "\t  get-ref-components [type:]<recid> [comp]       : Resolves a reference and then prints it"
-  echo -e "\t                                                   If <comp> is passed only that component will be"
-  echo -e "\t                                                   printed. Valid components: type, recordid, "
+  echo -e "\t  help                                             : Display this message"
+  echo -e "\t  get-local-path [type:]<recid>[/resource]         : Get a local path to a resource."
+  echo -e "\t                                                     <type> can be hepdata or hepdata-sandbox."
+  echo -e "\t                                                     <recid> is the record identifier."
+  echo -e "\t                                                     <resource> is the specific resource,"
+  echo -e "\t                                                     if omitted, get local path to submission"
+  echo -e "\t  get-data-tables [type:]<recid>                   : Get the data tables provided by a hepdata record"
+  echo -e "\t  get-independent-vars [type:]<recid>/table[:qual] : Get independent variables for a given table"
+  echo -e "\t  get-dependent-vars [type:]<recid>/table[:qual]   : Get dependent variables for a given table"
+  echo -e "\t  get-qualifiers [type:]<recid>/table [qual]       : Get qualifiers on the first dependent variable "
+  echo -e "\t                                                     If <qual> is passed and is a valid qualifier key"
+  echo -e "\t                                                     then only print the value of that qualifier."
+  echo -e "\t  get-local-additional-resources [type:]<recid>    : Get the filenames of any additional resources"
+  echo -e "\t                                                     for a given table"
+  echo -e "\t  get-ref-components [type:]<recid> [comp]         : Resolves a reference and then prints it"
+  echo -e "\t                                                     If <comp> is passed only that component will be"
+  echo -e "\t                                                     printed. Valid components: type, recordid, "
   echo -e "\t                                                                  version, resource, qualifier"
-  echo -e "\nExample: ${NUIS_BREADCRUMBS} get-local-path hepdata-sandbox:1713531371"
+  echo -e "\n  Example: ${NUIS_BREADCRUMBS} get-local-path hepdata-sandbox:1713531371"
+  echo -e "\n--"
+  echo -e "\nFor most of these commands, the entire reference block ([type:]<recid>/table) can be replaced by a"
+  echo -e "local pathname."
+  echo -e "\n  Example: ${NUIS_BREADCRUMBS} get-data-tables relative/path/to/submission.yaml"
+  echo -e "\n--"
 }
 
 if [ "${#}" -lt 1 ]; then
@@ -55,11 +60,11 @@ case $KEYARG in
     python3 -c "import pyNUISANCE; [ print('%s: %s' % (k, ', '.join(l))) for k,l in pyNUISANCE.hpd.get_local_additional_resources('${1}', reftype='hepdata').items() ]"
     ;;
 
-  get-independent-variables)
+  get-independent-vars)
     python3 -c "import pyNUISANCE; [ print('%s: %s' % x) for x in enumerate(pyNUISANCE.hpd.get_independent_variables('${1}', reftype='hepdata')) ]"
     ;;
 
-  get-dependent-variables)
+  get-dependent-vars)
     python3 -c "import pyNUISANCE; [ print('%s: %s' % x) for x in enumerate(pyNUISANCE.hpd.get_dependent_variables('${1}', reftype='hepdata')) ]"
     ;;
 

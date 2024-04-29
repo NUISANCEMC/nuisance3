@@ -7,6 +7,12 @@ from .HepDataRefResolver import GetLocalPathToResource, ResolveReferenceIdentifi
 
 def get_local_path_to_resource(ref, **context):
 
+  if ':' in ref and os.path.exists(ref.split(':')[0]):
+    return None, ref.split(':')[0], {"qualifier": ref.split(':')[1], "resourcename": os.path.basename(ref.split(':')[0])}
+
+  if os.path.exists(ref):
+    return None, ref, {"resourcename": os.path.basename(ref.split(':')[0])}
+
   record_database_root = os.environ.get("NUISANCE_RECORD_DATABASE")
 
   if not record_database_root:
@@ -47,7 +53,7 @@ def get_qualifiers(ref, **context):
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
 
   table = get_table(ref, **ncontext)
-  dv = ncontext["qualifier"]
+  dv = ncontext.get("qualifier")
 
   dv_idx = 0
   if dv:
@@ -55,9 +61,15 @@ def get_qualifiers(ref, **context):
 
   return { kv["name"]:kv["value"] for kv in table["dependent_variables"][dv_idx]["qualifiers"] }
 
+def _resolve_possibly_directly_referenced_submission_file(submission_path, resource_path):
+  if not submission_path and (os.path.basename(resource_path) == "submission.yaml"):
+    return os.path.dirname(resource_path), resource_path
+  return submission_path, resource_path
+
 def get_table_names(ref, **context):
 
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
+  submission_path, resource_path =_resolve_possibly_directly_referenced_submission_file(submission_path, resource_path)
 
   tables = []
 
@@ -72,6 +84,7 @@ def get_table_names(ref, **context):
 
 def get_local_additional_resources(ref, **context):
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
+  submission_path, resource_path =_resolve_possibly_directly_referenced_submission_file(submission_path, resource_path)
 
   addres = {}
 

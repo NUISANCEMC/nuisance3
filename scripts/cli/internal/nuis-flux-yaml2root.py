@@ -10,11 +10,7 @@ out_file = sys.argv[1]
 histogram_name = sys.argv[2]
 flux_ref = sys.argv[3]
 
-if os.path.exists(flux_ref):
-  resource_path = flux_ref
-  ncontext = {}
-else:
-  submission_path, resource_path, ncontext = pn.hpd.get_local_path_to_resource(flux_ref, reftype="hepdata")
+submission_path, resource_path, ncontext = pn.hpd.get_local_path_to_resource(flux_ref, reftype="hepdata")
 
 with open(resource_path,'r') as yfile:
   flux_table = yaml.safe_load(yfile)
