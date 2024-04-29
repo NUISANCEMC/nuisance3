@@ -4,6 +4,9 @@
 
 #include "boost/json.hpp"
 
+#include "fmt/core.h"
+#include "fmt/ranges.h"
+
 namespace nuis {
 
 std::string to_plotly1D(BinnedValuesBase const &bvb) {
@@ -45,21 +48,25 @@ to_mpl_pcolormesh(BinnedValuesBase const &bvb, BinnedValuesBase::column_t col) {
 
   auto bin_contents = bvb.get_bin_contents();
 
-  for (size_t x = 0; x < (x_edges.size() - 2); ++x) {
-    for (size_t y = 0; y < (y_edges.size() - 2); ++y) {
+  for (size_t x = 0; x < x_edges.size(); ++x) {
+    for (size_t y = 0; y < y_edges.size(); ++y) {
       X(x, y) = x_edges[x];
       Y(x, y) = y_edges[y];
-      auto bi_it = bvb.binning->find_bin({(x_edges[x] + x_edges[x + 1]) / 2.0,
-                                          (y_edges[y] + y_edges[y + 1]) / 2.0});
-      C(x, y) = bin_contents(bi_it, col);
+      if (((x + 1) < x_edges.size()) && ((y + 1) < y_edges.size())) {
+
+        auto bi_it =
+            bvb.binning->find_bin({(x_edges[x] + x_edges[x + 1]) / 2.0,
+                                   (y_edges[y] + y_edges[y + 1]) / 2.0});
+
+        if (bi_it == Binning::npos) {
+          C(x, y) = 0;
+
+        } else {
+          C(x, y) = bin_contents(bi_it, col);
+        }
+      }
     }
   }
-  X(x_edges.size() - 1, y_edges.size() - 2) = x_edges[x_edges.size() - 1];
-  X(x_edges.size() - 2, y_edges.size() - 1) = x_edges[x_edges.size() - 2];
-  X(x_edges.size() - 1, y_edges.size() - 1) = x_edges[x_edges.size() - 1];
-  Y(x_edges.size() - 1, y_edges.size() - 2) = y_edges[y_edges.size() - 2];
-  Y(x_edges.size() - 2, y_edges.size() - 1) = y_edges[y_edges.size() - 1];
-  Y(x_edges.size() - 1, y_edges.size() - 1) = y_edges[y_edges.size() - 1];
 
   return {X, Y, C};
 }

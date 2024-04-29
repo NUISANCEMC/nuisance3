@@ -1,5 +1,5 @@
 from ._pyNUISANCE import EventFrameGen, EventFrame
-from ._pyNUISANCE import HistFrame, BinnedValues, Binning
+from ._pyNUISANCE import HistFrame, BinnedValues, Binning, convert
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -225,66 +225,13 @@ class HistFrame_matplotlib_helper:
     
     def colormesh(self, xaxis="x", yaxis="y", column=None, plot_axis=None, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
+        ci = 0
+        if column:
+          sci = find_column_index(column)
+          if sci != BinnedValueBase.npos:
+            ci = sci
 
-        x_edges = []
-        y_edges = []
-
-        for i,bit in enumerate(Binning.get_sorted_bin_map(self.hf.binning.bins)):
-          binext = self.hf.binning.bins[bit]
-
-          if binext[0].low not in x_edges:
-            bisect.insort(x_edges,binext[0].low)
-
-          if binext[0].high not in x_edges:
-            bisect.insort(x_edges,binext[0].high)
-
-          if binext[1].low not in y_edges:
-            bisect.insort(y_edges, binext[1].low)
-
-          if binext[1].high not in y_edges:
-            bisect.insort(y_edges, binext[1].high)
-
-
-        X,Y = np.meshgrid(x_edges, y_edges)
-
-        weights = self.c(column)
-
-        # Placeholder for now will update to arb axis
-        nbins = len(self.hf.binning.bins)
-        X = np.zeros((2*nbins,2))
-        Y = np.zeros((2*nbins,2))
-        C = np.zeros(((2*nbins)-1,1))
-
-        #    b) (X[i+1, j], Y[i+1, j])  d) (X[i+1, j+1], Y[i+1, j+1])
-        #                       ●╶───╴●
-        #                       │  i  │
-        #                       ●╶───╴●
-        #    a) (X[i, j], Y[i, j])      c) (X[i, j+1], Y[i, j+1])
-
-        #draw along x and then y or you can get some weird artefacts
-        for i,bit in enumerate(Binning.get_sorted_bin_map(self.hf.binning.bins)):
-            binext = self.hf.binning.bins[bit]
-            
-            # a)
-            X[2*i,0] = binext[0].low
-            Y[2*i,0] = binext[1].low
-            
-            # b)
-            X[2*i + 1,0] = binext[0].low
-            Y[2*i + 1,0] = binext[1].high
-            
-            # c)
-            X[2*i, 1] = binext[0].high
-            Y[2*i, 1] = binext[1].low
-
-            # d)
-            X[2*i + 1, 1] = binext[0].high
-            Y[2*i + 1, 1] = binext[1].high
-
-            C[2*i,0] = weights[i]
-            if (2*i + 1) != len(C):
-                C[2*i + 1,0] = weights[i]
-        
+        X, Y, C = convert.HistFrame.to_mpl_pcolormesh(self.hf, ci)
         return plot_axis.pcolormesh(X, Y, C)
 
 def mpl_cern_template(page_dim=[3,3]):
