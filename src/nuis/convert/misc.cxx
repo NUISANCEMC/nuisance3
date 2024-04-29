@@ -59,7 +59,7 @@ to_mpl_pcolormesh(BinnedValuesBase const &bvb, BinnedValuesBase::column_t col) {
                                    (y_edges[y] + y_edges[y + 1]) / 2.0});
 
         if (bi_it == Binning::npos) {
-          C(x, y) = 0;
+          C(x, y) = std::numeric_limits<double>::quiet_NaN();
 
         } else {
           C(x, y) = bin_contents(bi_it, col);
