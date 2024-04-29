@@ -6,6 +6,8 @@ import numpy as np
 from copy import copy
 from math import isfinite, nan
 
+import bisect 
+
 class EventFrameGen_mpl_helper():
     def __init__(self, fr):
         self.fr = fr
@@ -223,6 +225,27 @@ class HistFrame_matplotlib_helper:
     
     def colormesh(self, xaxis="x", yaxis="y", column=None, plot_axis=None, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
+
+        x_edges = []
+        y_edges = []
+
+        for i,bit in enumerate(Binning.get_sorted_bin_map(self.hf.binning.bins)):
+          binext = self.hf.binning.bins[bit]
+
+          if binext[0].low not in x_edges:
+            bisect.insort(x_edges,binext[0].low)
+
+          if binext[0].high not in x_edges:
+            bisect.insort(x_edges,binext[0].high)
+
+          if binext[1].low not in y_edges:
+            bisect.insort(y_edges, binext[1].low)
+
+          if binext[1].high not in y_edges:
+            bisect.insort(y_edges, binext[1].high)
+
+
+        X,Y = np.meshgrid(x_edges, y_edges)
 
         weights = self.c(column)
 

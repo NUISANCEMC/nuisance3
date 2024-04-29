@@ -5,13 +5,13 @@ import yaml
 
 from .HepDataRefResolver import GetLocalPathToResource, ResolveReferenceIdentifiers
 
-def get_local_path_to_resource(ref, **context):
+def get_local_path_to_resource(ref="", **context):
 
   if ':' in ref and os.path.exists(ref.split(':')[0]):
-    return None, ref.split(':')[0], {"qualifier": ref.split(':')[1], "resourcename": os.path.basename(ref.split(':')[0])}
+    return "", ref.split(':')[0], {"qualifier": ref.split(':')[1], "resourcename": os.path.basename(ref.split(':')[0])}
 
-  if os.path.exists(ref):
-    return None, ref, {"resourcename": os.path.basename(ref.split(':')[0])}
+  if ref and os.path.exists(ref):
+    return "", ref, {"resourcename": os.path.basename(ref.split(':')[0])}
 
   record_database_root = os.environ.get("NUISANCE_RECORD_DATABASE")
 
@@ -34,7 +34,7 @@ def context_to_ref(**context):
   return record_ref
 
 
-def get_table(ref, **context):
+def get_table(ref="", **context):
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
 
   if not ncontext["resourcename"]:
@@ -43,13 +43,13 @@ def get_table(ref, **context):
   with open(resource_path, 'r') as file:
     return yaml.safe_load(file)
 
-def get_independent_variables(ref, **context):
+def get_independent_variables(ref="", **context):
   return [ x["header"]["name"] for x in get_table(ref, **context)["independent_variables"] ]
 
-def get_dependent_variables(ref, **context):
+def get_dependent_variables(ref="", **context):
   return [ x["header"]["name"] for x in get_table(ref, **context)["dependent_variables"] ]
 
-def get_qualifiers(ref, **context):
+def get_qualifiers(ref="", **context):
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
 
   table = get_table(ref, **ncontext)
@@ -66,7 +66,7 @@ def _resolve_possibly_directly_referenced_submission_file(submission_path, resou
     return os.path.dirname(resource_path), resource_path
   return submission_path, resource_path
 
-def get_table_names(ref, **context):
+def get_table_names(ref="", **context):
 
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
   submission_path, resource_path =_resolve_possibly_directly_referenced_submission_file(submission_path, resource_path)
@@ -82,7 +82,7 @@ def get_table_names(ref, **context):
 
   return tables
 
-def get_local_additional_resources(ref, **context):
+def get_local_additional_resources(ref="", **context):
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
   submission_path, resource_path =_resolve_possibly_directly_referenced_submission_file(submission_path, resource_path)
 

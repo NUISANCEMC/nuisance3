@@ -15,6 +15,7 @@ void pyConvertInit(py::module &m) {
   auto convmod = m.def_submodule("convert", "");
   convmod.def_submodule("HistFrame", "")
       .def("to_plotly1D", &to_plotly1D)
+      .def("to_mpl_pcolormesh", &to_mpl_pcolormesh)
       .def("to_yaml_str", &to_yaml_str)
       .def("from_yaml_str", &from_yaml_str);
   convmod.def_submodule("Covariance", "")

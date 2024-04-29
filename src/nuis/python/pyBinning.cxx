@@ -55,5 +55,6 @@ void pyBinningInit(py::module &m) {
       .def_static("lin_spaced_edges", &lin_spaced_edges)
       .def_static("cat_bin_edges", &cat_bin_edges)
       .def_static("edges_to_extents", &edges_to_extents)
-      .def_static("get_sorted_bin_map", &get_sorted_bin_map);
+      .def_static("get_sorted_bin_map", &get_sorted_bin_map)
+      .def_static("get_rectilinear_grid", &get_rectilinear_grid);
 }

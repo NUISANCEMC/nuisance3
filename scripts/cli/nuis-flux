@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 COMMAND_FQP=${0}
 COMMAND=$(basename ${COMMAND_FQP})
 
@@ -8,15 +10,17 @@ echo "[CLI DEBUG](BrCr: ${NUIS_BREADCRUMBS}): ${COMMAND} Arguments(${#}): ${@}"
 fi
 
 function nuis_flux_help {
-  echo "Run like: ${NUIS_BREADCRUMBS} [command] <reference> [options...] "
+  echo "Run like: ${NUIS_BREADCRUMBS} [command] [options...] "
   echo -e "\tCommands:"
   echo -e "\t  help                           : Display this message"
-  echo -e "\t  get-local-uri                  : Get a local path/histogram name to the referenced flux"
-  echo -e "\t  get-probe-pid                  : Get the probe pid for the referenced flux"
-  echo -e "\t  yaml2root <out.root> <in.yaml> : Convert a referenced HepData-format yaml table to a root flux."
+  echo -e "\t  get-local-uri <reference>      : Get a local path/histogram name to the referenced flux"
+  echo -e "\t  get-probe-pid <reference>      : Get the probe pid for the referenced flux"
+  echo -e "\t  yaml2root <in.yaml> <out.root> : Convert a referenced HepData-format yaml table to a root flux."
   echo -e "\t                                   Useful for testing local flux tables without requiring a HepData recordid."
   echo -e "\t  range                          : Say the X axis range of the referenced histogram"
   echo -e "\tOptions:"
+  echo -e "\t  -f|--follow                    : Interpret reference as a reference to a measurement measurement and"
+  echo -e "\t                                   follow the referenced probe_spectrum qualifier to find the flux."
   echo -e "\t  -r|--root                      : Returned URI points to a ROOT histogram, rather than a "
   echo -e "\t                                   HepData data table."
   echo -e "\t  -c|--bin-content               : Get a histogram where the bin content is the "
@@ -25,6 +29,13 @@ function nuis_flux_help {
   echo -e "\t                                   binned fluxes:"
   echo -e "\t                                     GENIE should not use this option"
   echo -e "\t                                     NEUT, NuWro should"
+  echo -e "\n  Example: ${NUIS_BREADCRUMBS} get-local-uri hepdata-sandbox:1713531371/flux -r -c"
+  echo -e "\n--"
+  echo -e "\n<references> should be in the form [type:]<recid/table>"
+  echo -e "\nFor most of these commands, the entire reference block ([type:]<recid>/table[:qual])"
+  echo -e "can be replaced by a local pathname."
+  echo -e "\n  Example: ${NUIS_BREADCRUMBS} get-probe-pid relative/path/to/flux.yaml"
+  echo -e "\n--"
 }
 
 if [ "${#}" -lt 1 ]; then
@@ -84,6 +95,7 @@ esac
 
 ISROOT=0
 ISCONTENT=0
+DOFOLLOWREF=0
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -95,15 +107,46 @@ while [[ ${#} -gt 0 ]]; do
     -c|--content)
       ISCONTENT=1
     ;;
+    -f|--follow)
+      DOFOLLOWREF=1
+    ;;
   esac
 
   shift
 done
 
+if [ ${DOFOLLOWREF} -eq 1 ]; then
+  CONTEXT=${REFERENCE}
+  BARE_FLUX_REF=$(nuis hepdata get-qualifiers ${CONTEXT} probe_spectrum)
+  REFERENCE=$(nuis hepdata resolve-in-context ${BARE_FLUX_REF} ${CONTEXT})
+fi
+
+TABLE_NAME=$(nuis-hepdata get-ref-components ${REFERENCE} resource)
+
+if [ -z "${TABLE_NAME}" ]; then
+  echo "[ERROR]: Reference: \"${REFERENCE}\", did not contain a table name."
+  exit 1
+fi
+
 if [ ${ISROOT} -eq 1 ]; then
+
+  if [ -e "${REFERENCE}" ]; then
+    FILE_NAME=${REFERENCE##*/}
+    TABLE_NAME=${FILE_NAME%%.yaml}
+    ROOT_RECORD_PATH="$(pwd)/${TABLE_NAME}.root"
+    if [ ! -e ${ROOT_RECORD_PATH} ]; then
+      python3 $(nuis internal nuis-flux-yaml2root) ${ROOT_RECORD_PATH} ${TABLE_NAME} ${REFERENCE}
+    fi
+    if [ ${ISCONTENT} -eq 1 ]; then
+      echo "${ROOT_RECORD_PATH},${TABLE_NAME}_count"
+    else
+      echo "${ROOT_RECORD_PATH},${TABLE_NAME}_count_per_width"
+    fi
+    exit 0
+  fi
+
   RECORD_ID=$(nuis-hepdata get-ref-components ${REFERENCE} recordid,version)
-  TABLE_NAME=$(nuis-hepdata get-ref-components ${REFERENCE} resource)
-  ROOT_RECORD_DIR="${NUISANCE_RECORD_DATABASE}/nuis/flux/root/hepdata/${RECORD_ID}"
+  ROOT_RECORD_DIR="${NUISANCE_RECORD_DATABASE}/nuis/flux/root-format/hepdata/${RECORD_ID}"
 
   mkdir -p ${ROOT_RECORD_DIR}
   

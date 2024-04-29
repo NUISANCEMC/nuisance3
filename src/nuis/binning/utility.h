@@ -27,6 +27,9 @@ get_bin_centers(std::vector<Binning::BinExtents> const &bins);
 std::vector<double>
 get_bin_centers1D(std::vector<Binning::BinExtents> const &bins);
 
+std::array<std::vector<double>, 2>
+get_rectilinear_grid(std::vector<Binning::BinExtents> const &bins);
+
 std::vector<double> log10_spaced_edges(double start, double stop, size_t nbins);
 std::vector<double> ln_spaced_edges(double start, double stop, size_t nbins);
 

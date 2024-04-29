@@ -317,4 +317,25 @@ get_bin_edges1D(std::vector<Binning::BinExtents> const &bins, size_t ax) {
   return contiguous_bin_edges;
 }
 
+std::array<std::vector<double>, 2>
+get_rectilinear_grid(std::vector<Binning::BinExtents> const &bins) {
+  std::vector<double> x_edges;
+  std::vector<double> y_edges;
+
+  for (auto const &bi : bins) {
+    x_edges.push_back(bi[0].low);
+    x_edges.push_back(bi[0].high);
+    y_edges.push_back(bi[1].low);
+    y_edges.push_back(bi[1].high);
+  }
+
+  std::sort(x_edges.begin(), x_edges.end());
+  std::sort(y_edges.begin(), y_edges.end());
+
+  x_edges.erase(std::unique(x_edges.begin(), x_edges.end()), x_edges.end());
+  y_edges.erase(std::unique(y_edges.begin(), y_edges.end()), y_edges.end());
+
+  return {x_edges, y_edges};
+}
+
 } // namespace nuis

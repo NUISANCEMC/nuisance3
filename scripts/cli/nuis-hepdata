@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 COMMAND_FQP=${0}
 COMMAND=$(basename ${COMMAND_FQP})
 
@@ -28,10 +30,13 @@ function nuis_hepdata_help {
   echo -e "\t                                                     If <comp> is passed only that component will be"
   echo -e "\t                                                     printed. Valid components: type, recordid, "
   echo -e "\t                                                                  version, resource, qualifier"
+  echo -e "\t  resolve-in-context <ref> <context-ref>           : Resolves a reference using another reference as"
+  echo -e "\t                                                     context."
+  echo -e "\t                                                     Useful for following references in qualifiers."
   echo -e "\n  Example: ${NUIS_BREADCRUMBS} get-local-path hepdata-sandbox:1713531371"
   echo -e "\n--"
-  echo -e "\nFor most of these commands, the entire reference block ([type:]<recid>/table) can be replaced by a"
-  echo -e "local pathname."
+  echo -e "\nFor most of these commands, the entire reference block ([type:]<recid>/table[:qual])"
+  echo -e "can be replaced by a local pathname."
   echo -e "\n  Example: ${NUIS_BREADCRUMBS} get-data-tables relative/path/to/submission.yaml"
   echo -e "\n--"
 }
@@ -140,6 +145,9 @@ case $KEYARG in
     fi
     exit 0
     ;;
+  resolve-in-context)
+    python3 -c "import pyNUISANCE; context=pyNUISANCE.hpd.get_local_path_to_resource('${2}', reftype='hepdata')[2]; print(pyNUISANCE.hpd.context_to_ref(**pyNUISANCE.hpd.get_local_path_to_resource('${1}', **context)[2]))"
+  ;;
 
   help)
     nuis_hepdata_help
