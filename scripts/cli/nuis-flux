@@ -5,6 +5,8 @@ set -e
 COMMAND_FQP=${0}
 COMMAND=$(basename ${COMMAND_FQP})
 
+all_args=("${@}") 
+
 if [ ! -z ${NUIS_CLI_DEBUG} ]; then
 echo "[CLI DEBUG](BrCr: ${NUIS_BREADCRUMBS}): ${COMMAND} Arguments(${#}): ${@}"
 fi
@@ -126,6 +128,17 @@ TABLE_NAME=$(nuis-hepdata get-ref-components ${REFERENCE} resource)
 if [ -z "${TABLE_NAME}" ]; then
   echo "[ERROR]: Reference: \"${REFERENCE}\", did not contain a table name."
   exit 1
+fi
+
+VARIABLE_TYPE=$(nuis-hepdata get-qualifiers ${REFERENCE} variable_type)
+
+if [ "${NUIS_FORCE}" != "ON" ]; then
+  if [ -z "${VARIABLE_TYPE}" ] || [ "${VARIABLE_TYPE}" != "probe_spectrum" ]; then
+    echo "[ERROR]: Reference: \"${REFERENCE}\", did not resolve to a variable of expected type \"probe_spectrum\". "
+    echo "  Instead, we found qualifier \"variable_type\" with value: \"${VARIABLE_TYPE}\"."
+    echo "  Run like 'nuis --force ${COMMAND} ${all_args[@]}' to ignore this error and proceed anyway."
+    exit 1
+  fi
 fi
 
 if [ ${ISROOT} -eq 1 ]; then

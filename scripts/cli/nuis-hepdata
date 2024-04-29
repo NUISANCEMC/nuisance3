@@ -75,7 +75,7 @@ case $KEYARG in
 
   get-qualifiers)
     if [ ! -z "${2}" ]; then
-      python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.get_qualifiers('${1}', reftype='hepdata')['${2}'])"
+      python3 -c "import pyNUISANCE; print(pyNUISANCE.hpd.get_qualifiers('${1}', reftype='hepdata').get('${2}'))"
     else
       python3 -c "import pyNUISANCE; [ print('%s: %s' % x) for x in pyNUISANCE.hpd.get_qualifiers('${1}', reftype='hepdata').items() ]"
     fi

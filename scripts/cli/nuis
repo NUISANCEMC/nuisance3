@@ -44,7 +44,7 @@ while [[ ${#} -gt 0 ]]; do
     break;
   fi
 
-  case $key in
+  case $KEYARG in
 
     --debug)
       NUIS_DEBUG=ON
@@ -62,6 +62,10 @@ while [[ ${#} -gt 0 ]]; do
 
   shift
 done
+
+export NUIS_DEBUG
+export NUIS_QUIET
+export NUIS_FORCE
 
 if [ "${#}" -lt 1 ]; then
   echo -e "[ERROR]: Expected to be passed a sub-command verb like:"
