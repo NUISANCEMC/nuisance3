@@ -5,21 +5,6 @@ import yaml
 
 from .HepDataRefResolver import GetLocalPathToResource, ResolveReferenceIdentifiers
 
-def get_local_path_to_resource(ref="", **context):
-
-  if ':' in ref and os.path.exists(ref.split(':')[0]):
-    return "", ref.split(':')[0], {"qualifier": ref.split(':')[1], "resourcename": os.path.basename(ref.split(':')[0])}
-
-  if ref and os.path.exists(ref):
-    return "", ref, {"resourcename": os.path.basename(ref.split(':')[0])}
-
-  record_database_root = os.environ.get("NUISANCE_RECORD_DATABASE")
-
-  if not record_database_root:
-    raise RuntimeError("NUISANCE_RECORD_DATABASE environment variable is not defined")
-
-  return GetLocalPathToResource(record_database_root, ref, **context)
-
 def context_to_ref(**context):
   record_ref = context["reftype"] + ":" + context["recordid"]
 
@@ -33,6 +18,35 @@ def context_to_ref(**context):
 
   return record_ref
 
+def get_local_path_to_resource(ref="", **context):
+
+  if ':' in ref and os.path.exists(ref.split(':')[0]):
+    return "", ref.split(':')[0], {"qualifier": ref.split(':')[1], "resourcename": os.path.basename(ref.split(':')[0])}
+
+  if ref and os.path.exists(ref):
+    return "", ref, {"resourcename": os.path.basename(ref.split(':')[0])}
+
+  record_database_root = os.environ.get("NUISANCE_RECORD_DATABASE")
+
+  if not record_database_root:
+    raise RuntimeError("NUISANCE_RECORD_DATABASE environment variable is not defined")
+
+
+  rctx = ResolveReferenceIdentifiers(ref, **context)
+
+  if rctx.get("reftype") == "nuis":
+    hepdata_map = "/".join([record_database_root,"nuis","nuis2hepdata.yaml"])
+    with open(hepdata_map, 'r') as mapfile:
+      nuis2hepdata = yaml.safe_load(mapfile)
+
+    try:
+      hepdata_key = nuis2hepdata[rctx["recordid"]][rctx["resourcename"]][rctx["qualifier"]]
+    except KeyError:
+      print("[ERROR] Could not resolve reference %s. Check %s." %(ref,hepdata_map))
+
+    return GetLocalPathToResource(record_database_root, hepdata_key)
+
+  return GetLocalPathToResource(record_database_root, ref, **context)
 
 def get_table(ref="", **context):
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
@@ -69,7 +83,7 @@ def _resolve_possibly_directly_referenced_submission_file(submission_path, resou
 def get_table_names(ref="", **context):
 
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
-  submission_path, resource_path =_resolve_possibly_directly_referenced_submission_file(submission_path, resource_path)
+  submission_path, resource_path = _resolve_possibly_directly_referenced_submission_file(submission_path, resource_path)
 
   tables = []
 
@@ -84,7 +98,7 @@ def get_table_names(ref="", **context):
 
 def get_local_additional_resources(ref="", **context):
   submission_path, resource_path, ncontext = get_local_path_to_resource(ref, **context)
-  submission_path, resource_path =_resolve_possibly_directly_referenced_submission_file(submission_path, resource_path)
+  submission_path, resource_path = _resolve_possibly_directly_referenced_submission_file(submission_path, resource_path)
 
   addres = {}
 

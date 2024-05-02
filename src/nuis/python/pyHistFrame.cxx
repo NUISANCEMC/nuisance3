@@ -127,29 +127,47 @@ void pyHistFrameInit(py::module &m) {
       .def("__copy__", [](HistFrame const &self) { return HistFrame(self); })
       .def("__str__", &str_via_ss<HistFrame>)
       .def("project",
-           [](HistFrame const &hf, std::vector<size_t> const &cols) {
-             return Project(hf, cols);
-           })
+           py::overload_cast<HistFrame const &, std::vector<size_t> const &,
+                             bool>(&Project),
+           py::arg("proj_to_axes"), py::arg("result_has_binning") = true)
       .def("project",
-           [](HistFrame const &hf, size_t col) { return Project(hf, col); })
-      .def(
-          "slice",
-          [](HistFrame const &hf, size_t ax, std::array<double, 2> slice_range,
-             bool exclude_range_end_bin, bool result_has_binning) {
-            return Slice(hf, ax, slice_range, exclude_range_end_bin,
-                         result_has_binning);
-          },
-          py::arg("ax"), py::arg("slice_range"),
-          py::arg("exclude_range_end_bin") = false,
-          py::arg("result_has_binning") = true)
-      .def(
-          "slice",
-          [](HistFrame const &hf, size_t ax, double slice_val,
-             bool result_has_binning) {
-            return Slice(hf, ax, slice_val, result_has_binning);
-          },
-          py::arg("ax"), py::arg("slice_val"),
-          py::arg("result_has_binning") = true);
+           py::overload_cast<HistFrame const &, size_t, bool>(&Project),
+           py::arg("proj_to_axis"), py::arg("result_has_binning") = true)
+      .def("project",
+           py::overload_cast<HistFrame const &,
+                             std::vector<std::string> const &, bool>(&Project),
+           py::arg("proj_to_axes"), py::arg("result_has_binning") = true)
+      .def("project",
+           py::overload_cast<HistFrame const &, std::string const &, bool>(
+               &Project),
+           py::arg("proj_to_axis"), py::arg("result_has_binning") = true)
+      .def("slice",
+           py::overload_cast<HistFrame const &, size_t, std::array<double, 2>,
+                             bool, bool>(&Slice),
+           py::arg("ax"), py::arg("slice_range"),
+           py::arg("exclude_range_end_bin") = false,
+           py::arg("result_has_binning") = true)
+      .def("slice",
+           py::overload_cast<HistFrame const &, size_t, double, bool>(&Slice),
+           py::arg("ax"), py::arg("slice_val"),
+           py::arg("result_has_binning") = true)
+      .def("slice",
+           py::overload_cast<HistFrame const &, std::string const &,
+                             std::array<double, 2>, bool, bool>(&Slice),
+           py::arg("ax"), py::arg("slice_range"),
+           py::arg("exclude_range_end_bin") = false,
+           py::arg("result_has_binning") = true)
+      .def("slice",
+           py::overload_cast<HistFrame const &, std::string const &, double,
+                             bool>(&Slice),
+           py::arg("ax"), py::arg("slice_val"),
+           py::arg("result_has_binning") = true)
+      .def("add", py::overload_cast<HistFrame const &, HistFrame const &>(&Add))
+      .def("scale", py::overload_cast<HistFrame const &, double>(&Scale))
+      .def("multiply",
+           py::overload_cast<HistFrame const &, HistFrame const &>(&Multiply))
+      .def("divide",
+           py::overload_cast<HistFrame const &, HistFrame const &>(&Divide));
 
   pyHistFrameFillersInit(histframeclass);
 
@@ -168,28 +186,49 @@ void pyHistFrameInit(py::module &m) {
            [](BinnedValues const &self) { return BinnedValues(self); })
       .def("__str__", &str_via_ss<BinnedValues>)
       .def("project",
-           [](BinnedValues const &bv, std::vector<size_t> const &cols) {
-             return Project(bv, cols);
-           })
+           py::overload_cast<BinnedValues const &, std::vector<size_t> const &,
+                             bool>(&Project),
+           py::arg("proj_to_axes"), py::arg("result_has_binning") = true)
       .def("project",
-           [](BinnedValues const &bv, size_t col) { return Project(bv, col); })
+           py::overload_cast<BinnedValues const &, size_t, bool>(&Project),
+           py::arg("proj_to_axis"), py::arg("result_has_binning") = true)
+      .def("project",
+           py::overload_cast<BinnedValues const &,
+                             std::vector<std::string> const &, bool>(&Project),
+           py::arg("proj_to_axes"), py::arg("result_has_binning") = true)
+      .def("project",
+           py::overload_cast<BinnedValues const &, std::string const &, bool>(
+               &Project),
+           py::arg("proj_to_axis"), py::arg("result_has_binning") = true)
+      .def("slice",
+           py::overload_cast<BinnedValues const &, size_t,
+                             std::array<double, 2>, bool, bool>(&Slice),
+           py::arg("ax"), py::arg("slice_range"),
+           py::arg("exclude_range_end_bin") = false,
+           py::arg("result_has_binning") = true)
       .def(
           "slice",
-          [](BinnedValues const &bv, size_t ax,
-             std::array<double, 2> slice_range, bool exclude_range_end_bin,
-             bool result_has_binning) {
-            return Slice(bv, ax, slice_range, exclude_range_end_bin,
-                         result_has_binning);
-          },
-          py::arg("ax"), py::arg("slice_range"),
-          py::arg("exclude_range_end_bin") = false,
-          py::arg("result_has_binning") = true)
-      .def(
-          "slice",
-          [](BinnedValues const &bv, size_t ax, double slice_val,
-             bool result_has_binning) {
-            return Slice(bv, ax, slice_val, result_has_binning);
-          },
+          py::overload_cast<BinnedValues const &, size_t, double, bool>(&Slice),
           py::arg("ax"), py::arg("slice_val"),
-          py::arg("result_has_binning") = true);
+          py::arg("result_has_binning") = true)
+      .def("slice",
+           py::overload_cast<BinnedValues const &, std::string const &,
+                             std::array<double, 2>, bool, bool>(&Slice),
+           py::arg("ax"), py::arg("slice_range"),
+           py::arg("exclude_range_end_bin") = false,
+           py::arg("result_has_binning") = true)
+      .def("slice",
+           py::overload_cast<BinnedValues const &, std::string const &, double,
+                             bool>(&Slice),
+           py::arg("ax"), py::arg("slice_val"),
+           py::arg("result_has_binning") = true)
+      .def("add",
+           py::overload_cast<BinnedValues const &, BinnedValues const &>(&Add))
+      .def("scale", py::overload_cast<BinnedValues const &, double>(&Scale))
+      .def("multiply",
+           py::overload_cast<BinnedValues const &, BinnedValues const &>(
+               &Multiply))
+      .def("divide",
+           py::overload_cast<BinnedValues const &, BinnedValues const &>(
+               &Divide));
 }

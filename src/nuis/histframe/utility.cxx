@@ -10,6 +10,8 @@
 
 namespace nuis {
 
+NEW_NUISANCE_EXCEPT(InvalidAxisLabel);
+
 struct ProjectionMap {
   std::vector<size_t> project_to_axes;
   std::vector<Binning::BinExtents> projected_extents;
@@ -185,6 +187,29 @@ HistFrame Project(HistFrame const &hf, size_t proj_to_axis,
                   bool result_has_binning) {
   return Project(hf, std::vector<size_t>{proj_to_axis}, result_has_binning);
 }
+HistFrame Project(HistFrame const &hf,
+                  std::vector<std::string> const &proj_to_axes,
+                  bool result_has_binning) {
+
+  std::vector<size_t> proj_to_axes_idx;
+  for (auto const &ax : proj_to_axes) {
+    auto ax_it = std::find(hf.binning->axis_labels.begin(),
+                           hf.binning->axis_labels.end(), ax);
+    if (ax_it == hf.binning->axis_labels.end()) {
+      throw InvalidAxisLabel() << "Project passed axis name: " << ax
+                               << ", but no axis_label matches.";
+    }
+    proj_to_axes_idx.push_back(
+        std::distance(hf.binning->axis_labels.begin(), ax_it));
+  }
+
+  return Project_impl<HistFrame>(hf, proj_to_axes_idx, result_has_binning);
+}
+HistFrame Project(HistFrame const &hf, std::string const &proj_to_axis,
+                  bool result_has_binning) {
+  return Project(hf, std::vector<std::string>{proj_to_axis},
+                 result_has_binning);
+}
 
 BinnedValues Project(BinnedValues const &hf,
                      std::vector<size_t> const &proj_to_axes,
@@ -194,6 +219,29 @@ BinnedValues Project(BinnedValues const &hf,
 BinnedValues Project(BinnedValues const &hf, size_t proj_to_axis,
                      bool result_has_binning) {
   return Project(hf, std::vector<size_t>{proj_to_axis}, result_has_binning);
+}
+BinnedValues Project(BinnedValues const &hf,
+                     std::vector<std::string> const &proj_to_axes,
+                     bool result_has_binning) {
+
+  std::vector<size_t> proj_to_axes_idx;
+  for (auto const &ax : proj_to_axes) {
+    auto ax_it = std::find(hf.binning->axis_labels.begin(),
+                           hf.binning->axis_labels.end(), ax);
+    if (ax_it == hf.binning->axis_labels.end()) {
+      throw InvalidAxisLabel() << "Project passed axis name: " << ax
+                               << ", but no axis_label matches.";
+    }
+    proj_to_axes_idx.push_back(
+        std::distance(hf.binning->axis_labels.begin(), ax_it));
+  }
+
+  return Project_impl<BinnedValues>(hf, proj_to_axes_idx, result_has_binning);
+}
+BinnedValues Project(BinnedValues const &hf, std::string const &proj_to_axis,
+                     bool result_has_binning) {
+  return Project(hf, std::vector<std::string>{proj_to_axis},
+                 result_has_binning);
 }
 
 template <typename T>
@@ -279,6 +327,31 @@ HistFrame Slice(HistFrame const &hf, size_t ax, double slice_val,
   return Slice_impl<HistFrame>(hf, ax, {slice_val, slice_val}, false,
                                result_has_binning);
 }
+HistFrame Slice(HistFrame const &hf, std::string const &ax,
+                std::array<double, 2> slice_range, bool exclude_range_end_bin,
+                bool result_has_binning) {
+  auto ax_it = std::find(hf.binning->axis_labels.begin(),
+                         hf.binning->axis_labels.end(), ax);
+  if (ax_it == hf.binning->axis_labels.end()) {
+    throw InvalidAxisLabel()
+        << "Slice passed axis name: " << ax << ", but no axis_label matches.";
+  }
+  return Slice_impl<HistFrame>(
+      hf, std::distance(hf.binning->axis_labels.begin(), ax_it), slice_range,
+      exclude_range_end_bin, result_has_binning);
+}
+HistFrame Slice(HistFrame const &hf, std::string const &ax, double slice_val,
+                bool result_has_binning) {
+  auto ax_it = std::find(hf.binning->axis_labels.begin(),
+                         hf.binning->axis_labels.end(), ax);
+  if (ax_it == hf.binning->axis_labels.end()) {
+    throw InvalidAxisLabel()
+        << "Slice passed axis name: " << ax << ", but no axis_label matches.";
+  }
+  return Slice_impl<HistFrame>(
+      hf, std::distance(hf.binning->axis_labels.begin(), ax_it),
+      {slice_val, slice_val}, false, result_has_binning);
+}
 BinnedValues Slice(BinnedValues const &hf, size_t ax,
                    std::array<double, 2> slice_range,
                    bool exclude_range_end_bin, bool result_has_binning) {
@@ -289,6 +362,96 @@ BinnedValues Slice(BinnedValues const &hf, size_t ax, double slice_val,
                    bool result_has_binning) {
   return Slice_impl<BinnedValues>(hf, ax, {slice_val, slice_val}, false,
                                   result_has_binning);
+}
+
+BinnedValues Slice(BinnedValues const &hf, std::string const &ax,
+                   std::array<double, 2> slice_range,
+                   bool exclude_range_end_bin, bool result_has_binning) {
+  auto ax_it = std::find(hf.binning->axis_labels.begin(),
+                         hf.binning->axis_labels.end(), ax);
+  if (ax_it == hf.binning->axis_labels.end()) {
+    throw InvalidAxisLabel()
+        << "Slice passed axis name: " << ax << ", but no axis_label matches.";
+  }
+  return Slice_impl<BinnedValues>(
+      hf, std::distance(hf.binning->axis_labels.begin(), ax_it), slice_range,
+      exclude_range_end_bin, result_has_binning);
+}
+BinnedValues Slice(BinnedValues const &hf, std::string const &ax,
+                   double slice_val, bool result_has_binning) {
+  auto ax_it = std::find(hf.binning->axis_labels.begin(),
+                         hf.binning->axis_labels.end(), ax);
+  if (ax_it == hf.binning->axis_labels.end()) {
+    throw InvalidAxisLabel()
+        << "Slice passed axis name: " << ax << ", but no axis_label matches.";
+  }
+  return Slice_impl<BinnedValues>(
+      hf, std::distance(hf.binning->axis_labels.begin(), ax_it),
+      {slice_val, slice_val}, false, result_has_binning);
+}
+
+BinnedValues Add(BinnedValues const &hf1, BinnedValues const &hf2) {
+  BinnedValues out(hf1);
+  out.values += hf2.values;
+  out.errors = (hf1.values.square() + hf2.values.square()).sqrt();
+  return out;
+}
+
+HistFrame Add(HistFrame const &hf1, HistFrame const &hf2) {
+  HistFrame out(hf1);
+  out.sumweights += hf2.sumweights;
+  out.variances = hf1.variances + hf2.variances;
+  return out;
+}
+
+BinnedValues Scale(BinnedValues const &hf, double factor) {
+  BinnedValues out(hf);
+  out.values *= factor;
+  out.errors *= factor;
+  return out;
+}
+
+HistFrame Scale(HistFrame const &hf, double factor) {
+  HistFrame out(hf);
+  out.sumweights *= factor;
+  out.variances *= factor * factor;
+  return out;
+}
+
+BinnedValues Multiply(BinnedValues const &hf1, BinnedValues const &hf2) {
+  BinnedValues out(hf1);
+  out.values *= hf2.values;
+  out.errors = out.values * ((hf1.errors / hf1.values).square() +
+                             (hf2.errors / hf2.values).square())
+                                .sqrt();
+  return out;
+}
+
+HistFrame Multiply(HistFrame const &hf1, HistFrame const &hf2) {
+  HistFrame out(hf1);
+  out.sumweights *= hf2.sumweights;
+  out.variances =
+      out.sumweights.square() * ((hf1.variances / hf1.sumweights.square()) +
+                                 (hf2.variances / hf2.sumweights.square()));
+  return out;
+}
+
+BinnedValues Divide(BinnedValues const &hf_num, BinnedValues const &hf_denom) {
+  BinnedValues out(hf_num);
+  out.values /= hf_denom.values;
+  out.errors = out.values * ((hf_num.errors / hf_num.values).square() +
+                             (hf_denom.errors / hf_denom.values).square())
+                                .sqrt();
+  return out;
+}
+
+HistFrame Divide(HistFrame const &hf_num, HistFrame const &hf_denom) {
+  HistFrame out(hf_num);
+  out.sumweights /= hf_denom.sumweights;
+  out.variances = out.sumweights.square() *
+                  ((hf_num.variances / hf_num.sumweights.square()) +
+                   (hf_denom.variances / hf_denom.sumweights.square()));
+  return out;
 }
 
 std::ostream &operator<<(std::ostream &os, nuis::BinnedValuesBase const &bvb) {

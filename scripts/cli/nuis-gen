@@ -1,0 +1,62 @@
+#!/bin/bash
+
+set -e
+
+COMMAND_FQP=${0}
+COMMAND=$(basename ${COMMAND_FQP})
+
+all_args=("${@}") 
+
+if [ ! -z ${NUIS_CLI_DEBUG} ]; then
+echo "[CLI DEBUG](BrCr: ${NUIS_BREADCRUMBS}): ${COMMAND} Arguments(${#}): ${@}"
+fi
+
+function nuis_gen_help {
+  echo "Run like: ${NUIS_BREADCRUMBS} [general-options] <generator> [generator-specific-options] "
+  echo -e "\t[general-options]:"
+  echo -e "\t  help                           : Display this message"
+  echo -e "\t  --for <measurement_reflike>    : Construct simulation settings for a specific measurement"
+  echo -e "\t                                   <reflike> can be a hepdata reference, a nuis reference, or"
+  echo -e "\t                                   absolute paths to hepdata yaml data tables."
+  echo -e "\t                                   If '\$ nuis hepdata get-qualifiers <reflike> variable_type'"
+  echo -e "\t                                   contains 'measurement' and 'nu', then it is likely that "
+  echo -e "\t                                   the <reflike> will work for this option."
+
+}
+
+if [ "${#}" -lt 1 ]; then
+  echo -e "[ERROR]: Insufficient arguments passed to ${NUIS_BREADCRUMBS}"
+  nuis_gen_help
+  exit 1
+fi
+
+KEYARG="${1}"
+shift
+
+REFERENCE=""
+
+case $KEYARG in
+  help)
+    nuis_gen_help
+    exit 0
+    ;;
+
+  --for)
+    MEASUREMENT_REFERENCE=${1}
+    VARIABLE_TYPE=$(nuis hepdata get-qualifiers ${MEASUREMENT_REFERENCE} variable_type)
+    TARGET_TYPE=$(nuis hepdata get-qualifiers ${MEASUREMENT_REFERENCE} target)
+    PROBE_REFERENCE=$(nuis hepdata resolve-in-context "" ${MEASUREMENT_REFERENCE})
+
+    echo "MEASUREMENT_REFERENCE: ${MEASUREMENT_REFERENCE}"
+    echo "VARIABLE_TYPE: ${VARIABLE_TYPE}"
+    echo "PROBE_REFERENCE: ${PROBE_REFERENCE}"
+
+    PROBE_SPECIES=$(nuis flux get-probe-pid ${PROBE_REFERENCE})
+    PROBE_YAML=$(nuis flux get-local-uri ${PROBE_REFERENCE})
+
+    echo "PROBE_SPECIES: ${PROBE_SPECIES}"
+    echo "PROBE_YAML: ${PROBE_YAML}"
+
+    ;;
+
+esac

@@ -232,7 +232,7 @@ class HistFrame_matplotlib_helper:
             ci = sci
 
         X, Y, C = convert.HistFrame.to_mpl_pcolormesh(self.hf, ci)
-        return plot_axis.pcolormesh(X, Y, C)
+        return plot_axis.pcolormesh(X, Y, C, *args, **kwargs)
 
 def mpl_cern_template(page_dim=[3,3]):
     plt.minorticks_on()

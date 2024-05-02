@@ -1,6 +1,7 @@
 install(PROGRAMS
   nuis
   nuis-flux
+  nuis-gen
   nuis-internal
   nuis-hepdata
   DESTINATION bin)

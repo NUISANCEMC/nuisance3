@@ -10,6 +10,7 @@ pybind11_add_module(_pyNUISANCE SHARED
   pyNUISANCELog.cxx 
   pyBinning.cxx
   pyConvert.cxx
+  pyResponse.cxx
   )
 
 target_link_libraries(_pyNUISANCE 

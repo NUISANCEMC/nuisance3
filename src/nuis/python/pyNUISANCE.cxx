@@ -19,7 +19,7 @@ void pyRecordInit(py::module &);
 void pyWeightCalcInit(py::module &);
 void pyNUISANCELogInit(py::module &);
 void pyConvertInit(py::module &);
-
+void pyResponseInit(py::module &);
 
 
 PYBIND11_MODULE(_pyNUISANCE, m) {
@@ -54,4 +54,5 @@ PYBIND11_MODULE(_pyNUISANCE, m) {
   pyWeightCalcInit(m);
   pyNUISANCELogInit(m);
   pyConvertInit(m);
+  pyResponseInit(m);
 }
