@@ -1,4 +1,4 @@
-#include "nuis/binning/Utility.h"
+#include "nuis/binning/utility.h"
 #include "nuis/binning/log_bin_edges.txx"
 
 #include "nuis/log.txx"
@@ -245,7 +245,7 @@ get_bin_columns(std::vector<Binning::BinExtents> const &bins) {
   size_t nlongest = 0;
   std::vector<std::vector<std::vector<Binning::index_t>>> all_axes_bin_columns;
 
-  Binning::index_t last_bi_it;
+  Binning::index_t last_bi_it = 0;
   for (size_t ax = 0; ax < nax; ++ax) {
     all_axes_bin_columns.emplace_back();
 

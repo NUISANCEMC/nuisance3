@@ -1,7 +1,7 @@
 #pragma once
 
 #include "nuis/binning/Binning.h"
-#include "nuis/binning/Exceptions.h"
+#include "nuis/binning/exceptions.h"
 
 #include "nuis/log.txx"
 
