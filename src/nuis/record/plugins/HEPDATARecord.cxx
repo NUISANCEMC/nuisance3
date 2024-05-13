@@ -24,6 +24,11 @@
 using namespace nuis;
 using namespace ps;
 
+// PS global hack for the time being for handling
+// paths to avoid reloading objects. This will eventually be handled
+// properly upstream with ProSelecta and cling.
+std::vector<std::string> ps_paths;
+
 // The functions for binning are pretty opaque to new users. I think comments
 // need to label these as the efficient implementations and some simple
 // examples. For now to make sure things are working I'm adding a HEPData brute
@@ -194,14 +199,17 @@ public:
 
     // This seems to be ProSelecta bug feature, analysis.cxx works
     // but /path/analysis.cxx does not.
-    ProSelecta::Get().AddIncludePath(path_release.c_str(), ProSelecta::Interpreter::kCling);
     std::string analysis = path_release + "analysis.cxx";
     if (cfg["analysis"])
       analysis = cfg["analysis"].as<std::string>();
 
-    if (!ProSelecta::Get().LoadFile("analysis.cxx")) {
-      log_critical("[ERROR]: Cling failed interpreting: {}", analysis);
-      throw ProSelectaLoadFileFailure();
+    if (std::find(ps_paths.begin(), ps_paths.end(), path_release + "analysis.cxx") == ps_paths.end()){
+      ProSelecta::Get().AddIncludePath(path_release);
+      if (!ProSelecta::Get().LoadFile(path_release + "analysis.cxx", ProSelecta::Interpreter::kCling)) {
+        log_critical("[ERROR]: Cling failed interpreting: {}", analysis);
+        throw ProSelectaLoadFileFailure();
+      }
+      ps_paths.push_back(path_release + "analysis.cxx");
     }
 
     std::string filter_name = variables_dep[0].qualifiers["Filter"];
@@ -245,7 +253,10 @@ public:
     tab.weight = nuis::weight::DefaultWeight;
 
     if (variables_dep[0].qualifiers["scaling"] == "EventRateScaleToData") {
-      tab.finalize = nuis::finalize::EventRateScaleToData;
+      bool by_width = true;
+      tab.finalize = [by_width](Comparison &fr, double /*fatx*/){
+        return nuis::finalize::EventRateScaleToData(fr, by_width);
+      };
 
     } else if (variables_dep[0].qualifiers["scaling"] == "FATXNormalizedByBinWidth") {
       tab.finalize = nuis::finalize::FATXNormalizedByBinWidth;
@@ -282,12 +293,10 @@ public:
     hist.data.values.col(0) = Eigen::Map<Eigen::VectorXd>(
         variables_dep[0].values.data(), variables_dep[0].values.size());
 
-    if (variables_dep[0].qualifiers.find("errors") != variables_dep[0].qualifiers.end()) {
-      if (variables_dep[0].qualifiers["errors"] == "sumw") {
-        for (size_t i = 0; i < variables_dep[0].values.size(); i++) {
-          if (variables_dep[0].values[i] > 0 && variables_dep[0].errors[i] == -999) {
-            variables_dep[0].errors[i] = sqrt(variables_dep[0].values[i]);
-          }
+    if (variables_dep[0].qualifiers["likelihood"] == "Poisson") {
+      for (size_t i = 0; i < variables_dep[0].values.size(); i++) {
+        if (variables_dep[0].values[i] > 0 && variables_dep[0].errors[i] == -999) {
+          variables_dep[0].errors[i] = sqrt(variables_dep[0].values[i]);
         }
       }
     }
@@ -306,7 +315,7 @@ public:
   bool good() const { return true; }
 
   static IRecordPluginPtr Make(YAML::Node const &cfg) {
-    return std::make_shared<HEPDataRecord>(cfg);
+    return std::make_unique<HEPDataRecord>(cfg);
   }
 
   virtual ~HEPDataRecord() {}

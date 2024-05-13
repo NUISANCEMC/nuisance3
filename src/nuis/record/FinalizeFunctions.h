@@ -29,9 +29,9 @@ BinnedValues FATXNormalized(Comparison &fr,
   return mc;
 }
 
-
+// PS : Move to recommending lambda captures for flexible hooks similar to FluxUnfolded
 BinnedValues EventRateScaleToData(Comparison &fr,
-                                  const double /*fatx_by_pdf*/) {
+                                  bool by_width=true) {
 
   auto datamc = fr[0];
   double dt_sum = datamc.data.value.sum();
@@ -40,16 +40,21 @@ BinnedValues EventRateScaleToData(Comparison &fr,
 
   // need to know here if we want to divide by fr.mc.binning->bin_sizes();
   double mc_sum = datamc.mc.count.sum();
-  if (mc_sum == 0.0)
-    throw EmptyMC();
+  // if (mc_sum == 0.0)
+    // return mc; //throw EmptyMC();
 
-  auto mc = fr.mc.finalise(false);
+  // PS We shouldn't throw if empty as makes debugging a pain
+  // when event selections may have been pre-run with limited events
+  auto mc = fr.mc.finalise(by_width);
+  if (mc_sum == 0.0)
+    return mc;
+
   double div = mc[0].value.sum(); // previous approach gave a factor of two out
   mc.values *= dt_sum / div;
   mc.errors *= dt_sum / div;
 
   fr.estimate = mc;
-  return mc; 
+  return mc;
 }
 
 BinnedValues FluxUnfoldedScaling(Comparison &fr,

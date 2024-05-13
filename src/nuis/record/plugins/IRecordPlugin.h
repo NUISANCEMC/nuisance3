@@ -10,5 +10,5 @@ class IRecordPlugin : public IRecord {
   virtual bool good() const = 0;
 };
 
-using IRecordPluginPtr = std::shared_ptr<IRecordPlugin>;
+using IRecordPluginPtr = std::unique_ptr<IRecordPlugin>;
 } // namespace nuis
