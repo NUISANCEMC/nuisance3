@@ -86,7 +86,7 @@ namespace nuis {
 
 NEW_NUISANCE_EXCEPT(HepDataDirDoesNotExist);
 NEW_NUISANCE_EXCEPT(InvalidTableForRecord);
-NEW_NUISANCE_EXCEPT(ProSelectaLoadFileFailure);
+NEW_NUISANCE_EXCEPT(ProSelectaload_fileFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetFilterFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetProjectionFailure);
 
@@ -204,16 +204,16 @@ public:
       analysis = cfg["analysis"].as<std::string>();
 
     if (std::find(ps_paths.begin(), ps_paths.end(), path_release + "analysis.cxx") == ps_paths.end()){
-      ProSelecta::Get().AddIncludePath(path_release);
-      if (!ProSelecta::Get().LoadFile(path_release + "analysis.cxx", ProSelecta::Interpreter::kCling)) {
+      ProSelecta::Get().add_include_path(path_release);
+      if (!ProSelecta::Get().load_file(path_release + "analysis.cxx", ProSelecta::Interpreter::kCling)) {
         log_critical("[ERROR]: Cling failed interpreting: {}", analysis);
-        throw ProSelectaLoadFileFailure();
+        throw ProSelectaload_fileFailure();
       }
       ps_paths.push_back(path_release + "analysis.cxx");
     }
 
     std::string filter_name = variables_dep[0].qualifiers["Filter"];
-    tab.select = ProSelecta::Get().GetSelectFunction(
+    tab.select = ProSelecta::Get().get_select_func(
         filter_name, ProSelecta::Interpreter::kCling);
     if (!tab.select) {
       std::cout << "[ERROR]: Cling didn't find a filter function named: "
@@ -228,7 +228,7 @@ public:
     }
 
     for (auto const &pn : projection_names) {
-      auto pjf = ProSelecta::Get().GetProjectionFunction(
+      auto pjf = ProSelecta::Get().get_projection_func(
           pn, ProSelecta::Interpreter::kCling);
 
       if (pjf) {

@@ -20,7 +20,7 @@ std::string database() {
     log_critical("PROSELECTA_DIR environment variable not defined");
     throw PROSELECTA_DIRUndefined();
   }
-  ps::ProSelecta::Get().AddIncludePath(PROSELECTA);
+  ps::ProSelecta::Get().add_include_path(PROSELECTA);
 
   // Require Database Valid
   auto DATABASE = std::getenv("NUISANCEDB");

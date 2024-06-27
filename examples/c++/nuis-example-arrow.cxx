@@ -11,7 +11,7 @@
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"
 
-#include "ProSelecta/env/env.h"
+#include "ProSelecta/env.h"
 
 #include "nuis/log.txx"
 

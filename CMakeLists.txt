@@ -164,6 +164,8 @@ CPMFindPackage(
     GIT_TAG "v2.9.2"
 )
 
+find_package(NuHepMC_CPPUtils)
+
 find_package(Arrow)
 set(NUIS_ARROW_ENABLED FALSE)
 if(Arrow_FOUND)
@@ -179,7 +181,7 @@ add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
   $<INSTALL_INTERFACE:include>)
-target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter Boost::boost Boost::filesystem yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen)
+target_link_libraries(nuis_options INTERFACE NuHepMC::CPPUtils ProSelecta::Interpreter Boost::boost Boost::filesystem yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen)
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 target_link_options(nuis_options INTERFACE)
 

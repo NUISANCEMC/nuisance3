@@ -18,7 +18,7 @@
 #include "Framework/Utils/RunOpt.h"
 #include "Framework/Utils/XSecSplineList.h"
 
-#include "ProSelecta/env/Units.h"
+#include "ProSelecta/unit.h"
 
 #include "NuHepMC/Constants.hxx"
 #include "NuHepMC/EventUtils.hxx"
@@ -683,8 +683,8 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
 
   if (xspline) {
     auto xs =
-        xspline->Evaluate(bpart->momentum().e() / ps::GeV) / genie::units::pb;
-    log_trace("xs(E = {}) = {}", bpart->momentum().e() / ps::GeV, xs);
+        xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) / genie::units::pb;
+    log_trace("xs(E = {}) = {}", bpart->momentum().e() / ps::unit::GeV, xs);
     NuHepMC::EC2::SetTotalCrossSection(*ge, xs); // in GeV
   }
 
@@ -716,8 +716,8 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
   auto xspline = GetSpline(tpart->pid(), bpart->pid());
   if (xspline) {
     auto xs =
-        xspline->Evaluate(bpart->momentum().e() / ps::GeV) / genie::units::pb;
-    log_trace("xs(E = {}) = {}", bpart->momentum().e() / ps::GeV, xs);
+        xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) / genie::units::pb;
+    log_trace("xs(E = {}) = {}", bpart->momentum().e() / ps::unit::GeV, xs);
     NuHepMC::EC2::SetTotalCrossSection(*ge, xs); // in GeV
   }
   return ge;

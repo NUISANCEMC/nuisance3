@@ -17,7 +17,7 @@ int main(int argc, char const *argv[]) {
   }
 
   nuis::EventSourceFactory fact;
-  auto [gri, evs] = fact.make(YAML::LoadFile(argv[1]));
+  auto [gri, evs] = fact.make(YAML::load_file(argv[1]));
 
   auto wrtr = NuHepMC::Writer::make_writer(argv[2], gri);
 
