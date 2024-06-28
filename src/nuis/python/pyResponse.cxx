@@ -19,4 +19,15 @@ void pyResponseInit(py::module &m) {
            })
       .def("eval", &NaturalCubicFrameSplineXd::eval)
       .def_readwrite("coeffs", &NaturalCubicFrameSplineXd::coeffs);
+
+  py::class_<GaussRBFInterpolXd>(respmod, "GaussRBFInterpol")
+      .def(py::init<>())
+      .def("build",
+           [](GaussRBFInterpolXd &self, Eigen::ArrayXXd x,
+              Eigen::ArrayXXCRef<double> y) {
+             self.knots = x;
+             self.build(y);
+           })
+      .def("eval", &GaussRBFInterpolXd::eval)
+      .def_readwrite("coeffs", &GaussRBFInterpolXd::coeffs);
 }

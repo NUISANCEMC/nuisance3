@@ -34,7 +34,7 @@ struct NaturalCubicFrameSpline {
   NaturalCubicFrameSpline() {}
 
   template <typename iP> NaturalCubicFrameSpline(Eigen::ColArray<N, iP> x) {
-    knot_x = x.template cast<iP>();
+    knot_x = x.template cast<P>();
   }
 
   void build(Eigen::ArrayXXCRef<P> yvals);
@@ -58,6 +58,32 @@ using NaturalCubicFrameSpline5f = NaturalCubicFrameSpline<5, float>;
 using NaturalCubicFrameSpline6f = NaturalCubicFrameSpline<7, float>;
 using NaturalCubicFrameSplineXf =
     NaturalCubicFrameSpline<Eigen::Dynamic, float>;
+
+template <typename P = float> struct GaussRBFInterpol {
+
+  int num_knots;
+  Eigen::ArrayXX<P> knots;
+  Eigen::ArrayXX<P> coeffs;
+  P beta;
+
+  GaussRBFInterpol() {}
+
+  template <typename iP> GaussRBFInterpol(Eigen::ArrayXX<iP> x) {
+    knots = x.template cast<P>();
+  }
+
+  void build(Eigen::ArrayXXCRef<P> yvals);
+
+  template <typename iP>
+  void build(
+      std::enable_if_t<!std::is_same_v<P, iP>, Eigen::ArrayXXCRef<iP>> yvals) {
+    build(yvals.template cast<P>());
+  }
+
+  Eigen::ColArrayX<P> eval(Eigen::RowArrayX<P> val);
+};
+
+using GaussRBFInterpolXd = GaussRBFInterpol<double>;
 
 // #ifdef NUIS_ARROW_ENABLED
 
