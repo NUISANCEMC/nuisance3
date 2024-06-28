@@ -11,8 +11,13 @@ void pyResponseInit(py::module &m) {
   auto respmod = m.def_submodule("response", "");
   py::class_<NaturalCubicFrameSpline<4, double>>(respmod,
                                                  "NaturalCubicFrameSpline4")
-      .def(py::init<Eigen::Array4d>())
-      .def("build", &NaturalCubicFrameSpline<4, double>::build)
+      .def(py::init<>())
+      .def("build",
+           [](NaturalCubicFrameSpline<4, double> &self, Eigen::Array4d x,
+              Eigen::ArrayXXpCRef<double> y) {
+             self.knot_x = x;
+             self.build(y);
+           })
       .def("eval", &NaturalCubicFrameSpline<4, double>::eval)
       .def_readwrite("coeffs", &NaturalCubicFrameSpline<4, double>::coeffs);
 }

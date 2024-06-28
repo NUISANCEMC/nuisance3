@@ -22,6 +22,7 @@ target_link_libraries(_pyNUISANCE
     weightcalc_plugins 
     record 
     convert
+    response
     #NuHepMC::CPPUtils 
     pybind11::module
     ROOT::Hist)

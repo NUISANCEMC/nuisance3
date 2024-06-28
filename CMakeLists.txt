@@ -81,29 +81,24 @@ IF("${isSystemDir}" STREQUAL "-1")
    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 ENDIF("${isSystemDir}" STREQUAL "-1")
 
-### GRUMPY LUKE SAYS: I think the RPATH stuff above should allow running from the build dir
-# Hack for build tree allow running directly from build
-# set(CMAKE_INCLUDE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/include)
-# set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-# set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-# Force position independent code as issues with some python libraries if not
-### GRUMPY LUKE SAYS: This isn't the best way to do this, add it to an interface target and link that
-###                   target to the python libs. We could add this to nuis_options for example. 
-###                   Setting global cmake options like this will break stuff, especially 
-###                   CPM-pulled-in dependencies.
-# set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-# SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC")
-
-
 ######################### Dependencies
 
 include(CPM)
 
-### GRUMPY LUKE SAYS: Do we need this? #WorksForMe fully CPM without it
-# Use a package lock
-# CPMUsePackageLock(package-lock.cmake)
+CPMFindPackage(
+  NAME Eigen3
+  VERSION 3.4.0
+  GITLAB_REPOSITORY "libeigen/eigen"
+  GIT_TAG "3.4.0"
+  OPTIONS "EIGEN_BUILD_DOC no" "BUILD_TESTING no"
+)
+
+CPMFindPackage(
+  NAME NuHepMC_CPPUtils
+  GIT_TAG main
+  GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
+  OPTIONS "NuHepMC_CPPUtils_BUILTIN_HEPMC3 ON"
+)
 
 CPMFindPackage(
     NAME ProSelecta
@@ -144,20 +139,6 @@ CPMFindPackage(
 )
 
 CPMFindPackage(
-  NAME Eigen3
-  VERSION 3.4.0
-  GITLAB_REPOSITORY "libeigen/eigen"
-  GIT_TAG "3.4.0"
-  OPTIONS "EIGEN_BUILD_DOC no" "BUILD_TESTING no"
-)
-
-# CPMFindPackage(
-#   NAME cppzmq
-#   GIT_TAG v4.8.1
-#   GIT_REPOSITORY "https://github.com/zeromq/cppzmq"
-# )
-
-CPMFindPackage(
     NAME pybind11
     VERSION 2.9.2
     GITHUB_REPOSITORY pybind/pybind11
@@ -181,7 +162,7 @@ add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
   $<INSTALL_INTERFACE:include>)
-target_link_libraries(nuis_options INTERFACE NuHepMC::CPPUtils ProSelecta::Interpreter Boost::boost Boost::filesystem yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen)
+target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter NuHepMC::CPPUtils Boost::boost Boost::filesystem yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen)
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 target_link_options(nuis_options INTERFACE)
 
