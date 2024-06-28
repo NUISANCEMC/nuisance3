@@ -9,15 +9,14 @@ using namespace nuis;
 
 void pyResponseInit(py::module &m) {
   auto respmod = m.def_submodule("response", "");
-  py::class_<NaturalCubicFrameSpline<4, double>>(respmod,
-                                                 "NaturalCubicFrameSpline4")
+  py::class_<NaturalCubicFrameSplineXd>(respmod, "NaturalCubicFrameSpline")
       .def(py::init<>())
       .def("build",
-           [](NaturalCubicFrameSpline<4, double> &self, Eigen::Array4d x,
-              Eigen::ArrayXXpCRef<double> y) {
+           [](NaturalCubicFrameSplineXd &self, Eigen::ArrayXd x,
+              Eigen::ArrayXXCRef<double> y) {
              self.knot_x = x;
              self.build(y);
            })
-      .def("eval", &NaturalCubicFrameSpline<4, double>::eval)
-      .def_readwrite("coeffs", &NaturalCubicFrameSpline<4, double>::coeffs);
+      .def("eval", &NaturalCubicFrameSplineXd::eval)
+      .def_readwrite("coeffs", &NaturalCubicFrameSplineXd::coeffs);
 }

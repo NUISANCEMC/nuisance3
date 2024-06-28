@@ -10,37 +10,54 @@
 
 namespace Eigen {
 
-template <size_t N, typename P = float> using ArrayNp = Eigen::Array<P, 1, N>;
-template <typename P = float> using ArrayXXp = Array<P, Dynamic, Dynamic>;
+template <typename P = float> using RowArrayX = Array<P, 1, Dynamic>;
+template <typename P = float> using ColArrayX = Array<P, Dynamic, 1>;
+using RowArrayXd = RowArrayX<double>;
+using ColArrayXd = ColArrayX<double>;
+template <int N, typename P = float> using RowArray = Array<P, 1, N>;
+template <int N, typename P = float> using ColArray = Array<P, N, 1>;
+template <typename P = float> using ArrayXX = Array<P, Dynamic, Dynamic>;
 template <typename P = float>
-using ArrayXXpCRef = Ref<Eigen::Array<P, Dynamic, Dynamic> const, 0,
-                         Stride<Eigen::Dynamic, Dynamic>> const;
+using ArrayXXCRef = Ref<Eigen::Array<P, Dynamic, Dynamic> const, 0,
+                        Stride<Eigen::Dynamic, Dynamic>> const;
 
 } // namespace Eigen
 
 namespace nuis {
 
-template <size_t N, typename P = float> struct NaturalCubicFrameSpline {
+template <int N = Eigen::Dynamic, typename P = float>
+struct NaturalCubicFrameSpline {
 
-  Eigen::ArrayNp<N, P> knot_x;
-  Eigen::ArrayXXp<P> coeffs;
+  Eigen::ColArray<N, P> knot_x;
+  Eigen::ArrayXX<P> coeffs;
 
   NaturalCubicFrameSpline() {}
 
-  template <typename iP> NaturalCubicFrameSpline(Eigen::ArrayNp<N, iP> x) {
+  template <typename iP> NaturalCubicFrameSpline(Eigen::ColArray<N, iP> x) {
     knot_x = x.template cast<iP>();
   }
 
-  void build(Eigen::ArrayXXpCRef<P> yvals);
+  void build(Eigen::ArrayXXCRef<P> yvals);
 
   template <typename iP>
   void build(
-      std::enable_if_t<!std::is_same_v<P, iP>, Eigen::ArrayXXpCRef<iP>> yvals) {
+      std::enable_if_t<!std::is_same_v<P, iP>, Eigen::ArrayXXCRef<iP>> yvals) {
     build(yvals.template cast<P>());
   }
 
-  Eigen::Array<P, Eigen::Dynamic, 1> eval(P val);
+  Eigen::ColArrayX<P> eval(P val);
 };
+
+using NaturalCubicFrameSpline3d = NaturalCubicFrameSpline<3, double>;
+using NaturalCubicFrameSpline5d = NaturalCubicFrameSpline<5, double>;
+using NaturalCubicFrameSpline6d = NaturalCubicFrameSpline<6, double>;
+using NaturalCubicFrameSplineXd =
+    NaturalCubicFrameSpline<Eigen::Dynamic, double>;
+using NaturalCubicFrameSpline3f = NaturalCubicFrameSpline<3, float>;
+using NaturalCubicFrameSpline5f = NaturalCubicFrameSpline<5, float>;
+using NaturalCubicFrameSpline6f = NaturalCubicFrameSpline<7, float>;
+using NaturalCubicFrameSplineXf =
+    NaturalCubicFrameSpline<Eigen::Dynamic, float>;
 
 // #ifdef NUIS_ARROW_ENABLED
 
