@@ -84,26 +84,6 @@ template <typename P = float> struct GaussRBFInterpol {
 };
 
 using GaussRBFInterpolXd = GaussRBFInterpol<double>;
-
-// #ifdef NUIS_ARROW_ENABLED
-
-// template <typename P = float> struct NaturalCubicArrowSpline {
-
-//   std::vector<std::string> col_names;
-//   std::vector<P> knot_x;
-//   std::shared_ptr<arrow::RecordBatch> coeffs;
-
-//   NaturalCubicArrowSpline(std::vector<std::string> const &column_names,
-//                           std::vector<P> const &x) {
-//     col_names = column_names;
-//     knot_x = x;
-//   }
-
-//   void build(std::shared_ptr<arrow::RecordBatch> yvals);
-
-//   std::shared_ptr<typename column_type<From>::ATT::ArrayType> eval(P val);
-// };
-
-// #endif
+using GaussRBFInterpolXf = GaussRBFInterpol<float>;
 
 } // namespace nuis
