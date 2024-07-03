@@ -31,8 +31,11 @@
 
 #include "TFile.h"
 #include "TGraph.h"
+#include "TChain.h"
 
+#ifdef USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
+#endif
 
 #include <fstream>
 
@@ -732,7 +735,14 @@ GHEP3EventSource::EventRecord(HepMC3::GenEvent const &ev) {
 IEventSourcePtr GHEP3EventSource::MakeEventSource(YAML::Node const &cfg) {
   return std::make_shared<GHEP3EventSource>(cfg);
 }
+GHEP3EventSource::~GHEP3EventSource(){}
 
+IEventSourcePtr GHEP3EventSource_MakeEventSource(YAML::Node const &cfg){
+  return GHEP3EventSource::MakeEventSource(cfg);
+}
+
+#ifdef USE_BOOSTDLL
 BOOST_DLL_ALIAS(nuis::GHEP3EventSource::MakeEventSource, MakeEventSource);
+#endif
 
 } // namespace nuis

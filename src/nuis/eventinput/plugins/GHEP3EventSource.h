@@ -54,7 +54,9 @@ public:
 
   genie::EventRecord const *EventRecord(HepMC3::GenEvent const &ev);
 
-  virtual ~GHEP3EventSource() {}
+  virtual ~GHEP3EventSource();
 };
+
+IEventSourcePtr GHEP3EventSource_MakeEventSource(YAML::Node const &cfg);
 
 } // namespace nuis

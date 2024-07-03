@@ -9,7 +9,9 @@
 #include "TChain.h"
 #include "TFile.h"
 
+#ifdef USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
+#endif
 
 #include "nuis/log.txx"
 
@@ -118,6 +120,12 @@ public:
   virtual ~NuWroevent1EventSource() {}
 };
 
+IEventSourcePtr NuWroevent1EventSource_MakeEventSource(YAML::Node const &cfg) {
+  return NuWroevent1EventSource::MakeEventSource(cfg);
+}
+
+#ifdef USE_BOOSTDLL
 BOOST_DLL_ALIAS(nuis::NuWroevent1EventSource::MakeEventSource, MakeEventSource);
+#endif
 
 } // namespace nuis

@@ -23,7 +23,9 @@
 
 #include "yaml-cpp/yaml.h"
 
+#ifdef USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
+#endif
 
 #include <fstream>
 
@@ -248,7 +250,7 @@ BuildRunInfo(Long64_t nevents, double fatx, int probepid,
   return run_info;
 }
 
-class NUISANCE2FlattTreeEventSource : public IEventSource {
+class NUISANCE2FlatTreeEventSource : public IEventSource {
 
   std::vector<std::filesystem::path> filepaths;
   std::unique_ptr<TChain> chin;
@@ -397,8 +399,8 @@ class NUISANCE2FlattTreeEventSource : public IEventSource {
   }
 
 public:
-  NUISANCE2FlattTreeEventSource(YAML::Node const &cfg) {
-    log_trace("[NUISANCE2FlattTreeEventSource] enter");
+  NUISANCE2FlatTreeEventSource(YAML::Node const &cfg) {
+    log_trace("[NUISANCE2FlatTreeEventSource] enter");
     if (cfg["filepath"]) {
       log_trace("Checking file {} for tree FlatTree_VARS.",
                 cfg["filepath"].as<std::string>());
@@ -416,7 +418,7 @@ public:
         }
       }
     }
-    log_trace("[NUISANCE2FlattTreeEventSource] exit");
+    log_trace("[NUISANCE2FlatTreeEventSource] exit");
   }
 
   std::shared_ptr<HepMC3::GenEvent> first() {
@@ -513,11 +515,18 @@ public:
   }
 
   static IEventSourcePtr MakeEventSource(YAML::Node const &cfg) {
-    return std::make_shared<NUISANCE2FlattTreeEventSource>(cfg);
+    return std::make_shared<NUISANCE2FlatTreeEventSource>(cfg);
   }
 };
 
-BOOST_DLL_ALIAS(nuis::NUISANCE2FlattTreeEventSource::MakeEventSource,
+IEventSourcePtr
+NUISANCE2FlatTreeEventSource_MakeEventSource(YAML::Node const &cfg) {
+  return NUISANCE2FlatTreeEventSource::MakeEventSource(cfg);
+}
+
+#ifdef USE_BOOSTDLL
+BOOST_DLL_ALIAS(nuis::NUISANCE2FlatTreeEventSource::MakeEventSource,
                 MakeEventSource);
+#endif
 
 } // namespace nuis

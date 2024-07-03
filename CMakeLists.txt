@@ -99,6 +99,7 @@ CPMFindPackage(
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
   OPTIONS "NuHepMC_CPPUtils_BUILTIN_HEPMC3 ON"
 )
+find_package(HepMC3 REQUIRED)
 
 CPMFindPackage(
     NAME ProSelecta
@@ -138,6 +139,12 @@ CPMFindPackage(
             "YAML_BUILD_SHARED_LIBS ON"
 )
 
+find_package(Python3 REQUIRED)
+
+# PYTHON PATHS
+set(NUISANCE3_PYVMAJMIN "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+set(NUISANCE3_PYTHONPATH "python/${NUISANCE3_PYVMAJMIN}/pyNUISANCE")
+
 CPMFindPackage(
     NAME pybind11
     VERSION 2.9.2
@@ -147,18 +154,12 @@ CPMFindPackage(
 
 find_package(OpenMP REQUIRED)
 
-find_package(NuHepMC_CPPUtils)
-
 find_package(Arrow)
 set(NUIS_ARROW_ENABLED FALSE)
 if(Arrow_FOUND)
   set(NUIS_ARROW_ENABLED TRUE)
   find_package(ArrowPython REQUIRED HINTS ${Arrow_DIR})
 endif()
-
-# PYTHON PATHS
-set(NUISANCE_PYSITEARCH "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
-set(NUISANCE_PYTHONPATH "python/${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/pyNUISANCE/")
 
 add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
@@ -220,114 +221,9 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/examples/c++)
 
-
-# Sorry all this below is a mess, I will tidy.... PS
-
-if(NOT CMAKE_PROPERTY_LIST)
-    execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
-    
-    # Convert command output into a CMake list
-    string(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
-    string(REGEX REPLACE "\n" ";" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
-    list(REMOVE_DUPLICATES CMAKE_PROPERTY_LIST)
-endif()
-
-function(print_target_properties target)
-    if(NOT TARGET ${target})
-      message(STATUS "There is no target named '${target}'")
-      return()
-    endif()
-
-    foreach(property ${CMAKE_PROPERTY_LIST})
-        string(REPLACE "<CONFIG>" "DEBUG" property ${property})
-
-        get_property(was_set TARGET ${target} PROPERTY ${property} SET)
-        if(was_set)
-            get_target_property(value ${target} ${property})
-            message("${target} ${property} = ${value}")
-        endif()
-    endforeach()
-    message(STATUS "GOT LIB FOR TARGET '${target}'")
-endfunction()
-
-function(clear_global_properties)
-    set(GLOBAL_COMPILE_OPTIONS "" CACHE INTERNAL "Global compile options")
-    set(GLOBAL_INCLUDE_DIRS "" CACHE INTERNAL "Global include directories")
-    set(GLOBAL_COMPILE_DEFS "" CACHE INTERNAL "Global compile definitions")
-endfunction()
-
-# Function to recursively collect properties
-function(collect_target_properties target)
-    get_target_property(link_libs ${target} INTERFACE_LINK_LIBRARIES)
-    if(link_libs)
-        foreach(lib ${link_libs})
-            if(TARGET ${lib})
-                collect_target_properties(${lib})
-            endif()
-        endforeach()
-    endif()
-
-    #message("LINK LIBS ${link_libs} ${target}")
-    #print_target_properties(${target})
-    # Collect properties
-    #get_target_property(location ${target} LOCATION)
-    get_target_property(include_dirs ${target} INTERFACE_INCLUDE_DIRECTORIES)
-    get_target_property(compile_defs ${target} INTERFACE_COMPILE_DEFINITIONS)
-
-    #message("${target} ${link_libs} ${location} ${include_dirs} ${compile_defs}")
-    #message("GLOBALS ${GLOBAL_LOCATION} ")
-    #message("GLOBALS ${GLOBAL_INCLUDE_DIRS} ")
-
-    # Append properties to global properties
-    if(location)
-      set(GLOBAL_LOCATION "${GLOBAL_LOCATION};${location}" CACHE INTERNAL "Global compile definitions")
-    endif()
-
-    if(include_dirs)
-      #message("ADDING INCLUDE PATH ${include_dirs} ${GLOBAL_INCLUDE_DIRS}")
-      set(GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS};${include_dirs}" CACHE INTERNAL "Global compile definitions")
-    endif()
-
-    if(compile_defs)
-      #message("ADDING COMPILE DEF ${compile_defs} ${GLOBAL_COMPILE_DEFS}")
-      set(GLOBAL_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS};${compile_defs}" CACHE INTERNAL "Global compile definitions")
-    endif()
-
-  #message("LOCALCOMPILEDEF ${GLOBAL_COMPILE_DEFS}")
-  #message("LOCALCOMPILEDIR ${GLOBAL_INCLUDE_DIRS}")
-  #message("LOCALCOMPILELOC ${GLOBAL_LOCATION}")
-
-endfunction()
-
-
-# Call the function with your target
-#print_target_properties(nuis_options)
-clear_global_properties()
-collect_target_properties(nuis_options)
-
-string(REPLACE ";" " -D" GLOBAL_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS}")
-string(REPLACE ";" ":" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
-string(REPLACE ";" " -L" GLOBAL_LOCATION "${GLOBAL_LOCATION}")
-
-
-string(REPLACE "$" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
-string(REPLACE "<" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
-string(REPLACE "BUILD_INTERFACE:" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
-string(REPLACE ">" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
-string(REPLACE "$" "" GLOBAL_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
-
-string(REPLACE "-D$<$<NOT $<BOOL ON>> YAML_CPP_STATIC_DEFINE>" "" GLOBAL_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS}")
-
-# message("COMPILEDEF ${GLOBAL_COMPILE_DEFS}")
-# message("COMPILEDIR ${GLOBAL_INCLUDE_DIRS}")
-# message("COMPILELOC ${GLOBAL_LOCATION}")
-
-set(NUISANCE_COMPILE_DEFS "${GLOBAL_COMPILE_DEFS}")
-set(NUISANCE_INCLUDE_DIRS "${GLOBAL_INCLUDE_DIRS}")
-set(NUISANCE_LOCATION "${GLOBAL_LOCATION}")
-
 # BUILD SETUP
-configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.NUISANCE3.sh.in ${PROJECT_BINARY_DIR}/setup.NUISANCE3.sh @ONLY)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.NUISANCE3.sh.in 
+  ${PROJECT_BINARY_DIR}/setup.NUISANCE3.sh @ONLY)
 install(PROGRAMS ${PROJECT_BINARY_DIR}/setup.NUISANCE3.sh DESTINATION bin)
 
 if(NUISANCE_ENABLE_TESTS)

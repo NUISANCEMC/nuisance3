@@ -9,13 +9,11 @@ except ModuleNotFoundError:
   print("Failed import of pyNUISANCE.matplotlib_helpers")
   pass
 
-
-# try:
-#   import ROOT
-#   from .root_helpers import *
-# except ModuleNotFoundError:
-#     pass
-
+try:
+  import ROOT
+  from .root_helpers import *
+except ModuleNotFoundError:
+    pass
 
 try:
   from .hepdata_helpers import hepdata as hpd
