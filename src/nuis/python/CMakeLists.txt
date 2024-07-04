@@ -1,3 +1,5 @@
+find_package(ROOT REQUIRED)
+
 pybind11_add_module(_pyNUISANCE SHARED 
   pyNUISANCE.cxx 
   pyYAML.cxx 

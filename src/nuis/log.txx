@@ -236,7 +236,6 @@ inline log_level_scopeguard_impl log_level_scopeguard(log_level ll) {
 inline stop_talking_scopeguard_impl::stop_talking_scopeguard_impl(
     log_level ll, log_level limit)
     : did_stop_talking{false} {
-      std::cout << "ll: " << int(ll) << ", limit = " << int(limit) << std::endl;
   if (ll <= limit) {
     std::cout << " did scope guard " << std::endl;
     did_stop_talking = true;
