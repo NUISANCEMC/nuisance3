@@ -107,7 +107,7 @@ CPMFindPackage(
     GIT_TAG main
 )
 
-CPMFindPackage(
+CPMAddPackage(
     NAME fmt
     VERSION 8.1.1
     GIT_TAG 8.1.1
@@ -115,7 +115,7 @@ CPMFindPackage(
     OPTIONS "FMT_INSTALL ON"
 )
 
-CPMFindPackage(
+CPMAddPackage(
     NAME spdlog
     VERSION 1.10.0
     GIT_TAG v1.10.0
