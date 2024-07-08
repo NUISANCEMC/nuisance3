@@ -139,7 +139,7 @@ CPMFindPackage(
             "YAML_BUILD_SHARED_LIBS ON"
 )
 
-find_package(Python3 REQUIRED COMPONENTS Development)
+find_package(Python3 REQUIRED COMPONENTS Development Interpreter)
 
 # PYTHON PATHS
 set(NUISANCE3_PYVMAJMIN "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")

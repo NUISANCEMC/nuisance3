@@ -21,7 +21,7 @@ function nuis_flux_help {
   echo -e "\t                                   Useful for testing local flux tables without requiring a HepData recordid."
   echo -e "\t  range                          : Say the X axis range of the referenced histogram"
   echo -e "\tOptions:"
-  echo -e "\t  -f|--follow                    : Interpret reference as a reference to a measurement measurement and"
+  echo -e "\t  -f|--follow                    : Interpret reference as a reference to a measurement and"
   echo -e "\t                                   follow the referenced probe_spectrum qualifier to find the flux."
   echo -e "\t  -r|--root                      : Returned URI points to a ROOT histogram, rather than a "
   echo -e "\t                                   HepData data table."

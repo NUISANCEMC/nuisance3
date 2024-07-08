@@ -52,14 +52,15 @@ public:
 
   explicit NUISANCERecord(YAML::Node const &cfg) { node = cfg; }
 
-  TablePtr table(std::string const &name) {
+  TablePtr table(YAML::Node const &cfg) {
     auto tbl = std::make_shared<Table>();
 
     Config::SetPar("EventManager", false);
     Config::SetPar("UseSVDInverse", true);
 
     nuis2mblob mblob{std::shared_ptr<MeasurementBase>(SampleUtils::CreateSample(
-                         name, "Dummy:dummy.file", "", "", nullptr)),
+                         cfg["table"].as<std::string>(), "Dummy:dummy.file", "",
+                         "", nullptr)),
                      std::make_shared<NuHepMCInputHandler>(),
                      std::make_shared<FitEvent>()};
     mblob.inputhandler->fNUISANCEEvent = mblob.fitevent.get();
@@ -83,7 +84,7 @@ public:
     tbl->clear = nuis::clear::DefaultClear;
     tbl->weight = nuis::weight::DefaultWeight;
     tbl->finalize = nuis::finalize::FATXNormalizedByBinWidth;
-    tbl->likeihood = nuis::likelihood::Chi2;
+    tbl->likelihood = nuis::likelihood::Chi2;
 
     tbl->select = [mblob](HepMC3::GenEvent const &ev) -> int {
       return mblob.measurement->isSignal(mblob.to_fit_event(ev));
@@ -110,7 +111,7 @@ public:
   bool good() const { return true; }
 
   static IRecordPluginPtr Make(YAML::Node const &cfg) {
-    return std::make_shared<NUISANCERecord>(cfg);
+    return std::make_unique<NUISANCERecord>(cfg);
   }
 
   virtual ~NUISANCERecord() {}

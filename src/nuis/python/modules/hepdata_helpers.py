@@ -6,10 +6,10 @@ import yaml
 from .HepDataRefResolver import GetLocalPathToResource, ResolveReferenceIdentifiers
 
 def context_to_ref(**context):
-  record_ref = context["reftype"] + ":" + context["recordid"]
+  record_ref = context["reftype"] + ":" + str(context["recordid"])
 
   if context["recordvers"]:
-   record_ref = record_ref + "v" + context["recordvers"]
+   record_ref = record_ref + "v" + str(context["recordvers"])
 
   if context["resourcename"]:
     record_ref = record_ref + "/" + context["resourcename"]
@@ -20,9 +20,11 @@ def context_to_ref(**context):
 
 def get_local_path_to_resource(ref="", **context):
 
-  if ':' in ref and os.path.exists(ref.split(':')[0]):
+  #short circuit for existing local file with qualifier
+  if ':' in ref and os.path.exists(ref.split(':')[0]) and os.path.isfile(ref.split(':')[0]):
     return "", ref.split(':')[0], {"qualifier": ref.split(':')[1], "resourcename": os.path.basename(ref.split(':')[0])}
 
+  #short circuit for existing local file
   if ref and os.path.exists(ref):
     return "", ref, {"resourcename": os.path.basename(ref.split(':')[0])}
 
@@ -30,7 +32,6 @@ def get_local_path_to_resource(ref="", **context):
 
   if not record_database_root:
     raise RuntimeError("NUISANCE_RECORD_DATABASE environment variable is not defined")
-
 
   rctx = ResolveReferenceIdentifiers(ref, **context)
 
