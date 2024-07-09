@@ -336,12 +336,29 @@ class NUISANCE2FlatTreeEventSource : public IEventSource {
       if (pid == **PDGnu) {
         part->set_status(NuHepMC::ParticleStatus::IncomingBeam);
         primary_vtx->add_particle_in(part);
-      } else if (pid == **tgt) {
-        part->set_status(NuHepMC::ParticleStatus::Target);
-        tgt_part = part;
-      } else if ((pid == 2212) || (pid == 2112)) {
-        part->set_status(NuHepMC::ParticleStatus::StruckNucleon);
-        struck_nuc_part = part;
+      } else { // looking for struck nucleon/target nucleus
+        // if the tgt is a nuclear code for hydrogen
+        if (**tgt == 1000010010) { // hydrogen/proton
+          if ((pid == 2212) || (pid == **tgt)) {
+            part->set_status(NuHepMC::ParticleStatus::Target);
+            tgt_part = part;
+          }
+        } else if (**tgt == 1000000010) { // free nucleon
+          if ((pid == 2112) || (pid == **tgt)) {
+            part->set_status(NuHepMC::ParticleStatus::Target);
+            tgt_part = part;
+          }
+          // otherwise assume we have a bigger nucleus and can build the target
+          // nuclear particle and maybe struck nucleon
+        } else {
+          if (pid == **tgt) {
+            part->set_status(NuHepMC::ParticleStatus::Target);
+            tgt_part = part;
+          } else if ((pid == 2212) || (pid == 2112)) {
+            part->set_status(NuHepMC::ParticleStatus::StruckNucleon);
+            struck_nuc_part = part;
+          }
+        }
       }
     }
 

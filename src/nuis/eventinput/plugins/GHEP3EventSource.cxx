@@ -29,9 +29,9 @@
 #include "HepMC3/GenRunInfo.h"
 #include "HepMC3/GenVertex.h"
 
+#include "TChain.h"
 #include "TFile.h"
 #include "TGraph.h"
-#include "TChain.h"
 
 #ifdef USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
@@ -202,7 +202,8 @@ bool IsPrimaryParticle(::genie::GHepParticle const &p,
   return false;
 }
 
-int GetGENIEParticleStatus(::genie::GHepParticle const &p, int proc_id) {
+int GetGENIEParticleStatus(::genie::GHepParticle const &p, int proc_id,
+                           int TargetPDG, bool IsFree) {
   /*
      kIStUndefined                  = -1,
      kIStInitialState               =  0,   / generator-level initial state /
@@ -268,6 +269,12 @@ int GetGENIEParticleStatus(::genie::GHepParticle const &p, int proc_id) {
                                                                // remnant
       state = ::NuHepMC::ParticleStatus::UndecayedPhysical;
     }
+  }
+
+  // slight hack for target pdgs being single particle codes for free targets.
+  if ((state == ::NuHepMC::ParticleStatus::IncomingBeam) &&
+      (p.Pdg() == TargetPDG) && IsFree) {
+    state = ::NuHepMC::ParticleStatus::Target;
   }
 
   return state;
@@ -454,7 +461,7 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
         dynamic_cast<::genie::GHepParticle const &>(*po);
 
     // Get Status
-    int state = GetGENIEParticleStatus(p, proc_id);
+    int state = GetGENIEParticleStatus(p, proc_id, TargetPDG, IsFree);
 
     // Remove Undefined
     if (state == 0) {
@@ -526,7 +533,7 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
       ::genie::GHepParticle const &p =
           dynamic_cast<::genie::GHepParticle const &>(*po);
 
-      int state = GetGENIEParticleStatus(p, proc_id);
+      int state = GetGENIEParticleStatus(p, proc_id, TargetPDG, IsFree);
       auto pid = p.Pdg();
 
       auto part = std::make_shared<HepMC3::GenParticle>(
@@ -685,8 +692,8 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
   ge->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
 
   if (xspline) {
-    auto xs =
-        xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) / genie::units::pb;
+    auto xs = xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) /
+              genie::units::pb;
     log_trace("xs(E = {}) = {}", bpart->momentum().e() / ps::unit::GeV, xs);
     NuHepMC::EC2::SetTotalCrossSection(*ge, xs); // in GeV
   }
@@ -718,8 +725,8 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
 
   auto xspline = GetSpline(tpart->pid(), bpart->pid());
   if (xspline) {
-    auto xs =
-        xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) / genie::units::pb;
+    auto xs = xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) /
+              genie::units::pb;
     log_trace("xs(E = {}) = {}", bpart->momentum().e() / ps::unit::GeV, xs);
     NuHepMC::EC2::SetTotalCrossSection(*ge, xs); // in GeV
   }
@@ -735,9 +742,9 @@ GHEP3EventSource::EventRecord(HepMC3::GenEvent const &ev) {
 IEventSourcePtr GHEP3EventSource::MakeEventSource(YAML::Node const &cfg) {
   return std::make_shared<GHEP3EventSource>(cfg);
 }
-GHEP3EventSource::~GHEP3EventSource(){}
+GHEP3EventSource::~GHEP3EventSource() {}
 
-IEventSourcePtr GHEP3EventSource_MakeEventSource(YAML::Node const &cfg){
+IEventSourcePtr GHEP3EventSource_MakeEventSource(YAML::Node const &cfg) {
   return GHEP3EventSource::MakeEventSource(cfg);
 }
 
