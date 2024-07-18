@@ -20,6 +20,7 @@ template <typename T> struct column_type {
 #endif
 };
 
+#ifdef NUIS_ARROW_ENABLED
 struct LoudDeleter {
   void operator()(arrow::ArrayBuilder *o) {
     std::cout << "deleting: " << o << std::endl;
@@ -29,7 +30,6 @@ struct LoudDeleter {
 
 using ArrowBuilderPtr = std::unique_ptr<arrow::ArrayBuilder>;
 
-#ifdef NUIS_ARROW_ENABLED
 #define NUIS_COLUMN_TYPE(ctype, atype, typenum)                                \
   template <> struct column_type<ctype> {                                      \
     constexpr static int id = typenum;                                         \
