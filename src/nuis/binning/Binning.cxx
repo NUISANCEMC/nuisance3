@@ -19,15 +19,17 @@ Binning::index_t Binning::find_bin(double x) const {
   return binning_function(vect);
 }
 
-Eigen::ArrayXd Binning::bin_sizes() const {
-  Eigen::ArrayXd bin_sizes = Eigen::ArrayXd::Zero(bins.size());
+Eigen::ArrayXd Binning::bin_sizes(size_t cols) const {
+  Eigen::ArrayXd bin_sizes = Eigen::ArrayXd::Zero(bins.size()*cols);
   size_t i = 0;
-  for (auto const &bin : bins) {
-    bin_sizes[i] = 1;
-    for (auto const &ext : bin) {
-      bin_sizes[i] *= ext.width();
+  for(size_t j = 0; j < cols; ++j) {
+    for (auto const &bin : bins) {
+      bin_sizes[i] = 1;
+      for (auto const &ext : bin) {
+        bin_sizes[i] *= ext.width();
+      }
+      i++;
     }
-    i++;
   }
   return bin_sizes;
 }

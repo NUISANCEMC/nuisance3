@@ -135,7 +135,7 @@ BinnedValues HistFrame::finalise(bool divide_by_bin_sizes) const {
   bv.errors = variances.sqrt();
 
   if (divide_by_bin_sizes) {
-    auto bin_sizes = binning->bin_sizes();
+    auto bin_sizes = binning->bin_sizes(column_info.size());
     bv.values /= bin_sizes;
     bv.errors /= bin_sizes;
   }
