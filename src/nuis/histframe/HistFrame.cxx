@@ -136,8 +136,8 @@ BinnedValues HistFrame::finalise(bool divide_by_bin_sizes) const {
 
   if (divide_by_bin_sizes) {
     auto bin_sizes = binning->bin_sizes();
-    bv.values /= bin_sizes;
-    bv.errors /= bin_sizes;
+    bv.values.colwise() /= bin_sizes;
+    bv.errors.colwise() /= bin_sizes;
   }
 
   return bv;
