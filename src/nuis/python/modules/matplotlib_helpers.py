@@ -223,16 +223,26 @@ class HistFrame_matplotlib_helper:
         
         return obj
     
-    def colormesh(self, xaxis="x", yaxis="y", column=None, plot_axis=None, *args, **kwargs):
+    def colormesh(self, xaxis="x", yaxis="y", column=None, plot_axis=None, colorbar=None, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
+        pdim, perr, plab = self.get_1d_plotdim(xaxis)
+        pdim2, perr2, plab2 = self.get_1d_plotdim(yaxis)
+
         ci = 0
         if column:
-          sci = find_column_index(column)
-          if sci != BinnedValueBase.npos:
+          sci = self.hf.find_column_index(column)
+          if sci != BinnedValues.npos:
             ci = sci
 
         X, Y, C = convert.HistFrame.to_mpl_pcolormesh(self.hf, ci)
-        return plot_axis.pcolormesh(X, Y, C, *args, **kwargs)
+        pcm = plot_axis.pcolormesh(X, Y, C, *args, **kwargs)
+        if colorbar:
+          colorbar.colorbar(pcm,ax=plot_axis)
+        
+        plot_axis.set_xlabel(plab)
+        plot_axis.set_ylabel(plab2)
+
+        return pcm
 
 def mpl_cern_template(page_dim=[3,3]):
     plt.minorticks_on()
