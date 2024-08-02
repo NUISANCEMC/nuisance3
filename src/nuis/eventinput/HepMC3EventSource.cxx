@@ -12,7 +12,7 @@
 namespace nuis {
 
 HepMC3EventSource::HepMC3EventSource(std::filesystem::path const &fp)
-    : filepath(fp){};
+    : filepath(fp) {};
 
 std::shared_ptr<HepMC3::GenEvent> HepMC3EventSource::first() {
 
@@ -40,21 +40,27 @@ std::shared_ptr<HepMC3::GenEvent> HepMC3EventSource::first() {
              reader ? reader->failed() : false);
     return nullptr;
   }
+  NUIS_LOG_TRACE("Successfully opened {} with HepMC3EventSource",
+                 filepath.native());
   return next();
 }
 
 std::shared_ptr<HepMC3::GenEvent> HepMC3EventSource::next() {
   if (reader->failed()) {
+    NUIS_LOG_TRACE("HepMC3EventSource::next reader started in failed state.");
     return nullptr;
   }
 
   auto evt = std::make_shared<HepMC3::GenEvent>();
   reader->read_event(*evt);
   if (reader->failed()) {
+    NUIS_LOG_TRACE(
+        "HepMC3EventSource::next reader was failed after reading event.");
     return nullptr;
   }
 
   evt->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
+  NUIS_LOG_TRACE("HepMC3EventSource::next returning event: {}", evt->event_number());
   return evt;
 }
 
