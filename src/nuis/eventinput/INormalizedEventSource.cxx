@@ -57,6 +57,9 @@ std::optional<EventCVWeightPair> INormalizedEventSource::first() {
     xs_acc =
         NuHepMC::FATX::MakeAccumulator(wrapped_ev_source->first()->run_info());
   } catch (NuHepMC::except const &ex) {
+    log_warn("INormalizedEventSource::first failed to determine cross-section "
+             "scaling information from event stream. If you need to read this "
+             "file, request an unnormalized EventSource.");
     return std::optional<EventCVWeightPair>();
   }
   return process(wrapped_ev_source->first());
