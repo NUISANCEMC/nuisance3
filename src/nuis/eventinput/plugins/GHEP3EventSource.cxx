@@ -568,7 +568,9 @@ genie::Spline const *GHEP3EventSource::GetSpline(int tgtpdg, int nupdg) {
     EvGens[tgtpdg][nupdg]->Configure(genie::InitialState(tgtpdg, nupdg));
     EvGens[tgtpdg][nupdg]->CreateSplines();
     EvGens[tgtpdg][nupdg]->CreateXSecSumSpline(100, 0.05, 100);
-    log_debug("Built XSecSumSpline for nu:{} on tgt:{}", nupdg, tgtpdg);
+    log_debug(
+        "Built XSecSumSpline for nu:{} on tgt:{} with EventGeneratorList: {}",
+        nupdg, tgtpdg, EventGeneratorListName);
   }
 
   return EvGens[tgtpdg][nupdg]->XSecSumSpline();
@@ -607,8 +609,8 @@ GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
   std::string SplineXML;
   if (cfg["spline_file"]) {
     SplineXML = cfg["spline_file"].as<std::string>();
-  } else if (getenv("GENIE_XSEC_FILE")) {
-    SplineXML = getenv("GENIE_XSEC_FILE");
+  } else if (std::getenv("GENIE_XSEC_FILE")) {
+    SplineXML = std::getenv("GENIE_XSEC_FILE");
   }
 
   if (!SplineXML.size()) {
@@ -621,8 +623,8 @@ GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
   std::string GENIETune;
   if (cfg["tune"]) {
     GENIETune = cfg["tune"].as<std::string>();
-  } else if (getenv("GENIE_XSEC_TUNE")) {
-    GENIETune = getenv("GENIE_XSEC_TUNE");
+  } else if (std::getenv("GENIE_XSEC_TUNE")) {
+    GENIETune = std::getenv("GENIE_XSEC_TUNE");
   }
 
   if (!GENIETune.size()) {
@@ -631,18 +633,25 @@ GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
     return;
   }
 
+  log_debug("GHep3EventSource: SetTuneName({})", GENIETune);
   genie::RunOpt::Instance()->SetTuneName(GENIETune);
+
+  if (cfg["event-generator-list"]) {
+    EventGeneratorListName = cfg["event-generator-list"].as<std::string>();
+  } else if (std::getenv("GENIE_XSEC_EVENTGENERATORLIST")) {
+    EventGeneratorListName = std::getenv("GENIE_XSEC_EVENTGENERATORLIST");
+  }
+
+  log_debug("GHep3EventSource: SetEventGeneratorList({})",
+            EventGeneratorListName);
+  genie::RunOpt::Instance()->SetEventGeneratorList(EventGeneratorListName);
+
   genie::RunOpt::Instance()->BuildTune();
 
   genie::XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
   if (ist != genie::kXmlOK) {
     log_warn("genie::XsecSplineList failed to load from {}", SplineXML);
     return;
-  }
-
-  EventGeneratorListName = "Default";
-  if (cfg["event_generator_list"]) {
-    EventGeneratorListName = cfg["event_generator_list"].as<std::string>();
   }
 }
 
@@ -735,7 +744,11 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
 
 genie::EventRecord const *
 GHEP3EventSource::EventRecord(HepMC3::GenEvent const &ev) {
-  chin->GetEntry(ev.event_number());
+  auto ev_num = ev.event_number();
+  if (ev_num != ient) { // don't read off disk if we don't need to
+    ntpl->Clear();
+    chin->GetEntry(ev_num);
+  }
   return static_cast<genie::EventRecord const *>(ntpl->event);
 }
 

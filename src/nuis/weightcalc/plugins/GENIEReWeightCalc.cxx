@@ -20,8 +20,13 @@
 #include "RwCalculators/GReWeightResonanceDecay.h"
 #include "RwCalculators/GReWeightXSecEmpiricalMEC.h"
 #include "RwCalculators/GReWeightXSecMEC.h"
+#if __has_include("RwCalculators/GReWeightNuXSecCCQEELFF.h")
+#include "RwCalculators/GReWeightNuXSecCCQEELFF.h"
+#define GRW_HAS_GReWeightNuXSecCCQEELFF
+#endif
 
 #include "Framework/EventGen/GEVGDriver.h"
+#include "Framework/Messenger/Messenger.h"
 
 #ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
@@ -31,69 +36,84 @@
 
 #include "yaml-cpp/yaml.h"
 
-#include <filesystem>
-
 namespace nuis {
 
-class GENIEReWeightCalc : public IWeightCalcPlugin {
-  std::unique_ptr<genie::rew::GReWeight> fGENIE3RW;
-  std::shared_ptr<GHEP3EventSource> nevs;
+double GENIEReWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
+  return fGENIE3RW->CalcWeight(*nevs->EventRecord(ev));
+}
+void GENIEReWeightCalc::set_parameters(
+    std::map<std::string, double> const &params) {
 
-public:
-  double calc_weight(HepMC3::GenEvent const &ev) {
-    return fGENIE3RW->CalcWeight(*nevs->EventRecord(ev));
-  };
-  void set_parameters(std::map<std::string, double> const &params) {
-    for (auto &[p, v] : params) {
-      log_info("GENIEReWeightCalc: Setting parameter {} to {}", p, v);
-      fGENIE3RW->Systematics().Set(GSyst::FromString(p), v);
-    }
-    log_info("GENIEReWeightCalc: Beginning Reconfigure");
-    fGENIE3RW->Reconfigure();
-    log_info("GENIEReWeightCalc: Done Reconfigure");
-  };
-  bool good() const { return bool(nevs); }
+  genie::Messenger::Instance()->SetPriorityLevel("ReW", pERROR);
 
-  GENIEReWeightCalc(IEventSourcePtr evs, YAML::Node const &) {
-    nevs = std::dynamic_pointer_cast<GHEP3EventSource>(evs);
-    if (!nevs) {
-      log_warn(
-          "GENIEReWeightCalc: Passed in IEventSourcePtr not instance of "
-          "GHEP3EventSource.");
-      return;
-    }
-    fGENIE3RW = std::make_unique<genie::rew::GReWeight>();
-
-    fGENIE3RW->AdoptWghtCalc("xsec_ncel", new genie::rew::GReWeightNuXSecNCEL);
-    fGENIE3RW->AdoptWghtCalc("xsec_ccqe", new genie::rew::GReWeightNuXSecCCQE);
-    fGENIE3RW->AdoptWghtCalc("xsec_MEC", new genie::rew::GReWeightXSecMEC);
-    fGENIE3RW->AdoptWghtCalc("xsec_coh", new genie::rew::GReWeightNuXSecCOH);
-    fGENIE3RW->AdoptWghtCalc("xsec_nonresbkg",
-                             new genie::rew::GReWeightNonResonanceBkg);
-    fGENIE3RW->AdoptWghtCalc("nuclear_dis",
-                             new genie::rew::GReWeightDISNuclMod);
-    fGENIE3RW->AdoptWghtCalc("hadro_res_decay",
-                             new genie::rew::GReWeightResonanceDecay);
-    fGENIE3RW->AdoptWghtCalc("hadro_fzone", new genie::rew::GReWeightFZone);
-    fGENIE3RW->AdoptWghtCalc("hadro_intranuke", new genie::rew::GReWeightINuke);
-    fGENIE3RW->AdoptWghtCalc("hadro_agky", new genie::rew::GReWeightAGKY);
-    fGENIE3RW->AdoptWghtCalc("xsec_ccqe_vec",
-                             new genie::rew::GReWeightNuXSecCCQEvec);
-    fGENIE3RW->AdoptWghtCalc("xsec_ccqe_axial",
-                             new genie::rew::GReWeightNuXSecCCQEaxial);
-    fGENIE3RW->AdoptWghtCalc("xsec_dis", new genie::rew::GReWeightNuXSecDIS);
-    fGENIE3RW->AdoptWghtCalc("xsec_nc", new genie::rew::GReWeightNuXSecNC);
-    fGENIE3RW->AdoptWghtCalc("xsec_ccres",
-                             new genie::rew::GReWeightNuXSecCCRES);
-    fGENIE3RW->AdoptWghtCalc("xsec_ncres",
-                             new genie::rew::GReWeightNuXSecNCRES);
-    fGENIE3RW->AdoptWghtCalc("nuclear_qe", new genie::rew::GReWeightFGM);
-  };
-
-  static IWeightCalcPluginPtr MakeWeightCalc(IEventSourcePtr evs,
-                                             YAML::Node const &cfg) {
-    return std::make_shared<GENIEReWeightCalc>(evs, cfg);
+  for (auto &[p, v] : params) {
+    log_info("GENIEReWeightCalc: Setting parameter {} to {}", p, v);
+    fGENIE3RW->Systematics().Set(GSyst::FromString(p), v);
   }
+  log_info("GENIEReWeightCalc: Beginning Reconfigure");
+  fGENIE3RW->Reconfigure();
+  log_info("GENIEReWeightCalc: Done Reconfigure");
+}
+
+GENIEReWeightCalc::GENIEReWeightCalc(IEventSourcePtr evs,
+                                     YAML::Node const &cfg) {
+  nevs = std::dynamic_pointer_cast<GHEP3EventSource>(evs);
+  if (!nevs) {
+    log_warn("GENIEReWeightCalc: Passed in IEventSourcePtr not instance of "
+             "GHEP3EventSource.");
+    return;
+  }
+  fGENIE3RW = std::make_unique<genie::rew::GReWeight>();
+
+  auto adopt_engines = cfg["adopt"]
+                           ? cfg["adopt"].as<std::vector<std::string>>()
+                           : std::vector<std::string>{};
+  auto all_on =
+      cfg["adopt_all"] ? cfg["adopt_all"].as<bool>() : !adopt_engines.size();
+
+#define NUIS_LIST                                                              \
+  X(GReWeightNuXSecNCEL)                                                       \
+  X(GReWeightNuXSecCCQE)                                                       \
+  X(GReWeightXSecMEC)                                                          \
+  X(GReWeightNuXSecCOH)                                                        \
+  X(GReWeightNonResonanceBkg)                                                  \
+  X(GReWeightDISNuclMod)                                                       \
+  X(GReWeightResonanceDecay)                                                   \
+  X(GReWeightFZone)                                                            \
+  X(GReWeightINuke)                                                            \
+  X(GReWeightAGKY)                                                             \
+  X(GReWeightNuXSecCCQEvec)                                                    \
+  X(GReWeightNuXSecCCQEaxial)                                                  \
+  X(GReWeightNuXSecDIS)                                                        \
+  X(GReWeightNuXSecNC)                                                         \
+  X(GReWeightNuXSecCCRES)                                                      \
+  X(GReWeightNuXSecNCRES)                                                      \
+  X(GReWeightFGM)
+
+#define X(RWTYPE)                                                              \
+  if (all_on || std::find(adopt_engines.begin(), adopt_engines.end(),          \
+                          #RWTYPE) != adopt_engines.end()) {                   \
+    fGENIE3RW->AdoptWghtCalc(#RWTYPE, new genie::rew::RWTYPE);                 \
+  }
+
+  NUIS_LIST
+
+#undef NUIS_LIST
+#undef X
+
+#ifdef GRW_HAS_GReWeightNuXSecCCQEELFF
+  if (all_on || std::find(adopt_engines.begin(), adopt_engines.end(),
+                          "GReWeightNuXSecCCQEELFF") != adopt_engines.end()) {
+    fGENIE3RW->AdoptWghtCalc("GReWeightNuXSecCCQEELFF",
+                             new genie::rew::GReWeightNuXSecCCQEELFF);
+  }
+#endif
+}
+
+IWeightCalcPluginPtr GENIEReWeightCalc::MakeWeightCalc(IEventSourcePtr evs,
+                                                       YAML::Node const &cfg) {
+  return std::make_shared<GENIEReWeightCalc>(evs, cfg);
+}
 
 GENIEReWeightCalc::~GENIEReWeightCalc() {}
 
