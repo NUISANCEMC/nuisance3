@@ -9,14 +9,15 @@
 namespace nuis {
 
 template <bool fill_columns, bool fill_if, bool autoprocidcolumns,
-          bool autoweightcolumns>
+          bool autoweightcolumns, bool onenewcolumn>
 void fill_procid_columns_from_EventFrame_if_impl(
     HistFrame &hf, EventFrame const &ef,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &column_weighter_names,
-    std::vector<std::string> const &weight_column_names) {
+    std::vector<std::string> const &weight_column_names,
+    std::string const &new_column_name) {
 
   static_assert(!(fill_columns && autoprocidcolumns),
                 "Cannot use EventFrame-filling utility function with both "
@@ -30,6 +31,19 @@ void fill_procid_columns_from_EventFrame_if_impl(
       !(autoprocidcolumns && autoweightcolumns),
       "Cannot use EventFrame-filling utility function with both "
       "automatic procid columns and column weighter at the same time.");
+
+  static_assert(
+      !(onenewcolumn && autoprocidcolumns),
+      "Cannot use EventFrame-filling utility function with both "
+      "new column filler and automatic procid columns at the same time.");
+
+  static_assert(!(onenewcolumn && autoweightcolumns),
+                "Cannot use EventFrame-filling utility function with both "
+                "new column filler and column weighter at the same time.");
+
+  static_assert(!(onenewcolumn && fill_columns),
+                "Cannot use EventFrame-filling utility function with both "
+                "new column filler and column filler at the same time.");
 
   EventFrame::column_t cond_col;
   if constexpr (fill_if) {
@@ -130,6 +144,16 @@ void fill_procid_columns_from_EventFrame_if_impl(
     }
   }
 
+  int fillcolumn_id = 0;
+  if constexpr (onenewcolumn) {
+    if (hf.find_column_index(new_column_name) != HistFrame::npos) {
+      throw InvalidColumnName()
+          << "Column " << new_column_name
+          << " was requested to be created and filled, but it already exists.";
+    }
+    fillcolumn_id = hf.add_column(new_column_name);
+  }
+
   for (auto row : ef.table.rowwise()) {
 
     if constexpr (fill_if) {
@@ -148,7 +172,7 @@ void fill_procid_columns_from_EventFrame_if_impl(
     }
 
     auto bin = hf.find_bin(projs);
-    hf.fill_bin(bin, weight, 0);
+    hf.fill_bin(bin, weight, fillcolumn_id);
 
     if constexpr (fill_columns) {
       HistFrame::column_t col = row(colsel_col);
@@ -187,8 +211,9 @@ void fill_from_EventFrame(
     HistFrame &hf, EventFrame const &ef,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, false, false, false>(
-      hf, ef, "", projection_column_names, "", {}, weight_column_names);
+  fill_procid_columns_from_EventFrame_if_impl<false, false, false, false,
+                                              false>(
+      hf, ef, "", projection_column_names, "", {}, weight_column_names, "");
 }
 
 void fill_from_EventFrame_if(
@@ -196,9 +221,30 @@ void fill_from_EventFrame_if(
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, true, false, false>(
+  fill_procid_columns_from_EventFrame_if_impl<false, true, false, false, false>(
       hf, ef, conditional_column_name, projection_column_names, "", {},
-      weight_column_names);
+      weight_column_names, "");
+}
+
+void fill_new_column_from_EventFrame(
+    HistFrame &hf, EventFrame const &ef,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_name,
+    std::vector<std::string> const &weight_column_names) {
+  fill_procid_columns_from_EventFrame_if_impl<false, false, false, false, true>(
+      hf, ef, "", projection_column_names, "", {}, weight_column_names,
+      column_name);
+}
+
+void fill_new_column_from_EventFrame_if(
+    HistFrame &hf, EventFrame const &ef,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_name,
+    std::vector<std::string> const &weight_column_names) {
+  fill_procid_columns_from_EventFrame_if_impl<false, true, false, false, true>(
+      hf, ef, conditional_column_name, projection_column_names, "", {},
+      weight_column_names, column_name);
 }
 
 void fill_columns_from_EventFrame(
@@ -206,9 +252,9 @@ void fill_columns_from_EventFrame(
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<true, false, false, false>(
+  fill_procid_columns_from_EventFrame_if_impl<true, false, false, false, false>(
       hf, ef, "", projection_column_names, column_selector_column_name, {},
-      weight_column_names);
+      weight_column_names, "");
 }
 
 void fill_columns_from_EventFrame_if(
@@ -217,9 +263,9 @@ void fill_columns_from_EventFrame_if(
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<true, true, false, false>(
+  fill_procid_columns_from_EventFrame_if_impl<true, true, false, false, false>(
       hf, ef, conditional_column_name, projection_column_names,
-      column_selector_column_name, {}, weight_column_names);
+      column_selector_column_name, {}, weight_column_names, "");
 }
 
 void fill_weighted_columns_from_EventFrame(
@@ -227,9 +273,9 @@ void fill_weighted_columns_from_EventFrame(
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, false, false, true>(
+  fill_procid_columns_from_EventFrame_if_impl<false, false, false, true, false>(
       hf, ef, "", projection_column_names, "", column_weighter_names,
-      weight_column_names);
+      weight_column_names, "");
 }
 
 void fill_weighted_columns_from_EventFrame_if(
@@ -238,17 +284,17 @@ void fill_weighted_columns_from_EventFrame_if(
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &column_weighter_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, true, false, true>(
+  fill_procid_columns_from_EventFrame_if_impl<false, true, false, true, false>(
       hf, ef, conditional_column_name, projection_column_names, "",
-      column_weighter_names, weight_column_names);
+      column_weighter_names, weight_column_names, "");
 }
 
 void fill_procid_columns_from_EventFrame(
     HistFrame &hf, EventFrame const &ef,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, false, true, false>(
-      hf, ef, "", projection_column_names, "", {}, weight_column_names);
+  fill_procid_columns_from_EventFrame_if_impl<false, false, true, false, false>(
+      hf, ef, "", projection_column_names, "", {}, weight_column_names, "");
 }
 
 void fill_procid_columns_from_EventFrame_if(
@@ -256,9 +302,9 @@ void fill_procid_columns_from_EventFrame_if(
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_EventFrame_if_impl<false, true, true, false>(
+  fill_procid_columns_from_EventFrame_if_impl<false, true, true, false, false>(
       hf, ef, conditional_column_name, projection_column_names, "", {},
-      weight_column_names);
+      weight_column_names, "");
 }
 
 void fill_from_EventFrameGen(
@@ -273,16 +319,16 @@ void fill_from_EventFrameGen(
 }
 
 #ifdef NUIS_ARROW_ENABLED
-
 template <bool fill_columns, bool fill_if, bool autoprocidcolumns,
-          bool autoweightcolumns>
+          bool autoweightcolumns, bool onenewcolumn>
 void fill_procid_columns_from_RecordBatch_if_impl(
     HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::string const &conditional_column_name,
     std::vector<std::string> const &projection_column_names,
     std::string const &column_selector_column_name,
     std::vector<std::string> const &column_weighter_names,
-    std::vector<std::string> const &weight_column_names) {
+    std::vector<std::string> const &weight_column_names,
+    std::string const &new_column_name) {
 
   static_assert(!(fill_columns && autoprocidcolumns),
                 "Cannot use RecordBatch-filling utility function with both "
@@ -296,6 +342,19 @@ void fill_procid_columns_from_RecordBatch_if_impl(
       !(autoprocidcolumns && autoweightcolumns),
       "Cannot use RecordBatch-filling utility function with both "
       "automatic procid columns and column weighter at the same time.");
+
+  static_assert(
+      !(onenewcolumn && autoprocidcolumns),
+      "Cannot use EventFrame-filling utility function with both "
+      "new column filler and automatic procid columns at the same time.");
+
+  static_assert(!(onenewcolumn && autoweightcolumns),
+                "Cannot use EventFrame-filling utility function with both "
+                "new column filler and column weighter at the same time.");
+
+  static_assert(!(onenewcolumn && fill_columns),
+                "Cannot use EventFrame-filling utility function with both "
+                "new column filler and column filler at the same time.");
 
   std::function<bool(int)> cond_col;
   if constexpr (fill_if) {
@@ -369,6 +428,16 @@ void fill_procid_columns_from_RecordBatch_if_impl(
     }
   }
 
+  int fillcolumn_id = 0;
+  if constexpr (onenewcolumn) {
+    if (hf.find_column_index(new_column_name) != HistFrame::npos) {
+      throw InvalidColumnName()
+          << "Column " << new_column_name
+          << " was requested to be created and filled, but it already exists.";
+    }
+    fillcolumn_id = hf.add_column(new_column_name);
+  }
+
   for (int row_it = 0; row_it < rb->num_rows(); ++row_it) {
 
     if constexpr (fill_if) {
@@ -387,7 +456,7 @@ void fill_procid_columns_from_RecordBatch_if_impl(
     }
 
     auto bin = hf.find_bin(projs);
-    hf.fill_bin(bin, weight, 0);
+    hf.fill_bin(bin, weight, fillcolumn_id);
 
     if constexpr (fill_columns) {
       HistFrame::column_t col = colsel_col(row_it);
@@ -428,8 +497,9 @@ void fill_from_Arrow(HistFrame &hf,
                      std::vector<std::string> const &projection_column_names,
                      std::vector<std::string> const &weight_column_names) {
 
-  fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false>(
-      hf, rb, "", projection_column_names, "", {}, weight_column_names);
+  fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false,
+                                               false>(
+      hf, rb, "", projection_column_names, "", {}, weight_column_names, "");
 }
 
 template <>
@@ -438,9 +508,10 @@ void fill_from_Arrow(HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
                      std::vector<std::string> const &weight_column_names) {
 
   for (auto rb : arrow::TableBatchReader(tab)) {
-    fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false>(
+    fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false,
+                                                 false>(
         hf, rb.ValueOrDie(), "", projection_column_names, "", {},
-        weight_column_names);
+        weight_column_names, "");
   }
 }
 
@@ -451,9 +522,10 @@ void fill_from_Arrow_if(HistFrame &hf,
                         std::vector<std::string> const &projection_column_names,
                         std::vector<std::string> const &weight_column_names) {
 
-  fill_procid_columns_from_RecordBatch_if_impl<false, true, false, false>(
+  fill_procid_columns_from_RecordBatch_if_impl<false, true, false, false,
+                                               false>(
       hf, rb, conditional_column_name, projection_column_names, "", {},
-      weight_column_names);
+      weight_column_names, "");
 }
 
 template <>
@@ -463,139 +535,201 @@ void fill_from_Arrow_if(HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
                         std::vector<std::string> const &weight_column_names) {
 
   for (auto rb : arrow::TableBatchReader(tab)) {
-    fill_procid_columns_from_RecordBatch_if_impl<false, true, false, false>(
+    fill_procid_columns_from_RecordBatch_if_impl<false, true, false, false,
+                                                 false>(
         hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
-        "", {}, weight_column_names);
+        "", {}, weight_column_names, "");
   }
 }
 
 template <>
-void fill_columns_from_Arrow(
+void fill_new_column_from_Arrow(
     HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
     std::vector<std::string> const &projection_column_names,
-    std::string const &column_selector_column_name,
+    std::string const &column_name,
     std::vector<std::string> const &weight_column_names) {
-
-  fill_procid_columns_from_RecordBatch_if_impl<true, false, false, false>(
-      hf, rb, "", projection_column_names, column_selector_column_name, {},
-      weight_column_names);
+  fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false,
+                                               true>(
+      hf, rb, "", projection_column_names, "", {}, weight_column_names,
+      column_name);
 }
 
 template <>
-void fill_columns_from_Arrow(
+void fill_new_column_from_Arrow(
     HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
     std::vector<std::string> const &projection_column_names,
-    std::string const &column_selector_column_name,
+    std::string const &column_name,
     std::vector<std::string> const &weight_column_names) {
-
   for (auto rb : arrow::TableBatchReader(tab)) {
-    fill_procid_columns_from_RecordBatch_if_impl<true, false, false, false>(
-        hf, rb.ValueOrDie(), "", projection_column_names,
-        column_selector_column_name, {}, weight_column_names);
-  }
-}
-
-template <>
-void fill_columns_from_Arrow_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::string const &conditional_column_name,
-    std::vector<std::string> const &projection_column_names,
-    std::string const &column_selector_column_name,
-    std::vector<std::string> const &weight_column_names) {
-  fill_procid_columns_from_RecordBatch_if_impl<true, true, false, false>(
-      hf, rb, conditional_column_name, projection_column_names,
-      column_selector_column_name, {}, weight_column_names);
-}
-
-template <>
-void fill_columns_from_Arrow_if(
-    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
-    std::string const &conditional_column_name,
-    std::vector<std::string> const &projection_column_names,
-    std::string const &column_selector_column_name,
-    std::vector<std::string> const &weight_column_names) {
-
-  for (auto rb : arrow::TableBatchReader(tab)) {
-    fill_procid_columns_from_RecordBatch_if_impl<true, true, false, false>(
-        hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
-        column_selector_column_name, {}, weight_column_names);
-  }
-}
-
-template <>
-void fill_weighted_columns_from_Arrow(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &column_weighter_names,
-    std::vector<std::string> const &weight_column_names) {
-
-  fill_procid_columns_from_RecordBatch_if_impl<false, false, false, true>(
-      hf, rb, "", projection_column_names, "", column_weighter_names,
-      weight_column_names);
-}
-
-template <>
-void fill_weighted_columns_from_Arrow(
-    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &column_weighter_names,
-    std::vector<std::string> const &weight_column_names) {
-
-  for (auto rb : arrow::TableBatchReader(tab)) {
-    fill_procid_columns_from_RecordBatch_if_impl<false, false, false, true>(
-        hf, rb.ValueOrDie(), "", projection_column_names, "",
-        column_weighter_names, weight_column_names);
-  }
-}
-
-template <>
-void fill_weighted_columns_from_Arrow_if(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::string const &conditional_column_name,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &column_weighter_names,
-    std::vector<std::string> const &weight_column_names) {
-
-  fill_procid_columns_from_RecordBatch_if_impl<false, true, false, true>(
-      hf, rb, conditional_column_name, projection_column_names, "",
-      column_weighter_names, weight_column_names);
-}
-
-template <>
-void fill_weighted_columns_from_Arrow_if(
-    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
-    std::string const &conditional_column_name,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &column_weighter_names,
-    std::vector<std::string> const &weight_column_names) {
-
-  for (auto rb : arrow::TableBatchReader(tab)) {
-    fill_procid_columns_from_RecordBatch_if_impl<false, true, false, true>(
-        hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
-        "", column_weighter_names, weight_column_names);
-  }
-}
-
-template <>
-void fill_procid_columns_from_Arrow(
-    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &weight_column_names) {
-
-  fill_procid_columns_from_RecordBatch_if_impl<false, false, true, false>(
-      hf, rb, "", projection_column_names, "", {}, weight_column_names);
-}
-
-template <>
-void fill_procid_columns_from_Arrow(
-    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
-    std::vector<std::string> const &projection_column_names,
-    std::vector<std::string> const &weight_column_names) {
-
-  for (auto rb : arrow::TableBatchReader(tab)) {
-    fill_procid_columns_from_RecordBatch_if_impl<false, false, true, false>(
+    fill_procid_columns_from_RecordBatch_if_impl<false, false, false, false,
+                                                 true>(
         hf, rb.ValueOrDie(), "", projection_column_names, "", {},
-        weight_column_names);
+        weight_column_names, column_name);
+  }
+}
+
+template <>
+void fill_new_column_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_name,
+    std::vector<std::string> const &weight_column_names) {
+  fill_procid_columns_from_RecordBatch_if_impl<false, true, false, false, true>(
+      hf, rb, conditional_column_name, projection_column_names, "", {},
+      weight_column_names, column_name);
+}
+
+template <>
+void fill_new_column_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_name,
+    std::vector<std::string> const &weight_column_names) {
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, true, false, false,
+                                                 true>(
+        hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
+        "", {}, weight_column_names, column_name);
+  }
+}
+
+template <>
+void fill_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_selector_column_name,
+    std::vector<std::string> const &weight_column_names) {
+
+  fill_procid_columns_from_RecordBatch_if_impl<true, false, false, false,
+                                               false>(
+      hf, rb, "", projection_column_names, column_selector_column_name, {},
+      weight_column_names, "");
+}
+
+template <>
+void fill_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_selector_column_name,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<true, false, false, false,
+                                                 false>(
+        hf, rb.ValueOrDie(), "", projection_column_names,
+        column_selector_column_name, {}, weight_column_names, "");
+  }
+}
+
+template <>
+void fill_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_selector_column_name,
+    std::vector<std::string> const &weight_column_names) {
+  fill_procid_columns_from_RecordBatch_if_impl<true, true, false, false, false>(
+      hf, rb, conditional_column_name, projection_column_names,
+      column_selector_column_name, {}, weight_column_names, "");
+}
+
+template <>
+void fill_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::string const &column_selector_column_name,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<true, true, false, false,
+                                                 false>(
+        hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
+        column_selector_column_name, {}, weight_column_names, "");
+  }
+}
+
+template <>
+void fill_weighted_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  fill_procid_columns_from_RecordBatch_if_impl<false, false, false, true,
+                                               false>(
+      hf, rb, "", projection_column_names, "", column_weighter_names,
+      weight_column_names, "");
+}
+
+template <>
+void fill_weighted_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, false, false, true,
+                                                 false>(
+        hf, rb.ValueOrDie(), "", projection_column_names, "",
+        column_weighter_names, weight_column_names, "");
+  }
+}
+
+template <>
+void fill_weighted_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  fill_procid_columns_from_RecordBatch_if_impl<false, true, false, true, false>(
+      hf, rb, conditional_column_name, projection_column_names, "",
+      column_weighter_names, weight_column_names, "");
+}
+
+template <>
+void fill_weighted_columns_from_Arrow_if(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::string const &conditional_column_name,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &column_weighter_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, true, false, true,
+                                                 false>(
+        hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
+        "", column_weighter_names, weight_column_names, "");
+  }
+}
+
+template <>
+void fill_procid_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<arrow::RecordBatch> const &rb,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  fill_procid_columns_from_RecordBatch_if_impl<false, false, true, false,
+                                               false>(
+      hf, rb, "", projection_column_names, "", {}, weight_column_names, "");
+}
+
+template <>
+void fill_procid_columns_from_Arrow(
+    HistFrame &hf, std::shared_ptr<arrow::Table> const &tab,
+    std::vector<std::string> const &projection_column_names,
+    std::vector<std::string> const &weight_column_names) {
+
+  for (auto rb : arrow::TableBatchReader(tab)) {
+    fill_procid_columns_from_RecordBatch_if_impl<false, false, true, false,
+                                                 false>(
+        hf, rb.ValueOrDie(), "", projection_column_names, "", {},
+        weight_column_names, "");
   }
 }
 
@@ -606,9 +740,9 @@ void fill_procid_columns_from_Arrow_if(
     std::vector<std::string> const &projection_column_names,
     std::vector<std::string> const &weight_column_names) {
 
-  fill_procid_columns_from_RecordBatch_if_impl<false, true, true, false>(
+  fill_procid_columns_from_RecordBatch_if_impl<false, true, true, false, false>(
       hf, rb, conditional_column_name, projection_column_names, "", {},
-      weight_column_names);
+      weight_column_names, "");
 }
 
 template <>
@@ -619,9 +753,10 @@ void fill_procid_columns_from_Arrow_if(
     std::vector<std::string> const &weight_column_names) {
 
   for (auto rb : arrow::TableBatchReader(tab)) {
-    fill_procid_columns_from_RecordBatch_if_impl<false, true, true, false>(
+    fill_procid_columns_from_RecordBatch_if_impl<false, true, true, false,
+                                                 false>(
         hf, rb.ValueOrDie(), conditional_column_name, projection_column_names,
-        "", {}, weight_column_names);
+        "", {}, weight_column_names, "");
   }
 }
 #endif
