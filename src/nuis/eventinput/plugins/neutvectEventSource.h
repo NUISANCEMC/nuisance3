@@ -44,6 +44,4 @@ public:
   virtual ~neutvectEventSource() {}
 };
 
-IEventSourcePtr neutvectEventSource_MakeEventSource(YAML::Node const &cfg);
-
 } // namespace nuis

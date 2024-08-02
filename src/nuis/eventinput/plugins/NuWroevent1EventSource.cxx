@@ -9,7 +9,7 @@
 #include "TChain.h"
 #include "TFile.h"
 
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
 #endif
 
@@ -124,7 +124,7 @@ IEventSourcePtr NuWroevent1EventSource_MakeEventSource(YAML::Node const &cfg) {
   return NuWroevent1EventSource::MakeEventSource(cfg);
 }
 
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
 BOOST_DLL_ALIAS(nuis::NuWroevent1EventSource::MakeEventSource, MakeEventSource);
 #endif
 

@@ -33,7 +33,7 @@
 #include "TFile.h"
 #include "TGraph.h"
 
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
 #endif
 
@@ -744,11 +744,7 @@ IEventSourcePtr GHEP3EventSource::MakeEventSource(YAML::Node const &cfg) {
 }
 GHEP3EventSource::~GHEP3EventSource() {}
 
-IEventSourcePtr GHEP3EventSource_MakeEventSource(YAML::Node const &cfg) {
-  return GHEP3EventSource::MakeEventSource(cfg);
-}
-
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
 BOOST_DLL_ALIAS(nuis::GHEP3EventSource::MakeEventSource, MakeEventSource);
 #endif
 

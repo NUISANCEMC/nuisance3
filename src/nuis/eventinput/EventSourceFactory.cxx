@@ -5,7 +5,7 @@
 #include "nuis/except.h"
 #include "nuis/log.txx"
 
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/import.hpp"
 #include "boost/dll/runtime_symbol_info.hpp"
 #else
@@ -93,7 +93,7 @@ EventSourceFactory::EventSourceFactory() : resolv() {
     throw NUISANCE_ROOTUndefined();
   }
 
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
   std::filesystem::path shared_library_dir{NUISANCE};
   shared_library_dir /= "lib/plugins";
   std::regex plugin_re("nuisplugin-eventinput-.*.so");
@@ -110,34 +110,42 @@ EventSourceFactory::EventSourceFactory() : resolv() {
 #endif
 }
 
-#ifndef USE_BOOSTDLL
+#ifndef NUISANCE_USE_BOOSTDLL
 IEventSourcePtr TryAllKnownPlugins(YAML::Node const &cfg) {
   IEventSourcePtr es;
 
-  es = neutvectEventSource_MakeEventSource(cfg);
-  if (es->first()) {
-    log_debug("Plugin neutvectEventSource is able to read file");
-    return es;
+  if (!cfg["plugin_name"] ||
+      cfg["plugin_name"].as<std::string>() == "neutvect") {
+    es = neutvectEventSource::MakeEventSource(cfg);
+    if (es->first()) {
+      log_debug("Plugin neutvectEventSource is able to read file");
+      return es;
+    }
   }
 
-  es = GHEP3EventSource_MakeEventSource(cfg);
-  if (es->first()) {
-    log_debug("Plugin GHEP3EventSource is able to read file");
-    return es;
+  if (!cfg["plugin_name"] || cfg["plugin_name"].as<std::string>() == "GHEP3") {
+    es = GHEP3EventSource::MakeEventSource(cfg);
+    if (es->first()) {
+      log_debug("Plugin GHEP3EventSource is able to read file");
+      return es;
+    }
   }
-
-  es = NUISANCE2FlatTreeEventSource_MakeEventSource(cfg);
-  if (es->first()) {
-    log_debug("Plugin NUISANCE2FlatTreeEventSource is able to read file");
-    return es;
+  if (!cfg["plugin_name"] ||
+      cfg["plugin_name"].as<std::string>() == "NUISANCE2FlatTree") {
+    es = NUISANCE2FlatTreeEventSource_MakeEventSource(cfg);
+    if (es->first()) {
+      log_debug("Plugin NUISANCE2FlatTreeEventSource is able to read file");
+      return es;
+    }
   }
-
-  es = NuWroevent1EventSource_MakeEventSource(cfg);
-  if (es->first()) {
-    log_debug("Plugin NuWroevent1EventSource is able to read file");
-    return es;
+  if (!cfg["plugin_name"] ||
+      cfg["plugin_name"].as<std::string>() == "NuWroevent1") {
+    es = NuWroevent1EventSource_MakeEventSource(cfg);
+    if (es->first()) {
+      log_debug("Plugin NuWroevent1EventSource is able to read file");
+      return es;
+    }
   }
-
   return nullptr;
 }
 #endif
@@ -183,7 +191,7 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
     return {nullptr, nullptr};
   }
 
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
   for (auto &[pluginso, plugin] : pluginfactories) {
     log_trace("Trying plugin {} for file {}", pluginso.native(),
               bool(cfg["filepath"])

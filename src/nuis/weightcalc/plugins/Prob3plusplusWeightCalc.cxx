@@ -1,18 +1,16 @@
 #include "nuis/weightcalc/plugins/Prob3plusplusWeightCalc.h"
 
-#include "nuis/eventinput/plugins/neutvectEventSource.h"
-
 #include "NuHepMC/EventUtils.hxx"
 
 #include "HepMC3/GenParticle.h"
 
 #include "BargerPropagator.h"
 
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
+#endif
 
 #include "nuis/log.txx"
-
-#include "yaml-cpp/yaml.h"
 
 #include <filesystem>
 
@@ -236,6 +234,8 @@ void Prob3plusplusWeightCalc::set_parameters(
   }
 }
 
+#ifdef NUISANCE_USE_BOOSTDLL
 BOOST_DLL_ALIAS(nuis::Prob3plusplusWeightCalc::MakeWeightCalc, MakeWeightCalc);
+#endif
 
 } // namespace nuis

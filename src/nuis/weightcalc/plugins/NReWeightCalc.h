@@ -3,11 +3,7 @@
 #include "nuis/eventinput/plugins/neutvectEventSource.h"
 #include "nuis/weightcalc/plugins/IWeightCalcPlugin.h"
 
-#include "boost/dll/alias.hpp"
-
 #include "yaml-cpp/yaml.h"
-
-#include <filesystem>
 
 namespace neut {
 namespace rew {
@@ -28,6 +24,8 @@ public:
 
   NReWeightCalc(IEventSourcePtr evs, YAML::Node const &cfg);
 
+  static IWeightCalcPluginPtr MakeWeightCalc(IEventSourcePtr evs,
+                                             YAML::Node const &cfg);
   virtual ~NReWeightCalc();
 };
 

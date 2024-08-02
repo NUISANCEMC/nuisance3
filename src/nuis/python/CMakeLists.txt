@@ -21,13 +21,12 @@ target_link_libraries(_pyNUISANCE
     eventframe 
     histframe 
     weightcalc 
-    weightcalc_plugins 
     record 
     convert
     response
-    #NuHepMC::CPPUtils 
     pybind11::module
-    ROOT::Hist)
+    ROOT::Hist
+    arrow_python_shared)
 
 target_include_directories(_pyNUISANCE PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
@@ -36,7 +35,7 @@ target_include_directories(_pyNUISANCE PRIVATE
 install(TARGETS _pyNUISANCE
     LIBRARY DESTINATION ${NUISANCE3_PYTHONPATH})
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/nuis/python/modules/ DESTINATION ${NUISANCE3_PYTHONPATH})
+add_subdirectory(modules)
 
 CPMFindPackage(
     NAME nuisancehepdata

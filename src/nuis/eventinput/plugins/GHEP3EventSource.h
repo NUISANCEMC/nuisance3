@@ -57,6 +57,4 @@ public:
   virtual ~GHEP3EventSource();
 };
 
-IEventSourcePtr GHEP3EventSource_MakeEventSource(YAML::Node const &cfg);
-
 } // namespace nuis

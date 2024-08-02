@@ -1,11 +1,6 @@
-set(eventinput_all_plugins)
+add_library(eventinput_plugins INTERFACE)
 
-set(plugin_libdir lib/plugins)
-if(NOT USE_BOOSTDLL)
-  set(plugin_libdir lib)
-endif()
-
-find_package(NEUT 5.8.0 QUIET)
+find_package(NEUT 5.6.4 QUIET)
 if(NEUT_FOUND)
   CPMFindPackage(
     NAME nvconv
@@ -15,14 +10,13 @@ if(NEUT_FOUND)
 
   add_library(neutvect_eventinput_plugin SHARED neutvectEventSource.cxx)
   target_link_libraries(neutvect_eventinput_plugin PUBLIC nvconv nuis_options)
-  target_compile_definitions(neutvect_eventinput_plugin PRIVATE USE_BOOSTDLL)
 
   set_target_properties(neutvect_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
   set_target_properties(neutvect_eventinput_plugin PROPERTIES OUTPUT_NAME "neutvect")
 
-  install(TARGETS neutvect_eventinput_plugin DESTINATION ${plugin_libdir})
+  install(TARGETS neutvect_eventinput_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 
-  list(APPEND eventinput_all_plugins neutvect_eventinput_plugin)
+  target_link_libraries(eventinput_plugins INTERFACE neutvect_eventinput_plugin)
   
 endif()
 
@@ -35,14 +29,13 @@ if(BUILTIN_NuWro)
 
   add_library(NuWroevent1_eventinput_plugin SHARED NuWroevent1EventSource.cxx)
   target_link_libraries(NuWroevent1_eventinput_plugin PUBLIC nuwroconv nuis_options)
-  target_compile_definitions(NuWroevent1_eventinput_plugin PRIVATE USE_BOOSTDLL)
 
   set_target_properties(NuWroevent1_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
   set_target_properties(NuWroevent1_eventinput_plugin PROPERTIES OUTPUT_NAME "NuWroevent1")
 
-  install(TARGETS NuWroevent1_eventinput_plugin DESTINATION ${plugin_libdir})
+  install(TARGETS NuWroevent1_eventinput_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 
-  list(APPEND eventinput_all_plugins NuWroevent1_eventinput_plugin)
+  target_link_libraries(eventinput_plugins INTERFACE NuWroevent1_eventinput_plugin)
 endif()
 
 CPMFindPackage(
@@ -64,26 +57,23 @@ if(ROOT_FOUND)
 
     target_compile_definitions(GHEP3_eventinput_plugin PRIVATE 
       GENIE_VERSION_STR="${GENIE_VERSION}"
-      USE_BOOSTDLL)
+      NUISANCE_USE_BOOSTDLL)
 
     set_target_properties(GHEP3_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
     set_target_properties(GHEP3_eventinput_plugin PROPERTIES OUTPUT_NAME "GHEP3")
 
-    install(TARGETS GHEP3_eventinput_plugin DESTINATION ${plugin_libdir})
+    install(TARGETS GHEP3_eventinput_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 
-    list(APPEND eventinput_all_plugins GHEP3_eventinput_plugin)
+    target_link_libraries(eventinput_plugins INTERFACE GHEP3_eventinput_plugin)
   endif()
 
   add_library(NUISANCE2FlatTree_eventinput_plugin SHARED NUISANCE2FlatTreeEventSource.cxx)
   target_link_libraries(NUISANCE2FlatTree_eventinput_plugin PUBLIC NuHepMC::CPPUtils nuis_options ROOT::TreePlayer)
-  target_compile_definitions(NUISANCE2FlatTree_eventinput_plugin PRIVATE USE_BOOSTDLL)
 
   set_target_properties(NUISANCE2FlatTree_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
   set_target_properties(NUISANCE2FlatTree_eventinput_plugin PROPERTIES OUTPUT_NAME "NUISANCE2FlatTree")
 
-  install(TARGETS NUISANCE2FlatTree_eventinput_plugin DESTINATION ${plugin_libdir})
+  install(TARGETS NUISANCE2FlatTree_eventinput_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 
-  list(APPEND eventinput_all_plugins NUISANCE2FlatTree_eventinput_plugin)
+  target_link_libraries(eventinput_plugins INTERFACE NUISANCE2FlatTree_eventinput_plugin)
 endif()
-
-set(eventinput_all_plugins ${eventinput_all_plugins} PARENT_SCOPE)

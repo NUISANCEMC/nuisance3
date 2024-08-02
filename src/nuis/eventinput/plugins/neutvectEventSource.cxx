@@ -13,7 +13,7 @@
 
 #include "HepMC3/GenRunInfo.h"
 
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
 #endif
 
@@ -132,11 +132,7 @@ IEventSourcePtr neutvectEventSource::MakeEventSource(YAML::Node const &cfg) {
   return std::make_shared<neutvectEventSource>(cfg);
 }
 
-IEventSourcePtr neutvectEventSource_MakeEventSource(YAML::Node const &cfg){
-  return neutvectEventSource::MakeEventSource(cfg);
-}
-
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
 BOOST_DLL_ALIAS(nuis::neutvectEventSource::MakeEventSource, MakeEventSource);
 #endif
 

@@ -9,11 +9,11 @@
 #include "T2KReWeight/WeightEngines/T2KReWeightEvent.h"
 #include "T2KReWeight/WeightEngines/T2KReWeightFactory.h"
 
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
+#endif
 
 #include "nuis/log.txx"
-
-#include "yaml-cpp/yaml.h"
 
 #include <filesystem>
 
@@ -51,13 +51,13 @@ T2KReWeightCalc::T2KReWeightCalc(IEventSourcePtr evs, YAML::Node const &cfg) {
 
 T2KReWeightCalc::~T2KReWeightCalc() {}
 
-namespace neut {
-static IWeightCalcPluginPtr MakeWeightCalc(IEventSourcePtr evs,
-                                           YAML::Node const &cfg) {
+IWeightCalcPluginPtr T2KReWeightCalc::MakeWeightCalc(IEventSourcePtr evs,
+                                                     YAML::Node const &cfg) {
   return std::make_shared<T2KReWeightCalc>(evs, cfg);
 }
-} // namespace neut
 
-BOOST_DLL_ALIAS(nuis::neut::MakeWeightCalc, MakeWeightCalc);
+#ifdef NUISANCE_USE_BOOSTDLL
+BOOST_DLL_ALIAS(nuis::T2KReWeightCalc::MakeWeightCalc, MakeWeightCalc);
+#endif
 
 } // namespace nuis

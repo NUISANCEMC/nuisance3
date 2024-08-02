@@ -1,6 +1,4 @@
-#include "nuis/weightcalc/plugins/IWeightCalcPlugin.h"
-
-#include "nuis/eventinput/plugins/GHEP3EventSource.h"
+#include "nuis/weightcalc/plugins/GENIEReWeightCalc.h"
 
 #include "RwFramework/GReWeight.h"
 
@@ -25,7 +23,9 @@
 
 #include "Framework/EventGen/GEVGDriver.h"
 
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
+#endif
 
 #include "nuis/log.txx"
 
@@ -95,9 +95,10 @@ public:
     return std::make_shared<GENIEReWeightCalc>(evs, cfg);
   }
 
-  virtual ~GENIEReWeightCalc() {}
-};
+GENIEReWeightCalc::~GENIEReWeightCalc() {}
 
+#ifdef NUISANCE_USE_BOOSTDLL
 BOOST_DLL_ALIAS(nuis::GENIEReWeightCalc::MakeWeightCalc, MakeWeightCalc);
+#endif
 
 } // namespace nuis

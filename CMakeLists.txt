@@ -47,6 +47,7 @@ option(NUISANCE_ENABLE_SANITIZERS "Whether to enable ASAN LSAN and UBSAN" OFF)
 option(NUISANCE_ENABLE_GCOV "Whether to enable GCOV" OFF)
 option(NUISANCE_ENABLE_GPERFTOOLS "Whether to enable GPERFTOOLS" OFF)
 option(NUISANCE_LEGACY_INTERFACE "Whether to try and link in NUISANCE2" OFF)
+option(NUISANCE_USE_BOOSTDLL "Whether to use plugins as BOOST DLL plugins or just compile them in" OFF)
 
 if(NOT DEFINED CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
   if(NUISANCE_ENABLE_TESTS)
@@ -139,6 +140,7 @@ CPMFindPackage(
             "YAML_BUILD_SHARED_LIBS ON"
 )
 
+
 find_package(Python3 REQUIRED COMPONENTS Development Interpreter)
 
 # PYTHON PATHS
@@ -186,7 +188,7 @@ endif()
 
 if(NUIS_ARROW_ENABLED)
   target_compile_definitions(nuis_options INTERFACE NUIS_ARROW_ENABLED)
-  target_link_libraries(nuis_options INTERFACE arrow_python_shared arrow_shared)
+  target_link_libraries(nuis_options INTERFACE arrow_shared)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo OR CMAKE_BUILD_TYPE STREQUAL Release)
@@ -216,6 +218,13 @@ else()
   message(FATAL_ERROR "Invalid NUISANCE_LOG_LEVEL set: ${NUISANCE_LOG_LEVEL}. Should be one of: trace, debug, info, warn, error, critical.")
 endif()
 target_compile_definitions(nuis_options INTERFACE NUISANCE_LOG_ENABLED)
+
+if(NUISANCE_USE_BOOSTDLL)
+  target_compile_definitions(nuis_options INTERFACE NUISANCE_USE_BOOSTDLL)
+  set(NUISANCE_PLUGIN_LIBDIR lib/plugin)
+else()
+  set(NUISANCE_PLUGIN_LIBDIR lib)
+endif()
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis)
 

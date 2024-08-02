@@ -1,6 +1,6 @@
 add_library(weightcalc_plugins INTERFACE)
 
-find_package(NEUT 5.8.0 QUIET)
+find_package(NEUT 5.6.4 QUIET)
 if(NEUT_FOUND)
   add_library(NReWeight_weightcalc_plugin SHARED NReWeightCalc.cxx)
   target_link_libraries(NReWeight_weightcalc_plugin PUBLIC neutvect_eventinput_plugin NEUT::ReWeight nuis_options)
@@ -8,9 +8,11 @@ if(NEUT_FOUND)
   set_target_properties(NReWeight_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
   set_target_properties(NReWeight_weightcalc_plugin PROPERTIES OUTPUT_NAME "NReWeight")
 
-  install(TARGETS NReWeight_weightcalc_plugin DESTINATION lib/plugins)
-  target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_NReWeight_Enabled)
+  target_compile_definitions(NReWeight_weightcalc_plugin INTERFACE NUIS_WEIGHT_CALC_NReWeight_Enabled)
 
+  install(TARGETS NReWeight_weightcalc_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
+
+  target_link_libraries(weightcalc_plugins INTERFACE NReWeight_weightcalc_plugin)
 endif()
 
 CPMFindPackage(
@@ -29,9 +31,11 @@ if(GENIE3_FOUND AND GENIEReWeight_ENABLED)
   set_target_properties(GENIEReWeight_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
   set_target_properties(GENIEReWeight_weightcalc_plugin PROPERTIES OUTPUT_NAME "GENIEReWeight")
 
-  install(TARGETS GENIEReWeight_weightcalc_plugin DESTINATION lib/plugins)
+  target_compile_definitions(GENIEReWeight_weightcalc_plugin INTERFACE NUIS_WEIGHT_CALC_GENIEReWeight_Enabled)
 
-  target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_GENIEReWeight_Enabled)
+  install(TARGETS GENIEReWeight_weightcalc_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
+
+  target_link_libraries(weightcalc_plugins INTERFACE GENIEReWeight_weightcalc_plugin)
 endif()
 
 CPMFindPackage(
@@ -48,9 +52,9 @@ if(TARGET Prob3plusplus::Prob3plusplus)
   set_target_properties(Prob3plusplus_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
   set_target_properties(Prob3plusplus_weightcalc_plugin PROPERTIES OUTPUT_NAME "Prob3plusplus")
 
-  install(TARGETS Prob3plusplus_weightcalc_plugin DESTINATION lib/plugins)
+  target_compile_definitions(Prob3plusplus_weightcalc_plugin INTERFACE NUIS_WEIGHT_CALC_Prob3plusplus_Enabled)
 
-  target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_Prob3plusplus_Enabled)
+  install(TARGETS Prob3plusplus_weightcalc_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 
   target_link_libraries(weightcalc_plugins INTERFACE Prob3plusplus_weightcalc_plugin)
 endif()
@@ -63,8 +67,11 @@ if(T2KReWeight_FOUND)
   set_target_properties(T2KReWeight_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
   set_target_properties(T2KReWeight_weightcalc_plugin PROPERTIES OUTPUT_NAME "T2KReWeight")
 
-  install(TARGETS T2KReWeight_weightcalc_plugin DESTINATION lib/plugins)
-  target_compile_definitions(weightcalc_plugins INTERFACE NUIS_WEIGHT_CALC_T2KReWeight_Enabled)
+  target_compile_definitions(T2KReWeight_weightcalc_plugin INTERFACE NUIS_WEIGHT_CALC_T2KReWeight_Enabled)
+  
+  install(TARGETS T2KReWeight_weightcalc_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
+
+  target_link_libraries(weightcalc_plugins INTERFACE T2KReWeight_weightcalc_plugin)
 endif()
 
-install(TARGETS weightcalc_plugins DESTINATION lib/plugins)
+install(TARGETS weightcalc_plugins DESTINATION ${NUISANCE_PLUGIN_LIBDIR})

@@ -2,17 +2,15 @@
 
 #include "nuis/weightcalc/plugins/IWeightCalcPlugin.h"
 
-#include "nuis/eventinput/plugins/neutvectEventSource.h"
-
 #include "CommonBlockIFace.h"
 #include "NReWeightFactory.h"
 
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
+#endif
 
 #include "nuis/except.h"
 #include "nuis/log.txx"
-
-#include "yaml-cpp/yaml.h"
 
 #include <filesystem>
 
@@ -58,13 +56,13 @@ NReWeightCalc::NReWeightCalc(IEventSourcePtr evs, YAML::Node const &cfg) {
 
 NReWeightCalc::~NReWeightCalc() {}
 
-namespace neut {
-static IWeightCalcPluginPtr MakeWeightCalc(IEventSourcePtr evs,
-                                           YAML::Node const &cfg) {
+IWeightCalcPluginPtr NReWeightCalc::MakeWeightCalc(IEventSourcePtr evs,
+                                                   YAML::Node const &cfg) {
   return std::make_shared<NReWeightCalc>(evs, cfg);
 }
-} // namespace neut
 
-BOOST_DLL_ALIAS(nuis::neut::MakeWeightCalc, MakeWeightCalc);
+#ifdef NUISANCE_USE_BOOSTDLL
+BOOST_DLL_ALIAS(nuis::NReWeightCalc::MakeWeightCalc, MakeWeightCalc);
+#endif
 
 } // namespace nuis

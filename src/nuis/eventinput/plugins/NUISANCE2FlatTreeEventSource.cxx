@@ -23,7 +23,7 @@
 
 #include "yaml-cpp/yaml.h"
 
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
 #endif
 
@@ -396,7 +396,15 @@ class NUISANCE2FlatTreeEventSource : public IEventSource {
       log_critical("NUISANCE2FlatTree event contained no beam particle");
     }
     if (!tgtp) {
-      log_critical("NUISANCE2FlatTree event contained no target particle");
+      if (**tgt > 1000000000) {
+        // hack in a dummy nuclear particle because I can't even
+        primary_vtx->add_particle_in(std::make_shared<HepMC3::GenParticle>(
+            HepMC3::FourVector{}, **tgt, NuHepMC::ParticleStatus::Target));
+
+        tgtp = NuHepMC::Event::GetTargetParticle(*evt);
+      } else {
+        log_critical("NUISANCE2FlatTree event contained no target particle");
+      }
     }
     if (!nfs) {
       log_critical(
@@ -541,7 +549,7 @@ NUISANCE2FlatTreeEventSource_MakeEventSource(YAML::Node const &cfg) {
   return NUISANCE2FlatTreeEventSource::MakeEventSource(cfg);
 }
 
-#ifdef USE_BOOSTDLL
+#ifdef NUISANCE_USE_BOOSTDLL
 BOOST_DLL_ALIAS(nuis::NUISANCE2FlatTreeEventSource::MakeEventSource,
                 MakeEventSource);
 #endif
