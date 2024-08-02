@@ -13,6 +13,9 @@ YAML::Node type_caster<YAML::Node>::PyListToYAML(PyObject *pList) {
     if (PyUnicode_Check(pVal)) {
       n[i] = std::string(PyUnicode_AsUTF8(pVal));
 
+    } else if (PyBool_Check(pVal)) {
+      n[i] = (pVal == Py_True);
+
     } else if (PyLong_Check(pVal)) {
       n[i] = static_cast<int>(PyLong_AsLong(pVal));
 
@@ -56,6 +59,9 @@ YAML::Node type_caster<YAML::Node>::PyDictToYAML(PyObject *pDict) {
     if (PyUnicode_Check(pVal)) {
       n[key] = std::string(PyUnicode_AsUTF8(pVal));
 
+    } else if (PyBool_Check(pVal)) {
+      n[key] = (pVal == Py_True);
+
     } else if (PyLong_Check(pVal)) {
       n[key] = static_cast<int>(PyLong_AsLong(pVal));
 
@@ -85,6 +91,8 @@ bool type_caster<YAML::Node>::load(handle src, bool) {
 
   if (PyUnicode_Check(source)) {
     value = std::string(PyUnicode_AsUTF8(source));
+  } else if (PyBool_Check(source)) {
+    value = (source == Py_True);
   } else if (PyLong_Check(source)) {
     value = static_cast<int>(PyLong_AsLong(source));
   } else if (PyFloat_Check(source)) {
@@ -105,24 +113,24 @@ handle type_caster<YAML::Node>::cast(YAML::Node src,
                                      return_value_policy /* policy */,
                                      handle /*parent*/) {
 
-            std::stringstream ss;
-            ss << src << std::endl;
+  std::stringstream ss;
+  ss << src << std::endl;
 
-            // Importing yaml module
-            object yaml_module = module_::import("yaml");
+  // Importing yaml module
+  object yaml_module = module_::import("yaml");
 
-            // Getting the safe_load function
-            object safe_load = yaml_module.attr("safe_load");
+  // Getting the safe_load function
+  object safe_load = yaml_module.attr("safe_load");
 
-            // Invoking safe_load function with YAML content
-            object result = safe_load(ss.str().c_str());
+  // Invoking safe_load function with YAML content
+  object result = safe_load(ss.str().c_str());
 
-            // Check if the result is valid
-            if (result.is_none()) {
-              return none();
-            }
-            return result.release();
-        }
+  // Check if the result is valid
+  if (result.is_none()) {
+    return none();
+  }
+  return result.release();
+}
 
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
