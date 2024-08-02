@@ -20,3 +20,8 @@ try:
 except ModuleNotFoundError:
   print("Failed import of pyNUISANCE.hepdata_helpers")
   pass
+
+try:
+  from .pyNUISANCEGENIE import *
+except ModuleNotFoundError:
+    pass
