@@ -44,6 +44,9 @@ CPMFindPackage(
     GITHUB_REPOSITORY rogerwendell/Prob3plusplus
     GIT_TAG main
 )
+if(NOT TARGET Prob3plusplus::Prob3plusplus)
+  add_library(Prob3plusplus::Prob3plusplus ALIAS Prob3plusplus)
+endif()
 
 if(TARGET Prob3plusplus::Prob3plusplus)
   add_library(Prob3plusplus_weightcalc_plugin SHARED Prob3plusplusWeightCalc.cxx)
