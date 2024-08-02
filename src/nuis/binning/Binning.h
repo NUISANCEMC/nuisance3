@@ -45,11 +45,11 @@ struct Binning : public nuis_named_log("Binning") {
 
   //--- member functions
 
-  // Get the size for every bin for each column
+  // Get the size for every bin.
   // The size will depend on the dimensionality of the binning: for 1D binning
   // it will correspond to the bin width, for 2D, the bin area, for 3D the bin
   // volume, etc...
-  Eigen::ArrayXd bin_sizes(size_t ncols=1) const;
+  Eigen::ArrayXd bin_sizes() const;
 
   size_t number_of_axes() const;
 
