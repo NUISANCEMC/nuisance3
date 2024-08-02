@@ -47,3 +47,7 @@
 
 
 # install(TARGETS nuis-dump-events nuis-enu-histograms nuis-frame-test nuis-histframe-test nuis-record-test DESTINATION bin)
+
+add_executable(nuis-try-eventinput nuis-try-eventinput.cxx)
+target_link_libraries(nuis-try-eventinput eventinput)
+install(TARGETS nuis-try-eventinput DESTINATION bin)
