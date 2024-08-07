@@ -127,8 +127,6 @@ CPMAddPackage(
         "SPDLOG_INSTALL ON"
 )
 
-find_package(Boost 1.70.0 COMPONENTS system filesystem REQUIRED)
-
 CPMFindPackage(
     NAME yaml-cpp
     VERSION 0.8.0
@@ -154,21 +152,19 @@ CPMFindPackage(
     GIT_TAG "v2.9.2"
 )
 
-find_package(OpenMP REQUIRED)
-
-find_package(Arrow)
+find_package(Arrow QUIET)
+find_package(ArrowPython QUIET HINTS ${Arrow_DIR})
 set(NUIS_ARROW_ENABLED FALSE)
-if(Arrow_FOUND)
+if(Arrow_FOUND AND ArrowPython_FOUND)
   set(NUIS_ARROW_ENABLED TRUE)
-  find_package(ArrowPython REQUIRED HINTS ${Arrow_DIR})
 endif()
 
 add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
   $<INSTALL_INTERFACE:include>)
-target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter NuHepMC::CPPUtils Boost::boost 
-  Boost::filesystem yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen OpenMP::OpenMP_CXX)
+target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter NuHepMC::CPPUtils 
+  yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen OpenMP::OpenMP_CXX)
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 target_link_options(nuis_options INTERFACE)
 
@@ -219,11 +215,40 @@ else()
 endif()
 target_compile_definitions(nuis_options INTERFACE NUISANCE_LOG_ENABLED)
 
+find_package(Boost 1.70.0 COMPONENTS system filesystem QUIET)
+if(Boost_FOUND)
+  target_link_libraries(nuis_options INTERFACE Boost::boost Boost::filesystem)
+else()
+  set(BOOST_DEPS metaparse config mpl predef preprocessor static_assert type_traits core utility assert io throw_exception)
+
+  foreach(bd ${BOOST_DEPS})
+    CPMAddPackage(
+      NAME boost_${bd}
+      VERSION 1.85.0
+      GITHUB_REPOSITORY "boostorg/${bd}"
+      GIT_TAG "boost-1.85.0"
+      OPTIONS "BUILD_TESTING OFF"
+    )
+  endforeach()
+  
+  target_link_libraries(nuis_options INTERFACE boost_metaparse)
+
+endif()
+
 if(NUISANCE_USE_BOOSTDLL)
-  target_compile_definitions(nuis_options INTERFACE NUISANCE_USE_BOOSTDLL)
-  set(NUISANCE_PLUGIN_LIBDIR lib/plugin)
+  if(Boost_FOUND)
+    target_compile_definitions(nuis_options INTERFACE NUISANCE_USE_BOOSTDLL)
+    set(NUISANCE_PLUGIN_LIBDIR lib/plugin)
+  else()
+    find_package(Boost 1.70.0 COMPONENTS system filesystem REQUIRED)
+  endif()
 else()
   set(NUISANCE_PLUGIN_LIBDIR lib)
+endif()
+
+find_package(OpenMP QUIET)
+if(OpenMP_FOUND)
+  target_link_libraries(nuis_options INTERFACE OpenMP::OpenMP_CXX)
 endif()
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis)

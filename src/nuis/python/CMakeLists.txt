@@ -25,8 +25,13 @@ target_link_libraries(_pyNUISANCE
     convert
     response
     pybind11::module
-    ROOT::Hist
-    arrow_python_shared)
+    ROOT::Hist)
+
+if(NUIS_ARROW_ENABLED)
+  target_link_libraries(_pyNUISANCE 
+    PRIVATE 
+      arrow_python_shared)
+endif()
 
 target_include_directories(_pyNUISANCE PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
