@@ -1,4 +1,4 @@
-add_library(convert SHARED json.cxx misc.cxx yaml.cxx)
+add_library(convert SHARED misc.cxx yaml.cxx)
 
 target_link_libraries(convert PUBLIC binning histframe)
 
