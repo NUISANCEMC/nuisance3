@@ -56,8 +56,7 @@ if(ROOT_FOUND)
       ROOT::Geom ROOT::Tree ROOT::MathMore)
 
     target_compile_definitions(GHEP3_eventinput_plugin PRIVATE 
-      GENIE_VERSION_STR="${GENIE_VERSION}"
-      NUISANCE_USE_BOOSTDLL)
+      GENIE_VERSION_STR="${GENIE_VERSION}")
 
     set_target_properties(GHEP3_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
     set_target_properties(GHEP3_eventinput_plugin PROPERTIES OUTPUT_NAME "GHEP3")

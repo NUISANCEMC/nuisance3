@@ -1,9 +1,13 @@
+#include "nuis/record/plugins/HEPDataRecord.h"
+
 #include "nuis/binning/Binning.h"
 
 #include "nuis/record/Utility.h"
 #include "nuis/record/plugins/IRecordPlugin.h"
 
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
+#endif
 
 #include "nuis/record/plugins/HEPDataVariables.h"
 
@@ -14,10 +18,9 @@
 #include "nuis/record/LikelihoodFunctions.h"
 #include "nuis/record/WeightFunctions.h"
 
+#include "nuis/env.h"
 #include "nuis/except.h"
 #include "nuis/log.txx"
-
-#include "yaml-cpp/yaml.h"
 
 #include <filesystem>
 
@@ -90,237 +93,223 @@ NEW_NUISANCE_EXCEPT(ProSelectaload_fileFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetFilterFailure);
 NEW_NUISANCE_EXCEPT(ProSelectaGetProjectionFailure);
 
-
-std::string database() {
-
-  // Require Database Valid
-  auto DATABASE = std::getenv("NUISANCEDB");
-  (void)DATABASE;
-  if (!DATABASE) {
-    log_critical("NUISANCE_DB environment variable not defined");
-    throw; // NUISANCEDBUndefined();
-  }
-
-  return std::string(DATABASE);
+YAML::Node schema() {
+  YAML::Node sc = YAML::Load("{}");
+  sc["type"] = "hepdata";
+  sc["release"] = "release_name";
+  return sc;
 }
 
-class HEPDataRecord : public IRecordPlugin {
-public:
-  std::string db_path;
+HEPDataRecord::HEPDataRecord(YAML::Node const &cfg) {
+  auto sc = schema();
+  // nuis::validate_yaml_map("HEPDATARecord", sc, cfg);
+  node = cfg;
+}
 
-  YAML::Node schema() {
-    YAML::Node sc = YAML::Load("{}");
-    sc["type"] = "hepdata";
-    sc["release"] = "release_name";
-    return sc;
+TablePtr HEPDataRecord::table(YAML::Node const &cfg_in) {
+
+  YAML::Node cfg = cfg_in;
+
+  std::string release = cfg["release"].as<std::string>();
+
+  std::string path_release = env::NUISANCEDB() + "/neutrino_data/" + release;
+  if (!std::filesystem::is_directory(path_release)) {
+    log_critical("HEPData folder is missing: {}", path_release);
+    throw HepDataDirDoesNotExist();
   }
 
-  HEPDataRecord(YAML::Node const &cfg) {
-    auto sc = schema();
-    // nuis::validate_yaml_map("HEPDATARecord", sc, cfg);
-    node = cfg;
-  }
+  std::string submission_file = path_release + "/submission.yaml";
+  // if (!std::filesystem::is_file(submission_file)) {
+  // log_critical(
+  // "HEPData folder is missing submissino.yaml : {}",
+  // pasubmission_fileth_release);
+  // abort();
+  // }
 
-  TablePtr table(YAML::Node const &cfg_in) {
+  // std::string table = cfg["table"].as<std::string>();
 
-    YAML::Node cfg = cfg_in;
+  std::vector<YAML::Node> yaml_docs = YAML::LoadAllFromFile(submission_file);
 
-    db_path = nuis::database();
-    std::string release = cfg["release"].as<std::string>();
+  std::string table_file;
+  for (auto const &cfg_doc : yaml_docs) {
+    if (!cfg_doc["name"])
+      continue;
+    if (!cfg_doc["data_file"])
+      continue;
 
-    std::string path_release = db_path + "/neutrino_data/" + release;
-    if (!std::filesystem::is_directory(path_release)) {
-      log_critical("HEPData folder is missing: {}", path_release);
-      throw HepDataDirDoesNotExist();
+    if (cfg_doc["name"].as<std::string>() == cfg["table"].as<std::string>()) {
+      table_file = cfg_doc["data_file"].as<std::string>();
     }
+  }
 
-    std::string submission_file = path_release + "/submission.yaml";
-    // if (!std::filesystem::is_file(submission_file)) {
-    // log_critical(
-    // "HEPData folder is missing submissino.yaml : {}",
-    // pasubmission_fileth_release);
-    // abort();
-    // }
-
-    // std::string table = cfg["table"].as<std::string>();
-
-    std::vector<YAML::Node> yaml_docs = YAML::LoadAllFromFile(submission_file);
-
-    std::string table_file;
+  if (table_file.empty()) {
+    log_critical("[ERROR]: HepData Table not found : {} {}",
+                 cfg["table"].as<std::string>(), table_file);
+    log_critical("[ERROR]: - [ Available Tables ]");
     for (auto const &cfg_doc : yaml_docs) {
-      if (!cfg_doc["name"])
+      if (!cfg["name"])
         continue;
-      if (!cfg_doc["data_file"])
+      if (!cfg["date_file"])
         continue;
-
-      if (cfg_doc["name"].as<std::string>() == cfg["table"].as<std::string>()) {
-        table_file = cfg_doc["data_file"].as<std::string>();
-      }
+      log_critical("[ERROR]:  - {}", cfg_doc["name"].as<std::string>());
     }
+    throw InvalidTableForRecord();
+  }
 
-    if (table_file.empty()) {
-      log_critical("[ERROR]: HepData Table not found : {} {}", cfg["table"].as<std::string>(),
-                   table_file);
-      log_critical("[ERROR]: - [ Available Tables ]");
-      for (auto const &cfg_doc : yaml_docs) {
-        if (!cfg["name"])
-          continue;
-        if (!cfg["date_file"])
-          continue;
-        log_critical("[ERROR]:  - {}", cfg_doc["name"].as<std::string>());
-      }
-      throw InvalidTableForRecord();
+  YAML::Node table_node = YAML::LoadFile(path_release + "/" + table_file);
+  auto tab = Table();
+
+  YAML::Node var_node_indep = table_node["independent_variables"];
+
+  std::vector<Variables> variables_indep;
+  for (auto const iv : var_node_indep) {
+    variables_indep.emplace_back(iv.as<Variables>());
+  }
+
+  if (variables_indep.empty()) {
+    log_critical("[ERROR]: HepData Independent Variables len == 0");
+  }
+
+  YAML::Node var_node_dep = table_node["dependent_variables"];
+
+  std::vector<Variables> variables_dep;
+  for (auto const iv : var_node_dep) {
+    variables_dep.emplace_back(iv.as<Variables>());
+  }
+
+  if (variables_dep.empty()) {
+    log_critical("[ERROR]: HepData dependent Variables len == 0");
+  }
+
+  // This seems to be ProSelecta bug feature, analysis.cxx works
+  // but /path/analysis.cxx does not.
+  std::string analysis = path_release + "analysis.cxx";
+  if (cfg["analysis"])
+    analysis = cfg["analysis"].as<std::string>();
+
+  if (std::find(ps_paths.begin(), ps_paths.end(),
+                path_release + "analysis.cxx") == ps_paths.end()) {
+    ProSelecta::Get().add_include_path(path_release);
+    if (!ProSelecta::Get().load_file(path_release + "analysis.cxx",
+                                     ProSelecta::Interpreter::kCling)) {
+      log_critical("[ERROR]: Cling failed interpreting: {}", analysis);
+      throw ProSelectaload_fileFailure();
     }
+    ps_paths.push_back(path_release + "analysis.cxx");
+  }
 
-    YAML::Node table_node = YAML::LoadFile(path_release + "/" + table_file);
-    auto tab = Table();
+  std::string filter_name = variables_dep[0].qualifiers["Filter"];
+  tab.select = ProSelecta::Get().get_select_func(
+      filter_name, ProSelecta::Interpreter::kCling);
+  if (!tab.select) {
+    std::cout << "[ERROR]: Cling didn't find a filter function named: "
+              << filter_name << " in the input file. Did you extern \"C\"?"
+              << std::endl;
+    throw ProSelectaGetFilterFailure();
+  }
 
-    YAML::Node var_node_indep = table_node["independent_variables"];
+  std::vector<std::string> projection_names;
+  for (auto const &iv : variables_indep) {
+    projection_names.emplace_back(variables_dep[0].qualifiers[iv.name]);
+  }
 
-    std::vector<Variables> variables_indep;
-    for (auto const iv : var_node_indep) {
-      variables_indep.emplace_back(iv.as<Variables>());
+  for (auto const &pn : projection_names) {
+    auto pjf = ProSelecta::Get().get_projection_func(
+        pn, ProSelecta::Interpreter::kCling);
+
+    if (pjf) {
+      tab.projections.emplace_back(pjf);
+    } else {
+      std::cerr << "[ERROR]: Cling didn't find a projection function named: "
+                << pn << " in the input file. Skipping." << std::endl;
+      throw ProSelectaGetProjectionFailure();
     }
+  }
 
-    if (variables_indep.empty()) {
-      log_critical("[ERROR]: HepData Independent Variables len == 0");
+  tab.clear = nuis::clear::DefaultClear;
+
+  tab.project = [tab](HepMC3::GenEvent const &ev) {
+    std::vector<double> v;
+    for (auto const &p : tab.projections) {
+      v.emplace_back(p(ev));
     }
+    return v;
+  };
 
-    YAML::Node var_node_dep = table_node["dependent_variables"];
+  tab.weight = nuis::weight::DefaultWeight;
 
-    std::vector<Variables> variables_dep;
-    for (auto const iv : var_node_dep) {
-      variables_dep.emplace_back(iv.as<Variables>());
-    }
-
-    if (variables_dep.empty()) {
-      log_critical("[ERROR]: HepData dependent Variables len == 0");
-    }
-
-    // This seems to be ProSelecta bug feature, analysis.cxx works
-    // but /path/analysis.cxx does not.
-    std::string analysis = path_release + "analysis.cxx";
-    if (cfg["analysis"])
-      analysis = cfg["analysis"].as<std::string>();
-
-    if (std::find(ps_paths.begin(), ps_paths.end(), path_release + "analysis.cxx") == ps_paths.end()){
-      ProSelecta::Get().add_include_path(path_release);
-      if (!ProSelecta::Get().load_file(path_release + "analysis.cxx", ProSelecta::Interpreter::kCling)) {
-        log_critical("[ERROR]: Cling failed interpreting: {}", analysis);
-        throw ProSelectaload_fileFailure();
-      }
-      ps_paths.push_back(path_release + "analysis.cxx");
-    }
-
-    std::string filter_name = variables_dep[0].qualifiers["Filter"];
-    tab.select = ProSelecta::Get().get_select_func(
-        filter_name, ProSelecta::Interpreter::kCling);
-    if (!tab.select) {
-      std::cout << "[ERROR]: Cling didn't find a filter function named: "
-                << filter_name << " in the input file. Did you extern \"C\"?"
-                << std::endl;
-      throw ProSelectaGetFilterFailure();
-    }
-
-    std::vector<std::string> projection_names;
-    for (auto const &iv : variables_indep) {
-      projection_names.emplace_back(variables_dep[0].qualifiers[iv.name]);
-    }
-
-    for (auto const &pn : projection_names) {
-      auto pjf = ProSelecta::Get().get_projection_func(
-          pn, ProSelecta::Interpreter::kCling);
-
-      if (pjf) {
-        tab.projections.emplace_back(pjf);
-      } else {
-        std::cerr << "[ERROR]: Cling didn't find a projection function named: "
-                  << pn << " in the input file. Skipping." << std::endl;
-        throw ProSelectaGetProjectionFailure();
-      }
-    }
-
-    tab.clear = nuis::clear::DefaultClear;
-
-    tab.project = [tab](HepMC3::GenEvent const &ev) {
-      std::vector<double> v;
-      for (auto const &p : tab.projections) {
-        v.emplace_back(p(ev));
-      }
-      return v;
+  if (variables_dep[0].qualifiers["scaling"] == "EventRateScaleToData") {
+    bool by_width = true;
+    tab.finalize = [by_width](Comparison &fr, double /*fatx*/) {
+      return nuis::finalize::EventRateScaleToData(fr, by_width);
     };
 
-    tab.weight = nuis::weight::DefaultWeight;
+  } else if (variables_dep[0].qualifiers["scaling"] ==
+             "FATXNormalizedByBinWidth") {
+    tab.finalize = nuis::finalize::FATXNormalizedByBinWidth;
 
-    if (variables_dep[0].qualifiers["scaling"] == "EventRateScaleToData") {
-      bool by_width = true;
-      tab.finalize = [by_width](Comparison &fr, double /*fatx*/){
-        return nuis::finalize::EventRateScaleToData(fr, by_width);
-      };
+  } else if (variables_dep[0].qualifiers["scaling"] == "FATXNormalized") {
+    tab.finalize = nuis::finalize::FATXNormalized;
 
-    } else if (variables_dep[0].qualifiers["scaling"] == "FATXNormalizedByBinWidth") {
-      tab.finalize = nuis::finalize::FATXNormalizedByBinWidth;
+  } else if (variables_dep[0].qualifiers["scaling"] == "FluxUnfolded") {
+    std::vector<double> bin_edges;   // placeholder - need a flux hist;
+    std::vector<double> bin_content; // placeholder - need a flux hist;
+    tab.finalize = [bin_edges, bin_content](Comparison &fr, double fatx) {
+      return nuis::finalize::FluxUnfoldedScaling(fr, fatx, bin_edges,
+                                                 bin_content);
+    };
 
-    } else if (variables_dep[0].qualifiers["scaling"] == "FATXNormalized") {
-      tab.finalize = nuis::finalize::FATXNormalized;
+  } else {
+    std::cout << "FAILED TO FIND VALID FLUX DEF" << std::endl;
+    throw;
+  }
 
-    } else if (variables_dep[0].qualifiers["scaling"] == "FluxUnfolded") {
-      std::vector<double> bin_edges;  // placeholder - need a flux hist;
-      std::vector<double> bin_content;  // placeholder - need a flux hist;
-      tab.finalize = [bin_edges, bin_content](Comparison &fr, double fatx) {
-        return nuis::finalize::FluxUnfoldedScaling(fr,
-          fatx, bin_edges, bin_content);
-      };
+  if (variables_dep[0].qualifiers["likelihood"] == "Poisson") {
+    tab.likelihood = nuis::likelihood::Poisson;
+  } else if (variables_dep[0].qualifiers["likelihood"] == "SimpleResidual") {
+    tab.likelihood = nuis::likelihood::SimpleResidual;
+  } else if (variables_dep[0].qualifiers["likelihood"] == "Chi2") {
+    tab.likelihood = nuis::likelihood::Chi2;
+  } else {
+    std::cout << "FAILED TO FIND Likleihood FLUX DEF" << std::endl;
+    throw;
+  }
 
-    } else {
-      std::cout << "FAILED TO FIND VALID FLUX DEF" << std::endl;
-      throw;
-    }
+  Comparison hist(from_hepdata_extents(variables_indep));
 
-    if (variables_dep[0].qualifiers["likelihood"] == "Poisson") {
-      tab.likelihood = nuis::likelihood::Poisson;
-    } else if (variables_dep[0].qualifiers["likelihood"] == "SimpleResidual") {
-      tab.likelihood = nuis::likelihood::SimpleResidual;
-    } else if (variables_dep[0].qualifiers["likelihood"] == "Chi2") {
-      tab.likelihood = nuis::likelihood::Chi2;
-    } else {
-      std::cout << "FAILED TO FIND Likleihood FLUX DEF" << std::endl;
-      throw;
-    }
+  hist.data.values.col(0) = Eigen::Map<Eigen::VectorXd>(
+      variables_dep[0].values.data(), variables_dep[0].values.size());
 
-    Comparison hist(from_hepdata_extents(variables_indep));
-    
-    hist.data.values.col(0) = Eigen::Map<Eigen::VectorXd>(
-        variables_dep[0].values.data(), variables_dep[0].values.size());
-
-    if (variables_dep[0].qualifiers["likelihood"] == "Poisson") {
-      for (size_t i = 0; i < variables_dep[0].values.size(); i++) {
-        if (variables_dep[0].values[i] > 0 && variables_dep[0].errors[i] == -999) {
-          variables_dep[0].errors[i] = sqrt(variables_dep[0].values[i]);
-        }
+  if (variables_dep[0].qualifiers["likelihood"] == "Poisson") {
+    for (size_t i = 0; i < variables_dep[0].values.size(); i++) {
+      if (variables_dep[0].values[i] > 0 &&
+          variables_dep[0].errors[i] == -999) {
+        variables_dep[0].errors[i] = sqrt(variables_dep[0].values[i]);
       }
     }
-    
-    hist.data.errors.col(0) = Eigen::Map<Eigen::VectorXd>(
-        variables_dep[0].errors.data(), variables_dep[0].errors.size());
-
-    cfg["id"]= cfg["release"].as<std::string>()+ ":" + cfg["table"].as<std::string>();
-    tab.blueprint = std::make_shared<Comparison>(hist);
-    tab.metadata = cfg; // Don't love having two copies but we need access at all levels.
-    tab.blueprint->metadata = cfg; // maybe the blueprint doesn't need it?
-
-    return std::make_shared<Table>(tab);
   }
 
-  bool good() const { return true; }
+  hist.data.errors.col(0) = Eigen::Map<Eigen::VectorXd>(
+      variables_dep[0].errors.data(), variables_dep[0].errors.size());
 
-  static IRecordPluginPtr Make(YAML::Node const &cfg) {
-    return std::make_unique<HEPDataRecord>(cfg);
-  }
+  cfg["id"] =
+      cfg["release"].as<std::string>() + ":" + cfg["table"].as<std::string>();
+  tab.blueprint = std::make_shared<Comparison>(hist);
+  tab.metadata =
+      cfg; // Don't love having two copies but we need access at all levels.
+  tab.blueprint->metadata = cfg; // maybe the blueprint doesn't need it?
 
-  virtual ~HEPDataRecord() {}
-};
+  return std::make_shared<Table>(tab);
+}
 
+IRecordPluginPtr HEPDataRecord::MakeRecord(YAML::Node const &cfg) {
+  return std::make_unique<HEPDataRecord>(cfg);
+}
+
+HEPDataRecord::~HEPDataRecord() {}
+
+#ifdef NUISANCE_USE_BOOSTDLL
 BOOST_DLL_ALIAS(nuis::HEPDataRecord::Make, Make);
+#endif
 
 } // namespace nuis

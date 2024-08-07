@@ -2,6 +2,7 @@
 
 #include "nuis/eventinput/HepMC3EventSource.h"
 
+#include "nuis/env.h"
 #include "nuis/except.h"
 #include "nuis/log.txx"
 
@@ -25,21 +26,19 @@
 namespace nuis {
 
 PathResolver::PathResolver() {
-  if (std::getenv("NUISANCE_EVENT_PATH")) {
-    std::string paths = std::getenv("NUISANCE_EVENT_PATH");
-    const std::regex ws_re(":");
-    for (auto it =
-             std::sregex_token_iterator(paths.begin(), paths.end(), ws_re, -1);
-         it != std::sregex_token_iterator(); ++it) {
-      std::filesystem::path path = std::string(*it);
-      if (path.empty() || !std::filesystem::exists(path)) {
-        continue;
-      }
-
-      log_debug("[EventSourceFactory:PathResolver] -- adding search path: {}",
-                path.native());
-      nuisance_event_paths.emplace_back(std::move(path));
+  auto paths = env::NUISANCE_EVENT_PATH("");
+  const std::regex ws_re(":");
+  for (auto it =
+           std::sregex_token_iterator(paths.begin(), paths.end(), ws_re, -1);
+       it != std::sregex_token_iterator(); ++it) {
+    std::filesystem::path path = std::string(*it);
+    if (path.empty() || !std::filesystem::exists(path)) {
+      continue;
     }
+
+    log_debug("[EventSourceFactory:PathResolver] -- adding search path: {}",
+              path.native());
+    nuisance_event_paths.emplace_back(std::move(path));
   }
 }
 
@@ -86,12 +85,7 @@ std::filesystem::path PathResolver::resolve(std::string const &filepath) {
 }
 
 EventSourceFactory::EventSourceFactory() : resolv() {
-  auto NUISANCE = std::getenv("NUISANCE3_ROOT");
-
-  if (!NUISANCE) {
-    log_critical("NUISANCE_ROOT environment variable not defined");
-    throw NUISANCE_ROOTUndefined();
-  }
+  auto NUISANCE = env::NUISANCE3_ROOT();
 
 #ifdef NUISANCE_USE_BOOSTDLL
   std::filesystem::path shared_library_dir{NUISANCE};
@@ -112,35 +106,35 @@ EventSourceFactory::EventSourceFactory() : resolv() {
 
 #ifndef NUISANCE_USE_BOOSTDLL
 IEventSourcePtr TryAllKnownPlugins(YAML::Node const &cfg) {
-  IEventSourcePtr es;
 
-  if (!cfg["plugin_name"] ||
-      cfg["plugin_name"].as<std::string>() == "neutvect") {
-    es = neutvectEventSource::MakeEventSource(cfg);
+  bool plugin_specified = bool(cfg["plugin_name"]);
+  std::string const &plugin_name =
+      plugin_specified ? cfg["plugin_name"].as<std::string>() : "";
+
+  if (!plugin_specified || plugin_name == "neutvect") {
+    auto es = neutvectEventSource::MakeEventSource(cfg);
     if (es->first()) {
       log_debug("Plugin neutvectEventSource is able to read file");
       return es;
     }
   }
 
-  if (!cfg["plugin_name"] || cfg["plugin_name"].as<std::string>() == "GHEP3") {
-    es = GHEP3EventSource::MakeEventSource(cfg);
+  if (!plugin_specified || plugin_name == "GHEP3") {
+    auto es = GHEP3EventSource::MakeEventSource(cfg);
     if (es->first()) {
       log_debug("Plugin GHEP3EventSource is able to read file");
       return es;
     }
   }
-  if (!cfg["plugin_name"] ||
-      cfg["plugin_name"].as<std::string>() == "NUISANCE2FlatTree") {
-    es = NUISANCE2FlatTreeEventSource_MakeEventSource(cfg);
+  if (!plugin_specified || plugin_name == "NUISANCE2FlatTree") {
+    auto es = NUISANCE2FlatTreeEventSource_MakeEventSource(cfg);
     if (es->first()) {
       log_debug("Plugin NUISANCE2FlatTreeEventSource is able to read file");
       return es;
     }
   }
-  if (!cfg["plugin_name"] ||
-      cfg["plugin_name"].as<std::string>() == "NuWroevent1") {
-    es = NuWroevent1EventSource_MakeEventSource(cfg);
+  if (!plugin_specified || plugin_name == "NuWroevent1") {
+    auto es = NuWroevent1EventSource_MakeEventSource(cfg);
     if (es->first()) {
       log_debug("Plugin NuWroevent1EventSource is able to read file");
       return es;

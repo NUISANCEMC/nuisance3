@@ -1,12 +1,17 @@
 #include "nuis/record/RecordFactory.h"
 
+#ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/import.hpp"
 #include "boost/dll/runtime_symbol_info.hpp"
+#else
+#include "nuis/record/plugins/plugins.h"
+#endif
 
 #include "yaml-cpp/yaml.h"
 
 #include "fmt/core.h"
 
+#include "nuis/env.h"
 #include "nuis/log.txx"
 
 #include <regex>
@@ -15,12 +20,8 @@
 namespace nuis {
 
 RecordFactory::RecordFactory() {
-  auto NUISANCE = std::getenv("NUISANCE3_ROOT");
-
-  if (!NUISANCE) {
-    log_critical("NUISANCE_ROOT environment variable not defined");
-    throw NUISANCE_ROOTUndefined();
-  }
+#ifdef NUISANCE_USE_BOOSTDLL
+  auto NUISANCE = env::NUISANCE3_ROOT();
 
   std::filesystem::path shared_library_dir{NUISANCE};
   shared_library_dir /= "lib/plugins";
@@ -34,24 +35,70 @@ RecordFactory::RecordFactory() {
                                   dir_entry.path().native(), "Make"));
     }
   }
+#endif
 }
+
+#ifndef NUISANCE_USE_BOOSTDLL
+IRecordPtr TryAllKnownPlugins(YAML::Node const &cfg) {
+
+  bool type_specified = bool(cfg["type"]);
+  std::string const &type_name =
+      type_specified ? cfg["type"].as<std::string>() : "";
+
+  if (type_name == "hepdata") {
+    auto rec = HEPDataRecord::MakeRecord(cfg);
+    if (!rec->good()) {
+      log_error("record plugin {} requested cannot be instantiated with "
+                "proferred config.",
+                type_name);
+    }
+    return rec;
+  }
+
+  if (type_name == "nuisance2") {
+    auto rec = NUISANCE2Record::MakeRecord(cfg);
+    if (!rec->good()) {
+      log_error("record plugin {} requested cannot be instantiated with "
+                "proferred config.",
+                type_name);
+    }
+    return rec;
+  }
+
+  return nullptr;
+}
+#endif
 
 IRecordPtr RecordFactory::make(YAML::Node cfg) {
 
+  if (!cfg["type"]) {
+    throw std::runtime_error("RecordFactory::make called without a type field "
+                             "in the configuration document.");
+  }
+
+#ifdef NUISANCE_USE_BOOSTDLL
   std::string record_type =
       "nuisplugin-record-" + cfg["type"].as<std::string>() + ".so";
 
   for (auto &[pluginso, plugin] : pluginfactories) {
     std::string fullpath = std::string(pluginso);
     if (fullpath.find(record_type) != std::string::npos) {
-      auto es = plugin(cfg);
-      return es;
+      auto rec = plugin(cfg);
+      if (!rec->good()) {
+        log_error("record plugin {} requested cannot be instantiated with "
+                  "proferred config.",
+                  cfg["type"].as<std::string>());
+      }
+      return rec;
     }
   }
   return nullptr;
+#else
+  return TryAllKnownPlugins(cfg);
+#endif
 }
 
-TablePtr RecordFactory::make_table(YAML::Node cfg){
+TablePtr RecordFactory::make_table(YAML::Node cfg) {
   auto record = make(cfg);
   return record->table(cfg);
 }
