@@ -34,7 +34,3 @@ struct except : public std::exception {
       return (*this);                                                          \
     }                                                                          \
   }
-
-namespace nuis {
-NEW_NUISANCE_EXCEPT(NUISANCE_ROOTUndefined);
-}

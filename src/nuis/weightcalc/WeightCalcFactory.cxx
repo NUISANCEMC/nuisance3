@@ -2,6 +2,7 @@
 
 #include "nuis/weightcalc/WeightCalcFactory.h"
 
+#include "nuis/env.h"
 #include "nuis/except.h"
 #include "nuis/log.txx"
 
@@ -19,13 +20,10 @@ NEW_NUISANCE_EXCEPT(InvalidWeightCalcPluginRequested);
 
 namespace nuis {
 WeightCalcFactory::WeightCalcFactory() {
-  auto NUISANCE = std::getenv("NUISANCE3_ROOT");
 
-  if (!NUISANCE) {
-    log_critical("NUISANCE_ROOT environment variable not defined");
-    throw NUISANCE_ROOTUndefined();
-  }
 #ifdef NUISANCE_USE_BOOSTDLL
+  auto NUISANCE = env::NUISANCE3_ROOT();
+
   std::filesystem::path shared_library_dir{NUISANCE};
   shared_library_dir /= "lib/plugins";
   std::regex plugin_re("nuisplugin-weightcalc-.*.so");
@@ -45,35 +43,33 @@ WeightCalcFactory::WeightCalcFactory() {
 #ifndef NUISANCE_USE_BOOSTDLL
 IWeightCalcPluginPtr TryAllKnownPlugins(IEventSourcePtr evs,
                                         YAML::Node const &cfg) {
-  IWeightCalcPluginPtr ws;
+  bool plugin_specified = bool(cfg["plugin_name"]);
+  std::string const &plugin_name =
+      plugin_specified ? cfg["plugin_name"].as<std::string>() : "";
 
-  if (!cfg["plugin_name"] ||
-      cfg["plugin_name"].as<std::string>() == "GENIEReWeight") {
-    ws = GENIEReWeightCalc::MakeWeightCalc(evs, cfg);
+  if (!plugin_specified || plugin_name == "GENIEReWeight") {
+    auto ws = GENIEReWeightCalc::MakeWeightCalc(evs, cfg);
     if (ws->good()) {
       log_debug("Plugin GENIEReWeightCalc is able to weight input file");
       return ws;
     }
   }
-  if (!cfg["plugin_name"] ||
-      cfg["plugin_name"].as<std::string>() == "Prob3plusplus") {
-    ws = Prob3plusplusWeightCalc::MakeWeightCalc(evs, cfg);
+  if (!plugin_specified || plugin_name == "Prob3plusplus") {
+    auto ws = Prob3plusplusWeightCalc::MakeWeightCalc(evs, cfg);
     if (ws->good()) {
       log_debug("Plugin Prob3plusplusWeightCalc is able to weight input file");
       return ws;
     }
   }
-  if (!cfg["plugin_name"] ||
-      cfg["plugin_name"].as<std::string>() == "NReWeight") {
-    ws = NReWeightCalc::MakeWeightCalc(evs, cfg);
+  if (!plugin_specified || plugin_name == "NReWeight") {
+    auto ws = NReWeightCalc::MakeWeightCalc(evs, cfg);
     if (ws->good()) {
       log_debug("Plugin NReWeightCalc is able to weight input file");
       return ws;
     }
   }
-  if (!cfg["plugin_name"] ||
-      cfg["plugin_name"].as<std::string>() == "T2KReWeight") {
-    ws = T2KReWeightCalc::MakeWeightCalc(evs, cfg);
+  if (!plugin_specified || plugin_name == "T2KReWeight") {
+    auto ws = T2KReWeightCalc::MakeWeightCalc(evs, cfg);
     if (ws->good()) {
       log_debug("Plugin T2KReWeightCalc is able to weight input file");
       return ws;
