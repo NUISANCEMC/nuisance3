@@ -49,4 +49,4 @@ CPMFindPackage(
     DOWNLOAD_ONLY TRUE
 )
 
-install(FILES ${nuisancehepdata_SOURCE_DIR}/HepDataRefResolver.py DESTINATION ${NUISANCE3_PYTHONPATH})
+install(FILES ${nuisancehepdata_SOURCE_DIR}/NUISANCEHEPData/HEPDataRefResolver.py DESTINATION ${NUISANCE3_PYTHONPATH})

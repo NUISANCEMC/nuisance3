@@ -14,7 +14,7 @@ function nuis_hepdata_help {
   echo -e "\tCommands:"
   echo -e "\t  help                                             : Display this message"
   echo -e "\t  get-local-path [type:]<recid>[/resource]         : Get a local path to a resource."
-  echo -e "\t                                                     <type> can be hepdata or hepdata-sandbox."
+  echo -e "\t                                                     <type> can be hepdata, hepdata-sandbox, or inspirehep."
   echo -e "\t                                                     <recid> is the record identifier."
   echo -e "\t                                                     <resource> is the specific resource,"
   echo -e "\t                                                     if omitted, get local path to submission"

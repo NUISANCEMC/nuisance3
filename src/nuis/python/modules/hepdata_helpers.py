@@ -28,10 +28,10 @@ def get_local_path_to_resource(ref="", **context):
   if ref and os.path.exists(ref):
     return "", ref, {"resourcename": os.path.basename(ref.split(':')[0])}
 
-  record_database_root = os.environ.get("NUISANCE_RECORD_DATABASE")
+  record_database_root = os.environ.get("NUISANCEDB")
 
   if not record_database_root:
-    raise RuntimeError("NUISANCE_RECORD_DATABASE environment variable is not defined")
+    raise RuntimeError("NUISANCEDB environment variable is not defined")
 
   rctx = ResolveReferenceIdentifiers(ref, **context)
 
