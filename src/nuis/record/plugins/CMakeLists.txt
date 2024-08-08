@@ -5,6 +5,7 @@ target_link_libraries(hepdata_record_plugin PUBLIC histframe nuis_options)
 
 set_target_properties(hepdata_record_plugin PROPERTIES PREFIX "nuisplugin-record-")
 set_target_properties(hepdata_record_plugin PROPERTIES OUTPUT_NAME "hepdata")
+target_compile_definitions(hepdata_record_plugin PUBLIC NUIS_RECORD_HEPData_Enabled)
 
 install(TARGETS hepdata_record_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 
@@ -24,6 +25,7 @@ if(NUISANCE_LEGACY_INTERFACE)
 
   set_target_properties(nuisance2_record_plugin PROPERTIES PREFIX "nuisplugin-record-")
   set_target_properties(nuisance2_record_plugin PROPERTIES OUTPUT_NAME "nuisance2")
+  target_compile_definitions(nuisance2_record_plugin PUBLIC NUIS_RECORD_NUISANCE2_Enabled)
 
   target_link_libraries(record_plugins INTERFACE nuisance2_record_plugin)
 

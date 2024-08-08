@@ -45,6 +45,7 @@ IRecordPtr TryAllKnownPlugins(YAML::Node const &cfg) {
   std::string const &type_name =
       type_specified ? cfg["type"].as<std::string>() : "";
 
+#ifdef NUIS_RECORD_HEPData_Enabled
   if (type_name == "hepdata") {
     auto rec = HEPDataRecord::MakeRecord(cfg);
     if (!rec->good()) {
@@ -54,7 +55,9 @@ IRecordPtr TryAllKnownPlugins(YAML::Node const &cfg) {
     }
     return rec;
   }
+#endif
 
+#ifdef NUIS_RECORD_NUISANCE2_Enabled
   if (type_name == "nuisance2") {
     auto rec = NUISANCE2Record::MakeRecord(cfg);
     if (!rec->good()) {
@@ -64,6 +67,7 @@ IRecordPtr TryAllKnownPlugins(YAML::Node const &cfg) {
     }
     return rec;
   }
+#endif
 
   return nullptr;
 }
