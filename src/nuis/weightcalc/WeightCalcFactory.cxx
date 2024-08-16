@@ -41,7 +41,7 @@ WeightCalcFactory::WeightCalcFactory() {
 }
 
 #ifndef NUISANCE_USE_BOOSTDLL
-IWeightCalcPluginPtr TryAllKnownPlugins(IEventSourcePtr evs,
+IWeightCalcPluginPtr TryAllKnownWeightPlugins(IEventSourcePtr evs,
                                         YAML::Node const &cfg) {
   bool plugin_specified = bool(cfg["plugin_name"]);
   std::string const &plugin_name =
@@ -121,7 +121,7 @@ IWeightCalcHM3MapPtr WeightCalcFactory::make(IEventSourcePtr evs,
 
   return nullptr;
 #else
-  return TryAllKnownPlugins(evs, cfg);
+  return TryAllKnownWeightPlugins(evs, cfg);
 #endif
 }
 

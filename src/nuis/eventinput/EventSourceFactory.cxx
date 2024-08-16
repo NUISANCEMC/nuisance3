@@ -105,7 +105,7 @@ EventSourceFactory::EventSourceFactory() : resolv() {
 }
 
 #ifndef NUISANCE_USE_BOOSTDLL
-IEventSourcePtr TryAllKnownPlugins(YAML::Node const &cfg) {
+IEventSourcePtr TryAllKnownEventInputPlugins(YAML::Node const &cfg) {
 
   bool plugin_specified = bool(cfg["plugin_name"]);
   std::string const &plugin_name =
@@ -161,6 +161,8 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
   if (cfg["filepath"]) {
     auto path = resolv.resolve(cfg["filepath"].as<std::string>());
     if (!path.empty()) {
+      log_trace("EventSourceFactory::PathResolver resolved {} -> {}",
+                cfg["filepath"].as<std::string>(), path.native());
       cfg["filepath"] = path.native();
     } else {
       log_warn("EventSourceFactory::PathResolver did not resolve {} to an "
@@ -172,6 +174,8 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
         cfg["filepaths"].as<std::vector<std::string>>();
     for (auto &f : filepaths) {
       auto path = resolv.resolve(f);
+      log_trace("EventSourceFactory::PathResolver resolved {} -> {}", f,
+                path.native());
       if (!path.empty()) {
         f = path.native();
       } else {
@@ -180,6 +184,7 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
                  f);
       }
     }
+    cfg["filepaths"] = filepaths;
   } else {
     log_warn("[make_unnormalized] was passed no paths.");
     return {nullptr, nullptr};
@@ -199,10 +204,13 @@ EventSourceFactory::make_unnormalized(YAML::Node cfg) {
     }
   }
 #else
-  auto esp = TryAllKnownPlugins(cfg);
+  log_trace("Trying all known EventInput plugins...");
+  auto esp = TryAllKnownEventInputPlugins(cfg);
   if (esp) {
+    log_trace("Found a plugin!");
     return {esp->first()->run_info(), esp};
   }
+  log_trace("Found no plugins capable of reading file.");
 #endif
 
   if (!cfg["filepath"]) {

@@ -16,9 +16,9 @@ except ModuleNotFoundError:
     pass
 
 try:
-  from .hepdata_helpers import hepdata as hpd
+  import NUISANCEHEPData as nhd
 except ModuleNotFoundError:
-  print("Failed import of pyNUISANCE.hepdata_helpers")
+  print("Failed import of NUISANCEHEPData")
   pass
 
 try:

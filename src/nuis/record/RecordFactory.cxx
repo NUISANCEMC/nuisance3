@@ -39,7 +39,7 @@ RecordFactory::RecordFactory() {
 }
 
 #ifndef NUISANCE_USE_BOOSTDLL
-IRecordPtr TryAllKnownPlugins(YAML::Node const &cfg) {
+IRecordPtr TryAllKnownRecordPlugins(YAML::Node const &cfg) {
 
   bool type_specified = bool(cfg["type"]);
   std::string const &type_name =
@@ -98,7 +98,7 @@ IRecordPtr RecordFactory::make(YAML::Node cfg) {
   }
   return nullptr;
 #else
-  return TryAllKnownPlugins(cfg);
+  return TryAllKnownRecordPlugins(cfg);
 #endif
 }
 

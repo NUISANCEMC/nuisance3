@@ -26,7 +26,6 @@ endif()
 
 install(FILES
     __init__.py
-    hepdata_helpers.py
     matplotlib_helpers.py
     root_helpers.py
   DESTINATION ${NUISANCE3_PYTHONPATH})
