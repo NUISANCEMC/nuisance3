@@ -1,6 +1,7 @@
 backup
 #data
 build
+notebooks
 
 *-checkpoint.ipynb
 

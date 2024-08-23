@@ -107,16 +107,16 @@ class HistFrame_matplotlib_helper:
         plot_axis.set_xlabel(plab)
         return obj
 
-    def plot(self, axis="x", column=None, fill=None, plot_axis=None, *args, **kwargs):
+    def plot(self, axis="x", column=None, fill=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plot_axis.plot(pdim, self.c(column), *args, **kwargs)
+        obj = plot_axis.plot(pdim, self.c(column) * yscale, *args, **kwargs)
         if fill == "tozeroy":
-            plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(column))
+            plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(column) * yscale)
         plot_axis.set_xlabel(plab)
         return obj
     
-    def plot_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, *args, **kwargs):
+    def plot_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         if not columns: columns = [x.name for x in self.hf.column_info]
         if not labels: labels = columns
@@ -124,10 +124,10 @@ class HistFrame_matplotlib_helper:
         for i, (column, label) in enumerate(zip(columns,labels)):
             kwargs["label"] = label
             if not colors == None: kwargs["color"] = colors[i % len(colors)]
-            self.plot(axis=axis, column=column, plot_axis=plot_axis, *args, **kwargs)
+            self.plot(axis=axis, column=column, plot_axis=plot_axis, yscale=yscale, *args, **kwargs)
         return 
 
-    def plot_sum(self, axis="x", columns=None, plot_axis=None, *args, **kwargs):
+    def plot_sum(self, axis="x", columns=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         if not columns: columns = [x.name for x in self.hf.column_info]
 
@@ -136,17 +136,17 @@ class HistFrame_matplotlib_helper:
         for column in columns:
           y = np.add(y, self.c(column))
 
-        obj = plot_axis.plot(pdim, y, *args, **kwargs )
+        obj = plot_axis.plot(pdim, y * yscale, *args, **kwargs )
         plot_axis.set_xlabel(plab)
         return obj
 
-    def fill(self, axis="x", column="mc", fill=None, plot_axis=None, *args, **kwargs):
+    def fill(self, axis="x", column="mc", fill=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
-        obj = plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(column), *args, **kwargs )
+        obj = plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(column) * yscale, *args, **kwargs )
         return obj
         
-    def fill_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, *args, **kwargs):
+    def fill_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         if not columns: columns = [x.name for x in self.hf.column_info]
         if not labels: labels = columns
@@ -154,7 +154,7 @@ class HistFrame_matplotlib_helper:
         for i, (column, label) in enumerate(zip(columns,labels)):
             kwargs["label"] = label
             if not colors == None: kwargs["color"] = colors[i % len(colors)]
-            self.fill(axis=axis, column=column, plot_axis=plot_axis, *args, **kwargs)
+            self.fill(axis=axis, column=column, plot_axis=plot_axis, yscale=yscale, *args, **kwargs)
         return 
 
     def scatter(self, axis="x", column=None, plot_axis=None, *args, **kwargs):
@@ -183,7 +183,7 @@ class HistFrame_matplotlib_helper:
     
       return plot_axis.fill_between(self.get_1d_bins(axis), yc+yerr, y2=yc-yerr, step="post", color=color)
 
-    def hist(self, axis="x", column=None, plot_axis=None, *args, **kwargs):
+    def hist(self, axis="x", column=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
 
@@ -193,7 +193,7 @@ class HistFrame_matplotlib_helper:
           kwargs = copy(kwargs)
           kwargs.pop("errorband_color", None)
         
-        obj = plot_axis.hist(pdim, weights=self.c(column), bins=self.get_1d_bins(axis), *args, **kwargs )
+        obj = plot_axis.hist(pdim, weights=self.c(column) * yscale, bins=self.get_1d_bins(axis), *args, **kwargs )
         plot_axis.set_xlabel(plab)
         
         if errbar_obj:
@@ -201,7 +201,7 @@ class HistFrame_matplotlib_helper:
         else:
           return obj
     
-    def hist_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, *args, **kwargs):
+    def hist_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         if not columns: columns = [x.name for x in self.hf.column_info]
         if not labels: labels = columns
@@ -209,7 +209,7 @@ class HistFrame_matplotlib_helper:
         for i, (column, label) in enumerate(zip(columns,labels)):
             kwargs["label"] = label
             if not colors == None: kwargs["color"] = colors[i % len(colors)]
-            self.hist(axis=axis, column=column, plot_axis=plot_axis, *args, **kwargs)
+            self.hist(axis=axis, column=column, plot_axis=plot_axis, yscale=yscale, *args, **kwargs)
         return 
  
 

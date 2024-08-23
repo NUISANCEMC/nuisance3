@@ -50,3 +50,4 @@ CPMFindPackage(
 )
 
 install(DIRECTORY ${nuisancehepdata_SOURCE_DIR}/NUISANCEHEPData DESTINATION ${NUISANCE3_PYTHONPATH})
+install(PROGRAMS ${nuisancehepdata_SOURCE_DIR}/nuis-hepdata DESTINATION bin)
