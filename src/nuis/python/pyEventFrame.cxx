@@ -1,9 +1,15 @@
 #include "nuis/python/pyEventFrame.h"
 
+#include "nuis/log.txx"
+
 #ifdef NUIS_ARROW_ENABLED
 // header that
 #include "arrow/python/pyarrow.h"
 #endif
+
+#include "ProSelecta/env.h"
+
+#include "HepMC3/Print.h"
 
 namespace py = pybind11;
 
@@ -20,14 +26,14 @@ pyEventFrameGen pyEventFrameGen::filter(EventFrameGen::FilterFunc filt) {
 
 pyEventFrameGen
 pyEventFrameGen::add_bool_columns(std::vector<std::string> const &col_names,
-                                 EventFrameGen::ProjectionsFunc<bool> proj) {
+                                  EventFrameGen::ProjectionsFunc<bool> proj) {
   *gen = gen->add_typed_columns<bool>(col_names, proj);
   return *this;
 }
 
 pyEventFrameGen
 pyEventFrameGen::add_bool_column(std::string const &col_name,
-                                EventFrameGen::ProjectionFunc<bool> proj) {
+                                 EventFrameGen::ProjectionFunc<bool> proj) {
   *gen = gen->add_typed_column<bool>(col_name, proj);
   return *this;
 }
@@ -48,56 +54,55 @@ pyEventFrameGen::add_int_column(std::string const &col_name,
 
 pyEventFrameGen
 pyEventFrameGen::add_uint_columns(std::vector<std::string> const &col_names,
-                                 EventFrameGen::ProjectionsFunc<uint> proj) {
+                                  EventFrameGen::ProjectionsFunc<uint> proj) {
   *gen = gen->add_typed_columns<uint>(col_names, proj);
   return *this;
 }
 
 pyEventFrameGen
 pyEventFrameGen::add_uint_column(std::string const &col_name,
-                                EventFrameGen::ProjectionFunc<uint> proj) {
+                                 EventFrameGen::ProjectionFunc<uint> proj) {
   *gen = gen->add_typed_column<uint>(col_name, proj);
   return *this;
 }
 
-pyEventFrameGen
-pyEventFrameGen::add_int16_columns(std::vector<std::string> const &col_names,
-                                 EventFrameGen::ProjectionsFunc<int16_t> proj) {
+pyEventFrameGen pyEventFrameGen::add_int16_columns(
+    std::vector<std::string> const &col_names,
+    EventFrameGen::ProjectionsFunc<int16_t> proj) {
   *gen = gen->add_typed_columns<int16_t>(col_names, proj);
   return *this;
 }
 
 pyEventFrameGen
 pyEventFrameGen::add_int16_column(std::string const &col_name,
-                                EventFrameGen::ProjectionFunc<int16_t> proj) {
+                                  EventFrameGen::ProjectionFunc<int16_t> proj) {
   *gen = gen->add_typed_column<int16_t>(col_name, proj);
   return *this;
 }
 
-pyEventFrameGen
-pyEventFrameGen::add_uint16_columns(std::vector<std::string> const &col_names,
-                                 EventFrameGen::ProjectionsFunc<uint16_t> proj) {
+pyEventFrameGen pyEventFrameGen::add_uint16_columns(
+    std::vector<std::string> const &col_names,
+    EventFrameGen::ProjectionsFunc<uint16_t> proj) {
   *gen = gen->add_typed_columns<uint16_t>(col_names, proj);
   return *this;
 }
 
-pyEventFrameGen
-pyEventFrameGen::add_uint16_column(std::string const &col_name,
-                                EventFrameGen::ProjectionFunc<uint16_t> proj) {
+pyEventFrameGen pyEventFrameGen::add_uint16_column(
+    std::string const &col_name, EventFrameGen::ProjectionFunc<uint16_t> proj) {
   *gen = gen->add_typed_column<uint16_t>(col_name, proj);
   return *this;
 }
 
-pyEventFrameGen pyEventFrameGen::add_float_columns(
-    std::vector<std::string> const &col_names,
-    EventFrameGen::ProjectionsFunc<float> proj) {
+pyEventFrameGen
+pyEventFrameGen::add_float_columns(std::vector<std::string> const &col_names,
+                                   EventFrameGen::ProjectionsFunc<float> proj) {
   *gen = gen->add_typed_columns<float>(col_names, proj);
   return *this;
 }
 
 pyEventFrameGen
 pyEventFrameGen::add_float_column(std::string const &col_name,
-                                   EventFrameGen::ProjectionFunc<float> proj) {
+                                  EventFrameGen::ProjectionFunc<float> proj) {
   *gen = gen->add_typed_column<float>(col_name, proj);
   return *this;
 }
@@ -136,14 +141,33 @@ nuis::EventFrame pyEventFrameGen::all() { return gen->all(); }
 
 #ifdef NUIS_ARROW_ENABLED
 pybind11::object pyEventFrameGen::firstArrow(size_t nchunk) {
-  auto rb = gen->firstArrow(nchunk);
+
+  decltype(gen->firstArrow(nchunk)) rb;
+  try {
+    rb = gen->firstArrow(nchunk);
+  } catch (FrameGenerationException const &ex) {
+    log_error(
+        "pyEventFrameGen::firstArrow failed processing on event, mode: {}",
+        ps::event::signal_process_id(gen->get_error_event()));
+    HepMC3::Print::content(gen->get_error_event());
+    return py::none();
+  }
   if (rb) {
     return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
   }
   return py::none();
 }
 pybind11::object pyEventFrameGen::nextArrow(size_t nchunk) {
-  auto rb = gen->nextArrow(nchunk);
+  decltype(gen->nextArrow(nchunk)) rb;
+
+  try {
+    rb = gen->nextArrow(nchunk);
+  } catch (FrameGenerationException const &ex) {
+    log_error("pyEventFrameGen::nextArrow failed processing on event, mode: {}",
+              ps::event::signal_process_id(gen->get_error_event()));
+    HepMC3::Print::content(gen->get_error_event());
+    return py::none();
+  }
   if (rb) {
     return py::reinterpret_steal<py::object>(arrow::py::wrap_batch(rb));
   }

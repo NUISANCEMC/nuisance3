@@ -3,6 +3,7 @@
 #include "NuHepMC/ReaderUtils.hxx"
 
 #include "fmt/chrono.h"
+#include "fmt/ranges.h"
 
 #include "nuis/log.txx"
 
@@ -16,11 +17,12 @@
   X(double)
 
 NEW_NUISANCE_EXCEPT(InvalidFrameColumnType);
+NEW_NUISANCE_EXCEPT(AttemptRestartFailedFrame);
 
 namespace nuis {
 
 EventFrameGen::EventFrameGen(INormalizedEventSourcePtr evs, size_t block_size)
-    : source(evs), chunk_size{block_size},
+    : in_error_state(false), source(evs), chunk_size{block_size},
       max_events_to_loop{std::numeric_limits<size_t>::max()},
       progress_report_every{std::numeric_limits<size_t>::max()},
       nevents{std::numeric_limits<size_t>::max()}, ev_it(nullptr) {
@@ -45,6 +47,9 @@ EventFrameGen EventFrameGen::progress(size_t every) {
 }
 
 EventFrame EventFrameGen::first(size_t nchunk) {
+  if (in_error_state) {
+    throw AttemptRestartFailedFrame();
+  }
   all_column_names = std::accumulate(
       columns.begin(), columns.end(),
       std::vector<std::string>{"event.number", "weight.cv", "process.id"},
@@ -77,6 +82,9 @@ size_t EventFrameGen::fill_row_columns(Eigen::ArrayXdRef row,
 }
 
 EventFrame EventFrameGen::next(size_t nchunk) {
+  if (in_error_state) {
+    throw AttemptRestartFailedFrame();
+  }
 
   if (nchunk == std::numeric_limits<size_t>::max()) {
     nchunk = chunk_size;
@@ -196,6 +204,9 @@ EventFrame EventFrameGen::next(size_t nchunk) {
 }
 
 EventFrame EventFrameGen::all() {
+  if (in_error_state) {
+    throw AttemptRestartFailedFrame();
+  }
 
   log_info("EventFrameGen::all Chunk shape: {} rows {} cols, {} KB.",
            chunk_size, all_column_names.size(),
@@ -278,6 +289,9 @@ void EventFrameGen::fill_array_builder(
 }
 
 std::shared_ptr<arrow::RecordBatch> EventFrameGen::firstArrow(size_t nchunk) {
+  if (in_error_state) {
+    throw AttemptRestartFailedFrame();
+  }
   all_column_names =
       std::accumulate(columns.begin(), columns.end(),
                       std::vector<std::string>{"event.number", "weight.cv",
@@ -298,6 +312,9 @@ std::shared_ptr<arrow::RecordBatch> EventFrameGen::firstArrow(size_t nchunk) {
 
 arrow::Result<std::shared_ptr<arrow::RecordBatch>>
 EventFrameGen::_nextArrow(size_t nchunk) {
+  if (in_error_state) {
+    throw AttemptRestartFailedFrame();
+  }
 
   if (nchunk == std::numeric_limits<size_t>::max()) {
     nchunk = chunk_size;
@@ -380,13 +397,25 @@ EventFrameGen::_nextArrow(size_t nchunk) {
     }
 
     bool cut = false;
+    size_t f_it = 0;
     for (auto &filt : filters) {
-      if (!filt(ev)) {
-        NUIS_LOG_TRACE("EventFrameGen::nextArrow() event: {} was cut ",
-                       neventsprocessed);
-        cut = true;
-        break;
+      try {
+        if (!filt(ev)) {
+          NUIS_LOG_TRACE("EventFrameGen::nextArrow() event: {} was cut ",
+                         neventsprocessed);
+          cut = true;
+          break;
+        }
+      } catch (...) {
+        log_error("EventFrameGen::nextArrow() failed calling while calling "
+                  "filter number: {} on "
+                  "event {}.",
+                  f_it, neventsprocessed);
+        error_event = ev;
+        in_error_state = true;
+        throw FrameGenerationException();
       }
+      f_it++;
     }
     if (cut) {
       // have to do this before the next loop otherwise we read one too many
@@ -398,9 +427,9 @@ EventFrameGen::_nextArrow(size_t nchunk) {
       continue;
     }
 
-    NUIS_LOG_TRACE(
-        "EventFrameGen::nextArrow() rbatch_row: {} was kept, event_number: {} ",
-        ev.event_number());
+    NUIS_LOG_TRACE("EventFrameGen::nextArrow() rbatch_row: {} was kept, "
+                   "event_number: {} ",
+                   ev.event_number());
 
     BuilderAs<int>(array_builders[0]).Append(ev.event_number());
     BuilderAs<double>(array_builders[1]).Append(cvw);
@@ -411,17 +440,25 @@ EventFrameGen::_nextArrow(size_t nchunk) {
 
     size_t col_id = 4;
     for (auto &[column_names, typenum, proj_index] : columns) {
-
-      switch (typenum) {
-
+      try {
+        switch (typenum) {
 #define X(t)                                                                   \
   case column_type<t>::id:                                                     \
     fill_array_builder<t>(array_builders, ev, proj_index, col_id,              \
                           column_names.size());                                \
     break;
 
-        COLUMN_TYPE_ITER
+          COLUMN_TYPE_ITER
 #undef X
+        }
+      } catch (...) {
+        log_error("EventFrameGen::nextArrow() failed calling while calling "
+                  "projections: {} on "
+                  "event {}.",
+                  column_names, neventsprocessed);
+        error_event = ev;
+        in_error_state = true;
+        throw FrameGenerationException();
       }
 
       col_id += column_names.size();
@@ -446,8 +483,8 @@ EventFrameGen::_nextArrow(size_t nchunk) {
             "{} rbatch_row: {}",
             n_total_rows, neventsprocessed, rbatch_row);
 
-  // grab the norm_info before reading the next event for the start of the next
-  // loop
+  // grab the norm_info before reading the next event for the start of the
+  // next loop
   fnorm_info = source->norm_info();
   ++ev_it;
 

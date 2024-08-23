@@ -14,7 +14,12 @@
 
 namespace nuis {
 
+NEW_NUISANCE_EXCEPT(FrameGenerationException);
+
 class EventFrameGen : public nuis_named_log("EventFrame") {
+
+  bool in_error_state;
+  HepMC3::GenEvent error_event;
 
 public:
   using FilterFunc = std::function<int(HepMC3::GenEvent const &)>;
@@ -73,6 +78,8 @@ public:
   EventFrame all();
 
   NormInfo norm_info() const { return fnorm_info; }
+
+  auto const &get_error_event() { return error_event; }
 
 #ifdef NUIS_ARROW_ENABLED
   std::shared_ptr<arrow::RecordBatch> firstArrow(
