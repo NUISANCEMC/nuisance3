@@ -42,11 +42,12 @@ WeightCalcFactory::WeightCalcFactory() {
 
 #ifndef NUISANCE_USE_BOOSTDLL
 IWeightCalcPluginPtr TryAllKnownWeightPlugins(IEventSourcePtr evs,
-                                        YAML::Node const &cfg) {
+                                              YAML::Node const &cfg) {
   bool plugin_specified = bool(cfg["plugin_name"]);
   std::string const &plugin_name =
       plugin_specified ? cfg["plugin_name"].as<std::string>() : "";
 
+#ifdef NUIS_WEIGHT_CALC_GENIEReWeight_Enabled
   if (!plugin_specified || plugin_name == "GENIEReWeight") {
     auto ws = GENIEReWeightCalc::MakeWeightCalc(evs, cfg);
     if (ws->good()) {
@@ -54,6 +55,9 @@ IWeightCalcPluginPtr TryAllKnownWeightPlugins(IEventSourcePtr evs,
       return ws;
     }
   }
+#endif
+
+#ifdef NUIS_WEIGHT_CALC_Prob3plusplus_Enabled
   if (!plugin_specified || plugin_name == "Prob3plusplus") {
     auto ws = Prob3plusplusWeightCalc::MakeWeightCalc(evs, cfg);
     if (ws->good()) {
@@ -61,6 +65,10 @@ IWeightCalcPluginPtr TryAllKnownWeightPlugins(IEventSourcePtr evs,
       return ws;
     }
   }
+#endif
+
+#ifdef NUIS_WEIGHT_CALC_NReWeight_Enabled
+
   if (!plugin_specified || plugin_name == "NReWeight") {
     auto ws = NReWeightCalc::MakeWeightCalc(evs, cfg);
     if (ws->good()) {
@@ -68,6 +76,9 @@ IWeightCalcPluginPtr TryAllKnownWeightPlugins(IEventSourcePtr evs,
       return ws;
     }
   }
+#endif
+
+#ifdef NUIS_WEIGHT_CALC_T2KReWeight_Enabled
   if (!plugin_specified || plugin_name == "T2KReWeight") {
     auto ws = T2KReWeightCalc::MakeWeightCalc(evs, cfg);
     if (ws->good()) {
@@ -75,6 +86,7 @@ IWeightCalcPluginPtr TryAllKnownWeightPlugins(IEventSourcePtr evs,
       return ws;
     }
   }
+#endif
   return nullptr;
 }
 #endif

@@ -25,3 +25,8 @@ try:
   from .pyNUISANCEGENIE import *
 except ModuleNotFoundError:
     pass
+
+try:
+  from .pyNUISANCEProb3plusplus import *
+except ModuleNotFoundError:
+    pass

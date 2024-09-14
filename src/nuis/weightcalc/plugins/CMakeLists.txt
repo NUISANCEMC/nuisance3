@@ -38,16 +38,6 @@ if(GENIE3_FOUND AND GENIEReWeight_ENABLED)
   target_link_libraries(weightcalc_plugins INTERFACE GENIEReWeight_weightcalc_plugin)
 endif()
 
-CPMFindPackage(
-    NAME Prob3plusplus
-    VERSION 3.10.4
-    GITHUB_REPOSITORY rogerwendell/Prob3plusplus
-    GIT_TAG main
-)
-if(NOT TARGET Prob3plusplus::Prob3plusplus)
-  add_library(Prob3plusplus::Prob3plusplus ALIAS Prob3plusplus)
-endif()
-
 if(TARGET Prob3plusplus::Prob3plusplus)
   add_library(Prob3plusplus_weightcalc_plugin SHARED Prob3plusplusWeightCalc.cxx)
   target_link_libraries(Prob3plusplus_weightcalc_plugin PUBLIC eventinput Prob3plusplus::Prob3plusplus nuis_options)

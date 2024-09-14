@@ -144,7 +144,7 @@ find_package(Python3 REQUIRED COMPONENTS Development Interpreter)
 
 # PYTHON PATHS
 set(NUISANCE3_PYVMAJMIN "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
-set(NUISANCE3_PYTHONPATH "python/${NUISANCE3_PYVMAJMIN}/pyNUISANCE")
+set(NUISANCE3_PYTHONPATH "python/${NUISANCE3_PYVMAJMIN}")
 
 CPMFindPackage(
     NAME pybind11
@@ -162,6 +162,16 @@ if(NUISANCE_USE_ARROW)
   endif()
 endif()
 
+CPMFindPackage(
+    NAME Prob3plusplus
+    VERSION 3.10.4
+    GITHUB_REPOSITORY rogerwendell/Prob3plusplus
+    GIT_TAG main
+)
+
+if(NOT TARGET Prob3plusplus::Prob3plusplus AND TARGET Prob3plusplus)
+  add_library(Prob3plusplus::Prob3plusplus ALIAS Prob3plusplus)
+endif()
 add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>

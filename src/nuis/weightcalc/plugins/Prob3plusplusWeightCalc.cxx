@@ -4,6 +4,7 @@
 
 #include "HepMC3/GenParticle.h"
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "BargerPropagator.h"
 
 #ifdef NUISANCE_USE_BOOSTDLL
