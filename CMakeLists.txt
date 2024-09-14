@@ -48,6 +48,7 @@ option(NUISANCE_ENABLE_GCOV "Whether to enable GCOV" OFF)
 option(NUISANCE_ENABLE_GPERFTOOLS "Whether to enable GPERFTOOLS" OFF)
 option(NUISANCE_LEGACY_INTERFACE "Whether to try and link in NUISANCE2" OFF)
 option(NUISANCE_USE_BOOSTDLL "Whether to use plugins as BOOST DLL plugins or just compile them in" OFF)
+option(NUISANCE_USE_ARROW "Whether to use Apache Arrow and pyArrow" OFF)
 
 if(NOT DEFINED CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
   if(NUISANCE_ENABLE_TESTS)
@@ -152,11 +153,13 @@ CPMFindPackage(
     GIT_TAG "v2.9.2"
 )
 
-find_package(Arrow QUIET)
-find_package(ArrowPython QUIET HINTS ${Arrow_DIR})
-set(NUIS_ARROW_ENABLED FALSE)
-if(Arrow_FOUND AND ArrowPython_FOUND)
-  set(NUIS_ARROW_ENABLED TRUE)
+if(NUISANCE_USE_ARROW)
+  find_package(Arrow QUIET)
+  find_package(ArrowPython QUIET HINTS ${Arrow_DIR})
+  set(NUIS_ARROW_ENABLED FALSE)
+  if(Arrow_FOUND AND ArrowPython_FOUND)
+    set(NUIS_ARROW_ENABLED TRUE)
+  endif()
 endif()
 
 add_library(nuis_options INTERFACE)
