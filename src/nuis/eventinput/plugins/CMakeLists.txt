@@ -13,6 +13,7 @@ if(NEUT_FOUND)
 
   set_target_properties(neutvect_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
   set_target_properties(neutvect_eventinput_plugin PROPERTIES OUTPUT_NAME "neutvect")
+  target_compile_definitions(neutvect_eventinput_plugin INTERFACE NUIS_EVENTINPUT_neutvect_Enabled)
 
   install(TARGETS neutvect_eventinput_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 
@@ -32,6 +33,7 @@ if(BUILTIN_NuWro)
 
   set_target_properties(NuWroevent1_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
   set_target_properties(NuWroevent1_eventinput_plugin PROPERTIES OUTPUT_NAME "NuWroevent1")
+  target_compile_definitions(NuWroevent1_eventinput_plugin INTERFACE NUIS_EVENTINPUT_NuWroevent1_Enabled)
 
   install(TARGETS NuWroevent1_eventinput_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 
@@ -60,6 +62,7 @@ if(ROOT_FOUND)
 
     set_target_properties(GHEP3_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
     set_target_properties(GHEP3_eventinput_plugin PROPERTIES OUTPUT_NAME "GHEP3")
+    target_compile_definitions(GHEP3_eventinput_plugin INTERFACE NUIS_EVENTINPUT_GHEP3_Enabled)
 
     install(TARGETS GHEP3_eventinput_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 
@@ -71,6 +74,7 @@ if(ROOT_FOUND)
 
   set_target_properties(NUISANCE2FlatTree_eventinput_plugin PROPERTIES PREFIX "nuisplugin-eventinput-")
   set_target_properties(NUISANCE2FlatTree_eventinput_plugin PROPERTIES OUTPUT_NAME "NUISANCE2FlatTree")
+  target_compile_definitions(NUISANCE2FlatTree_eventinput_plugin INTERFACE NUIS_EVENTINPUT_NUISANCE2FlatTree_Enabled)
 
   install(TARGETS NUISANCE2FlatTree_eventinput_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
 

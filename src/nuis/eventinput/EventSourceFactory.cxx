@@ -10,10 +10,7 @@
 #include "boost/dll/import.hpp"
 #include "boost/dll/runtime_symbol_info.hpp"
 #else
-#include "nuis/eventinput/plugins/GHEP3EventSource.h"
-#include "nuis/eventinput/plugins/NUISANCE2FlatTreeEventSource.h"
-#include "nuis/eventinput/plugins/NuWroevent1EventSource.h"
-#include "nuis/eventinput/plugins/neutvectEventSource.h"
+#include "nuis/eventinput/plugins/plugins.h"
 #endif
 
 #include "yaml-cpp/yaml.h"
@@ -111,6 +108,7 @@ IEventSourcePtr TryAllKnownEventInputPlugins(YAML::Node const &cfg) {
   std::string const &plugin_name =
       plugin_specified ? cfg["plugin_name"].as<std::string>() : "";
 
+#ifdef NUIS_EVENTINPUT_neutvect_Enabled
   if (!plugin_specified || plugin_name == "neutvect") {
     auto es = neutvectEventSource::MakeEventSource(cfg);
     if (es->first()) {
@@ -118,7 +116,9 @@ IEventSourcePtr TryAllKnownEventInputPlugins(YAML::Node const &cfg) {
       return es;
     }
   }
+#endif
 
+#ifdef NUIS_EVENTINPUT_GHEP3_Enabled
   if (!plugin_specified || plugin_name == "GHEP3") {
     auto es = GHEP3EventSource::MakeEventSource(cfg);
     if (es->first()) {
@@ -126,6 +126,9 @@ IEventSourcePtr TryAllKnownEventInputPlugins(YAML::Node const &cfg) {
       return es;
     }
   }
+#endif
+
+#ifdef NUIS_EVENTINPUT_NUISANCE2FlatTree_Enabled
   if (!plugin_specified || plugin_name == "NUISANCE2FlatTree") {
     auto es = NUISANCE2FlatTreeEventSource_MakeEventSource(cfg);
     if (es->first()) {
@@ -133,6 +136,9 @@ IEventSourcePtr TryAllKnownEventInputPlugins(YAML::Node const &cfg) {
       return es;
     }
   }
+#endif
+
+#ifdef NUIS_EVENTINPUT_NuWroevent1_Enabled
   if (!plugin_specified || plugin_name == "NuWroevent1") {
     auto es = NuWroevent1EventSource_MakeEventSource(cfg);
     if (es->first()) {
@@ -140,6 +146,7 @@ IEventSourcePtr TryAllKnownEventInputPlugins(YAML::Node const &cfg) {
       return es;
     }
   }
+#endif
   return nullptr;
 }
 #endif
