@@ -107,7 +107,7 @@ CPMFindPackage(
 CPMFindPackage(
     NAME ProSelecta
     GITHUB_REPOSITORY NUISANCEMC/ProSelecta
-    GIT_TAG main
+    GIT_TAG v1-RC2
 )
 
 CPMAddPackage(
@@ -115,7 +115,8 @@ CPMAddPackage(
     VERSION 8.1.1
     GIT_TAG 8.1.1
     GITHUB_REPOSITORY fmtlib/fmt
-    OPTIONS "FMT_INSTALL ON"
+    OPTIONS "FMT_INSTALL ON" 
+            "BUILD_SHARED_LIBS ON"
 )
 
 CPMAddPackage(
@@ -173,12 +174,13 @@ CPMFindPackage(
 if(NOT TARGET Prob3plusplus::Prob3plusplus AND TARGET Prob3plusplus)
   add_library(Prob3plusplus::Prob3plusplus ALIAS Prob3plusplus)
 endif()
+
 add_library(nuis_options INTERFACE)
 target_include_directories(nuis_options INTERFACE 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter NuHepMC::CPPUtils 
-  yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen OpenMP::OpenMP_CXX)
+  yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen)
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 target_link_options(nuis_options INTERFACE)
 
