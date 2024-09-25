@@ -1,6 +1,7 @@
 #include "nuis/eventframe/EventFrameGen.h"
 
 #include "NuHepMC/ReaderUtils.hxx"
+#include "NuHepMC/UnitsUtils.hxx"
 
 #include "fmt/chrono.h"
 #include "fmt/ranges.h"
@@ -197,7 +198,7 @@ EventFrame EventFrameGen::next(size_t nchunk) {
 
   // grab the norm_info before reading the next event for the start of the next
   // loop
-  fnorm_info = source->norm_info();
+  fnorm_info = source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
   ++ev_it;
 
   return {all_column_names, chunk.topRows(chunk_row), chunk_row, fnorm_info};
@@ -252,7 +253,7 @@ EventFrame EventFrameGen::all() {
   log_trace("EventFrameGen::all() done: nrows {}", builder.rows());
 
   return {all_column_names, builder, size_t(builder.rows()),
-          source->norm_info()};
+          source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget)};
 }
 
 #ifdef NUIS_ARROW_ENABLED
@@ -435,7 +436,8 @@ EventFrameGen::_nextArrow(size_t nchunk) {
     BuilderAs<double>(array_builders[1]).Append(cvw);
     BuilderAs<int>(array_builders[2]).Append(NuHepMC::ER3::ReadProcessID(ev));
 
-    auto [fatx, sumweights, nevents] = source->norm_info();
+    auto [fatx, sumweights, nevents] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
     BuilderAs<double>(array_builders[3]).Append(fatx);
 
     size_t col_id = 4;
@@ -485,7 +487,7 @@ EventFrameGen::_nextArrow(size_t nchunk) {
 
   // grab the norm_info before reading the next event for the start of the
   // next loop
-  fnorm_info = source->norm_info();
+  fnorm_info = source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
   ++ev_it;
 
   std::vector<std::shared_ptr<arrow::Array>> arrays(all_column_names.size(),

@@ -1,5 +1,7 @@
 #include "nuis/python/pyEventInput.h"
 
+#include "NuHepMC/UnitsUtils.hxx"
+
 namespace py = pybind11;
 using namespace nuis;
 
@@ -44,7 +46,8 @@ std::shared_ptr<HepMC3::GenRunInfo> pyNormalizedEventSource::run_info() {
 }
 
 NormInfo pyNormalizedEventSource::norm_info() const {
-  return evs ? evs->norm_info() : NormInfo{};
+  return evs ? evs->norm_info(NuHepMC::CrossSection::Units::cm2ten38_PerNucleon)
+             : NormInfo{};
 }
 
 bool pyNormalizedEventSource::good() { return bool(evs); }

@@ -11,7 +11,7 @@ public:
 
   explicit NUISANCE2Record(YAML::Node const &cfg);
 
-  TablePtr table(YAML::Node const &cfg);
+  AnalysisPtr analysis(YAML::Node const &cfg);
 
   bool good() const { return true; }
 

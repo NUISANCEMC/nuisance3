@@ -16,9 +16,9 @@ except ModuleNotFoundError:
     pass
 
 try:
-  import NUISANCEHEPData as nhd
+  import pyNUISANCEHEPData as hpd
 except ModuleNotFoundError:
-  print("Failed import of NUISANCEHEPData")
+  print("Failed import of pyNUISANCEHEPData")
   pass
 
 try:

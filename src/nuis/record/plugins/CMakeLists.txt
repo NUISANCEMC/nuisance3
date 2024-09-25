@@ -1,7 +1,14 @@
+CPMFindPackage(
+    NAME NUISANCEHEPData
+    GITHUB_REPOSITORY NUISANCEMC/HEPData
+    GIT_TAG main
+    OPTIONS "NUISANCEHEPData_PYTHON_ENABLED ON"
+)
+
 add_library(record_plugins INTERFACE)
 
-add_library(hepdata_record_plugin SHARED HEPDataRecord.cxx)
-target_link_libraries(hepdata_record_plugin PUBLIC histframe nuis_options)
+add_library(hepdata_record_plugin SHARED HEPDataRecordPlugin.cxx)
+target_link_libraries(hepdata_record_plugin PUBLIC histframe nuis_options NUISANCEHEPData::All)
 
 set_target_properties(hepdata_record_plugin PROPERTIES PREFIX "nuisplugin-record-")
 set_target_properties(hepdata_record_plugin PROPERTIES OUTPUT_NAME "hepdata")

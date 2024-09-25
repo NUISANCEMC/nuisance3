@@ -1,7 +1,7 @@
 #pragma once
 
 #include "nuis/record/IRecord.h"
-#include "nuis/record/Table.h"
+#include "nuis/record/IAnalysis.h"
 
 #include "nuis/log.h"
 
@@ -18,8 +18,7 @@
 #include <vector>
 
 namespace nuis {
-using IRecordPtr = std::shared_ptr<IRecord>;
-using TablePtr = std::shared_ptr<Table>;
+
 class RecordFactory : public nuis_named_log("Record") {
 
 #ifdef NUISANCE_USE_BOOSTDLL
@@ -31,6 +30,6 @@ class RecordFactory : public nuis_named_log("Record") {
 public:
   RecordFactory();
   IRecordPtr make(YAML::Node cfg);
-  TablePtr make_table(YAML::Node cfg);
+  AnalysisPtr make_analysis(YAML::Node cfg);
 };
 } // namespace nuis
