@@ -23,11 +23,11 @@ struct IRecord : public nuis_named_log("Record") {
     return analysis(cfg);
   }
 
+  virtual std::vector<std::string> get_analyses() const = 0;
+
   virtual AnalysisPtr analysis(YAML::Node const &cfg) = 0;
 
-  AnalysisPtr operator[](std::string const &name) {
-    return analysis(name);
-  }
+  AnalysisPtr operator[](std::string const &name) { return analysis(name); }
 
   YAML::Node node;
 };

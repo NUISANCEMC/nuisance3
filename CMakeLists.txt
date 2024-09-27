@@ -98,7 +98,7 @@ CPMFindPackage(
 # try and find Protobuf as HepMC3 is broke
 find_package(Protobuf 2.6 QUIET)
 find_package(HepMC3 3.3 REQUIRED)
-CPMFindPackage(
+CPMAddPackage(
   NAME NuHepMC_CPPUtils
   GIT_TAG main
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"

@@ -37,13 +37,11 @@ PYBIND11_MODULE(_pyNUISANCE, m) {
   py::implicitly_convertible<py::list, std::vector<uint32_t>>();
   py::implicitly_convertible<py::list, std::vector<std::vector<double>>>();
 
-
-
   m.doc() = "NUISANCE implementation in python";
 
   m.add_object("hm", py::module::import("pyHepMC3"));
-  // auto pps = py::module::import("pyProSelecta");
-  // m.add_object("pps", pps);
+  m.add_object("nhm", py::module::import("pyNuHepMC"));
+  m.add_object("pps", py::module::import("pyProSelecta"));
 
   pyEventInputInit(m);
   pyEventFrameInit(m);

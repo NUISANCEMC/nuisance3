@@ -523,4 +523,23 @@ std::ostream &operator<<(std::ostream &os, nuis::BinnedValuesBase const &bvb) {
   return os << " " << line.data();
 }
 
+BinnedValues ToCountDensity(BinnedValues const &bv) {
+  BinnedValues out = bv;
+
+  auto bin_sizes = bv.binning->bin_sizes();
+  out.values.colwise() /= bin_sizes;
+  out.errors.colwise() /= bin_sizes;
+
+  return out;
+}
+BinnedValues ToCount(BinnedValues const &bv) {
+  BinnedValues out = bv;
+
+  auto bin_sizes = bv.binning->bin_sizes();
+  out.values.colwise() *= bin_sizes;
+  out.errors.colwise() *= bin_sizes;
+
+  return out;
+}
+
 } // namespace nuis

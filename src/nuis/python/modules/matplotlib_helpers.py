@@ -183,6 +183,12 @@ class HistFrame_matplotlib_helper:
     
       return plot_axis.fill_between(self.get_1d_bins(axis), yc+yerr, y2=yc-yerr, step="post", color=color)
 
+    def data_hist(self, *args, **kwargs):
+      return self.errorbar(*args, 
+          marker=".", markersize=7.5, color="#000", 
+          linewidth=0, elinewidth=1, capsize=2.5, 
+          **kwargs)
+
     def hist(self, axis="x", column=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
@@ -192,8 +198,8 @@ class HistFrame_matplotlib_helper:
           errbar_obj = self._hist_errorband(axis, column, plot_axis, kwargs["errorband_color"])
           kwargs = copy(kwargs)
           kwargs.pop("errorband_color", None)
-        
-        obj = plot_axis.hist(pdim, weights=self.c(column) * yscale, bins=self.get_1d_bins(axis), *args, **kwargs )
+
+        obj = plot_axis.hist(pdim, weights=self.c(column) * yscale, bins=self.get_1d_bins(axis), *args, **kwargs)
         plot_axis.set_xlabel(plab)
         
         if errbar_obj:
