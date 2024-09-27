@@ -68,6 +68,21 @@ void pyRecordInit(py::module &m) {
                            tgt.Z, tgt.weight_by_mass);
       });
 
+  py::class_<IAnalysis::XSScaling>(m, "IAnalysis_XSScaling")
+      .def_readonly("units", &IAnalysis::XSScaling::units)
+      .def_readonly("extra_scale_factor",
+                    &IAnalysis::XSScaling::extra_scale_factor)
+      .def_readonly("divide_by_bin_width",
+                    &IAnalysis::XSScaling::divide_by_bin_width)
+      .def("__str__", [](IAnalysis::XSScaling const &scl) {
+        std::stringstream ss;
+        ss << scl.units;
+        return fmt::format("{{ units = {}, extra_scale_factor = {}, "
+                           "divide_by_bin_width = {} }}",
+                           ss.str(), scl.extra_scale_factor,
+                           scl.divide_by_bin_width);
+      });
+
   py::class_<IAnalysis, AnalysisPtr>(m, "IAnalysis")
       .def("process",
            [](AnalysisPtr const &ana, pyNormalizedEventSource &evs) {

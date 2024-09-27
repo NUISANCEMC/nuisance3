@@ -1,6 +1,6 @@
 add_subdirectory(plugins)
 
-add_library(record SHARED RecordFactory.cxx Utility.cxx)
+add_library(record SHARED RecordFactory.cxx Utility.cxx IAnalysis.cxx)
 
 target_link_libraries(record PUBLIC nuis_options)
 

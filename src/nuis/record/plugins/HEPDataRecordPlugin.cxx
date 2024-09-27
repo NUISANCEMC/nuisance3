@@ -5,10 +5,7 @@
 #include "nuis/record/Utility.h"
 #include "nuis/record/plugins/IRecordPlugin.h"
 
-#include "nuis/record/FinalizeFunctions.h"
-#include "nuis/record/LikelihoodFunctions.h"
-#include "nuis/record/SimpleAnalysis.h"
-#include "nuis/record/WeightFunctions.h"
+#include "nuis/record/SingleAnalysis.h"
 
 #include "nuis/env.h"
 #include "nuis/except.h"
@@ -220,7 +217,7 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
         "cannot yet handle composite measurements... sorry");
   }
 
-  auto analysis = std::make_shared<SimpleAnalysis>();
+  auto analysis = std::make_shared<SingleAnalysis>();
 
   // load all of the proselecta source files
   std::set<std::filesystem::path> proselecta_sources;
@@ -285,8 +282,7 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
     throw std::runtime_error(
         "cannot yet process a test test_statistic other than chi2.");
   }
-  // analysis->likelihood = likelihood::Chi2;
-
+  analysis->likelihood = likelihood::chi2_covariance(analysis->error);
 
   auto const &[units, extra_target_scale] =
       get_units_scale(xsmeasurement.cross_section_units,
@@ -298,9 +294,8 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
   analysis->per_bin_width =
       xsmeasurement.cross_section_units.count("per_bin_width");
 
-  analysis->finalise = analysis->per_bin_width
-                           ? finalise::FATXNormalizedByBinWidth
-                           : finalise::FATXNormalized;
+  analysis->finalise =
+      finalise::scale_to_cross_section(analysis->per_bin_width);
 
   return analysis;
 }

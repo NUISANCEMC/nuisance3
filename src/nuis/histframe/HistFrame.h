@@ -30,7 +30,21 @@ struct HistFrame : public BinnedValuesBase {
       : BinnedValuesBase(binop, def_col_name, def_col_label) {
     reset();
   }
-  HistFrame(){};
+
+  HistFrame(HistFrame const &other)
+      : BinnedValuesBase(other), sumweights{other.sumweights},
+        variances{other.variances}, num_fills{other.num_fills} {};
+
+  HistFrame &operator=(HistFrame const &other) {
+    binning = other.binning;
+    column_info = other.column_info;
+    sumweights = other.sumweights;
+    variances = other.variances;
+    num_fills = other.num_fills;
+    return *this;
+  }
+
+  HistFrame() {};
 
   struct column_view {
     Eigen::ArrayXdRef count;

@@ -3,6 +3,7 @@
 #include "nuis/histframe/BinnedValues.h"
 
 #include <functional>
+#include <vector>
 
 namespace nuis {
 
