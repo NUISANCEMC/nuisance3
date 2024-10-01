@@ -20,6 +20,10 @@
 NEW_NUISANCE_EXCEPT(InvalidFrameColumnType);
 NEW_NUISANCE_EXCEPT(AttemptRestartFailedFrame);
 
+static std::vector<std::string> const default_efg_columns{
+    "event.number", "weight.cv", "fatx_per_sumw.pb_per_target.estimate",
+    "fatx_per_sumw.pb_per_nucleon.estimate", "process.id"};
+
 namespace nuis {
 
 EventFrameGen::EventFrameGen(INormalizedEventSourcePtr evs, size_t block_size)
@@ -51,15 +55,14 @@ EventFrame EventFrameGen::first(size_t nchunk) {
   if (in_error_state) {
     throw AttemptRestartFailedFrame();
   }
-  all_column_names = std::accumulate(
-      columns.begin(), columns.end(),
-      std::vector<std::string>{"event.number", "weight.cv", "process.id"},
-      [](auto cols, auto const &hcp) {
-        for (auto h : hcp.column_names) {
-          cols.push_back(h);
-        }
-        return cols;
-      });
+  all_column_names =
+      std::accumulate(columns.begin(), columns.end(), default_efg_columns,
+                      [](auto cols, auto const &hcp) {
+                        for (auto h : hcp.column_names) {
+                          cols.push_back(h);
+                        }
+                        return cols;
+                      });
 
   n_total_rows = 0;
   neventsprocessed = 0;
@@ -146,15 +149,22 @@ EventFrame EventFrameGen::next(size_t nchunk) {
       continue;
     }
 
+    auto [fatx_pt, sumweights_pt, nevents_pt] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+    auto [fatx_pn, sumweights_pn, nevents_pn] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+
     chunk(chunk_row, 0) = ev.event_number();
     chunk(chunk_row, 1) = cvw;
-    chunk(chunk_row, 2) = NuHepMC::ER3::ReadProcessID(ev);
+    chunk(chunk_row, 2) = fatx_pt / sumweights_pt;
+    chunk(chunk_row, 3) = fatx_pn / sumweights_pn;
+    chunk(chunk_row, 4) = NuHepMC::ER3::ReadProcessID(ev);
 
     NUIS_LOG_TRACE(
         "EventFrameGen::next() chunk_row: {} was kept, event_number: {} ",
         ev.event_number());
 
-    size_t col_id = 3;
+    size_t col_id = default_efg_columns.size();
     for (auto &[column_names, typenum, proj_index] : columns) {
       size_t next_col_id = col_id;
 
@@ -294,9 +304,7 @@ std::shared_ptr<arrow::RecordBatch> EventFrameGen::firstArrow(size_t nchunk) {
     throw AttemptRestartFailedFrame();
   }
   all_column_names =
-      std::accumulate(columns.begin(), columns.end(),
-                      std::vector<std::string>{"event.number", "weight.cv",
-                                               "process.id", "fatx.estimate"},
+      std::accumulate(columns.begin(), columns.end(), default_efg_columns,
                       [](auto cols, auto const &hcp) {
                         for (auto h : hcp.column_names) {
                           cols.push_back(h);
@@ -337,8 +345,11 @@ EventFrameGen::_nextArrow(size_t nchunk) {
   for (auto const &[name, typenum] : std::vector<std::pair<std::string, int>>{
            {"event.number", nuis::column_type<int>::id},
            {"weight.cv", nuis::column_type<double>::id},
-           {"process.id", nuis::column_type<int>::id},
-           {"fatx.estimate", nuis::column_type<double>::id}}) {
+           {"fatx_per_sumw.pb_per_target.estimate",
+            nuis::column_type<double>::id},
+           {"fatx_per_sumw.pb_per_nucleon.estimate",
+            nuis::column_type<double>::id},
+           {"process.id", nuis::column_type<int>::id}}) {
 
     std::shared_ptr<arrow::Field> col = nullptr;
     ArrowBuilderPtr builder = nullptr;
@@ -432,15 +443,18 @@ EventFrameGen::_nextArrow(size_t nchunk) {
                    "event_number: {} ",
                    ev.event_number());
 
+    auto [fatx_pt, sumweights_pt, nevents_pt] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+    auto [fatx_pn, sumweights_pn, nevents_pn] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+
     BuilderAs<int>(array_builders[0]).Append(ev.event_number());
     BuilderAs<double>(array_builders[1]).Append(cvw);
-    BuilderAs<int>(array_builders[2]).Append(NuHepMC::ER3::ReadProcessID(ev));
+    BuilderAs<double>(array_builders[2]).Append(fatx_pt / sumweights_pt);
+    BuilderAs<double>(array_builders[3]).Append(fatx_pn / sumweights_pn);
+    BuilderAs<int>(array_builders[4]).Append(NuHepMC::ER3::ReadProcessID(ev));
 
-    auto [fatx, sumweights, nevents] =
-        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
-    BuilderAs<double>(array_builders[3]).Append(fatx);
-
-    size_t col_id = 4;
+    size_t col_id = default_efg_columns.size();
     for (auto &[column_names, typenum, proj_index] : columns) {
       try {
         switch (typenum) {
@@ -453,6 +467,15 @@ EventFrameGen::_nextArrow(size_t nchunk) {
           COLUMN_TYPE_ITER
 #undef X
         }
+      } catch (std::exception const &expt) {
+        log_error("EventFrameGen::nextArrow() failed calling while calling "
+                  "projections: {} on "
+                  "event {}.",
+                  column_names, neventsprocessed);
+        error_event = ev;
+        in_error_state = true;
+        throw FrameGenerationException()
+            << "Underlying exception: " << expt.what();
       } catch (...) {
         log_error("EventFrameGen::nextArrow() failed calling while calling "
                   "projections: {} on "
@@ -460,7 +483,8 @@ EventFrameGen::_nextArrow(size_t nchunk) {
                   column_names, neventsprocessed);
         error_event = ev;
         in_error_state = true;
-        throw FrameGenerationException();
+        throw FrameGenerationException()
+            << "Unknown object type rethrown, no more information available.";
       }
 
       col_id += column_names.size();
@@ -495,9 +519,12 @@ EventFrameGen::_nextArrow(size_t nchunk) {
   ARROW_ASSIGN_OR_RAISE(arrays[0], BuilderAs<int>(array_builders[0]).Finish());
   ARROW_ASSIGN_OR_RAISE(arrays[1],
                         BuilderAs<double>(array_builders[1]).Finish());
-  ARROW_ASSIGN_OR_RAISE(arrays[2], BuilderAs<int>(array_builders[2]).Finish());
+  ARROW_ASSIGN_OR_RAISE(arrays[2],
+                        BuilderAs<double>(array_builders[2]).Finish());
   ARROW_ASSIGN_OR_RAISE(arrays[3],
                         BuilderAs<double>(array_builders[3]).Finish());
+  ARROW_ASSIGN_OR_RAISE(arrays[4], BuilderAs<int>(array_builders[4]).Finish());
+
   log_debug("EventFrameGen::nextArrow() building arrays: ");
   log_debug("\t\t col: {}, name: {}, type: {}, num: {}", 0, all_column_names[0],
             column_typenum_as_string(column_type<int>::id),
@@ -512,7 +539,7 @@ EventFrameGen::_nextArrow(size_t nchunk) {
             column_typenum_as_string(column_type<double>::id),
             arrays[3]->length());
 
-  size_t col_id = 4;
+  size_t col_id = default_efg_columns.size();
   for (auto &[column_names, typenum, proj_index] : columns) {
 
     switch (typenum) {

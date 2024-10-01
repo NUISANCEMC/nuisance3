@@ -4,6 +4,7 @@
 #include "nuis/record/RecordFactory.h"
 #include "nuis/record/Utility.h"
 
+#include "nuis/python/pyEventFrame.h"
 #include "nuis/python/pyEventInput.h"
 #include "nuis/python/pyNUISANCE.h"
 #include "nuis/python/pyYAML.h"
@@ -14,6 +15,10 @@
 #include "pybind11/functional.h"
 
 #include "fmt/core.h"
+
+#ifdef NUIS_ARROW_ENABLED
+#include "arrow/python/pyarrow.h"
+#endif
 
 #include <string>
 
@@ -87,6 +92,29 @@ void pyRecordInit(py::module &m) {
       .def("process",
            [](AnalysisPtr const &ana, pyNormalizedEventSource &evs) {
              return ana->process(evs.evs);
+           })
+      .def("process",
+           py::overload_cast<EventFrame const &>(&IAnalysis::process))
+#ifdef NUIS_ARROW_ENABLED
+      .def("process",
+           [](AnalysisPtr const &ana, py::handle pyrb) {
+             if (arrow::py::is_table(pyrb.ptr())) {
+               return ana->process(
+                   arrow::py::unwrap_table(pyrb.ptr()).ValueOrDie());
+             } else if (arrow::py::is_batch(pyrb.ptr())) {
+               return ana->process(
+                   arrow::py::unwrap_batch(pyrb.ptr()).ValueOrDie());
+             }
+             throw std::runtime_error(
+                 "IAnalysis::process passed an invalid py::handle");
+           })
+#endif
+      .def("process",
+           py::overload_cast<std::shared_ptr<arrow::RecordBatch> const &>(
+               &IAnalysis::process))
+      .def("add_to_framegen",
+           [](AnalysisPtr const &ana, pyEventFrameGen &efg) {
+             ana->add_to_framegen(*efg.gen);
            })
       .def("get_selection", &IAnalysis::get_selection)
       .def("get_projections", &IAnalysis::get_projections)

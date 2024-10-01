@@ -217,6 +217,9 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
         "cannot yet handle composite measurements... sorry");
   }
 
+  auto const &ivars = xsmeasurement.independent_vars;
+  auto const &dvar = xsmeasurement.dependent_vars[0];
+
   auto analysis = std::make_shared<SingleAnalysis>();
 
   // load all of the proselecta source files
@@ -241,22 +244,35 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
         projfs.fname, ProSelecta::Interpreter::kCling));
   }
 
+  std::vector<std::string> ivar_labels;
+  auto project_prettynames = xsmeasurement.get_single_project_prettynames();
+  for (size_t vi = 0; vi < ivars.size(); ++vi) {
+    if (project_prettynames[vi].size()) {
+      ivar_labels.push_back(project_prettynames[vi]);
+    } else {
+      ivar_labels.push_back(ivars[vi].name);
+    }
+    if (ivars[vi].units.size()) {
+      ivar_labels.back() += fmt::format(" [{}]", ivars[vi].units);
+    }
+  }
+
   analysis->data = BinnedValues(
       Binning::brute_force(to_extents(xsmeasurement.independent_vars),
-                           analysis->projection_names),
-      "data");
+                           ivar_labels),
+      "data",
+      fmt::format("{} [{}]", xsmeasurement.dependent_vars[0].prettyname,
+                  xsmeasurement.dependent_vars[0].units));
 
   analysis->data.resize();
   analysis->prediction = analysis->data.make_HistFrame();
 
-  for (size_t bin_i = 0; bin_i < xsmeasurement.dependent_vars[0].values.size();
-       ++bin_i) {
+  for (size_t bin_i = 0; bin_i < dvar.values.size(); ++bin_i) {
     analysis->data.values(bin_i, 0) =
-        std::get<double>(xsmeasurement.dependent_vars[0].values[bin_i].value);
+        std::get<double>(dvar.values[bin_i].value);
 
-    if (xsmeasurement.dependent_vars[0].values[bin_i].errors.count("total")) {
-      analysis->data.errors(bin_i, 0) =
-          xsmeasurement.dependent_vars[0].values[bin_i].errors.at("total");
+    if (dvar.values[bin_i].errors.count("total")) {
+      analysis->data.errors(bin_i, 0) = dvar.values[bin_i].errors.at("total");
     }
   }
 

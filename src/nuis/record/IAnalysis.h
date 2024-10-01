@@ -3,6 +3,7 @@
 #include "nuis/eventinput/INormalizedEventSource.h"
 
 #include "nuis/eventframe/EventFrame.h"
+#include "nuis/eventframe/EventFrameGen.h"
 
 #include "nuis/histframe/BinnedValues.h"
 
@@ -38,6 +39,8 @@ struct IAnalysis {
   virtual Comparison process(std::shared_ptr<arrow::Table> const &);
   virtual Comparison process(std::shared_ptr<arrow::RecordBatch> const &);
 #endif
+
+  virtual void add_to_framegen(EventFrameGen &) const;
 
   // Throws if the actual analysis is more complicated
   virtual std::pair<std::string, SelectFunc> get_selection() const;

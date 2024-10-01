@@ -70,6 +70,34 @@ public:
     return add_typed_column<double>(col_name, proj);
   }
 
+  bool has_column(std::string col_name) {
+    for (auto const &colb : columns) {
+      for (auto const &col : colb.column_names) {
+        if (col == col_name) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // returns true,true for exactly the right clumn, or true,false if a column
+  // with the same name but a different type exists.
+  template <typename RT>
+  std::pair<bool, bool> has_typed_column(std::string col_name) {
+    for (auto const &colb : columns) {
+      for (auto const &col : colb.column_names) {
+        if (col == col_name) {
+          if (column_type<RT>::id == colb.typenum) {
+            return {true, true};
+          }
+          return {true, false};
+        }
+      }
+    }
+    return {false, false};
+  }
+
   EventFrameGen limit(size_t nmax);
   EventFrameGen progress(size_t every = 100000);
 

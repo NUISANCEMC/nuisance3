@@ -63,6 +63,10 @@ class HistFrame_matplotlib_helper:
     def y(self): return [(x[1].low+x[1].high)/2 for x in self.hf.binning.bins]
     def ey(self): return [(x[1].high-x[1].high)/2 for x in self.hf.binning.bins]
     def ly(self): return self.hf.binning.axis_labels[1]
+
+    def ldep(self, column=None):
+      if not column: return self.hf.column_info[0].column_label
+      return self.hf.column_info[self.hf.find_column_index(column)].column_label
     
     def c(self, column=None): 
         if not column: column = self.hf.column_info[0].name
@@ -105,6 +109,7 @@ class HistFrame_matplotlib_helper:
         obj = plot_axis.errorbar(pdim, self.c(column), xerr=perr, 
                             yerr=self.ec(), *args, **kwargs )
         plot_axis.set_xlabel(plab)
+        plot_axis.set_ylabel(self.ldep(column))
         return obj
 
     def plot(self, axis="x", column=None, fill=None, plot_axis=None, yscale=1, *args, **kwargs):
@@ -114,6 +119,7 @@ class HistFrame_matplotlib_helper:
         if fill == "tozeroy":
             plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(column) * yscale)
         plot_axis.set_xlabel(plab)
+        plot_axis.set_ylabel(self.ldep(column))
         return obj
     
     def plot_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, yscale=1, *args, **kwargs):
@@ -138,12 +144,15 @@ class HistFrame_matplotlib_helper:
 
         obj = plot_axis.plot(pdim, y * yscale, *args, **kwargs )
         plot_axis.set_xlabel(plab)
+        plot_axis.set_ylabel(self.ldep(columns[0]))
         return obj
 
-    def fill(self, axis="x", column="mc", fill=None, plot_axis=None, yscale=1, *args, **kwargs):
+    def fill(self, axis="x", column=None, fill=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
         pdim, perr, plab = self.get_1d_plotdim(axis)
         obj = plot_axis.fill_between(pdim, np.zeros(len(pdim)), self.c(column) * yscale, *args, **kwargs )
+        plot_axis.set_xlabel(plab)
+        plot_axis.set_ylabel(self.ldep(column))
         return obj
         
     def fill_all(self, axis="x", columns=None, labels=None, colors=None, plot_axis=None, yscale=1, *args, **kwargs):
@@ -162,6 +171,7 @@ class HistFrame_matplotlib_helper:
         pdim, perr, plab = self.get_1d_plotdim(axis)
         obj = plot_axis.scatter(pdim, self.c(column), *args, **kwargs )
         plot_axis.set_xlabel(plab)
+        plot_axis.set_ylabel(self.ldep(column))
         return obj
 
     def scatter_all(self, axis="x", columns=None, labels=None, plot_axis=None, colors=None, *args, **kwargs):
@@ -184,10 +194,21 @@ class HistFrame_matplotlib_helper:
       return plot_axis.fill_between(self.get_1d_bins(axis), yc+yerr, y2=yc-yerr, step="post", color=color)
 
     def data_hist(self, *args, **kwargs):
-      return self.errorbar(*args, 
-          marker=".", markersize=7.5, color="#000", 
-          linewidth=0, elinewidth=1, capsize=2.5, 
-          **kwargs)
+
+      if "marker" not in kwargs:
+        kwargs["marker"] = "."
+      if "markersize" not in kwargs:
+        kwargs["markersize"] = 10
+      if "color" not in kwargs:
+        kwargs["color"] = "#000"
+      if "linewidth" not in kwargs:
+        kwargs["linewidth"] = 0
+      if "elinewidth" not in kwargs:
+        kwargs["elinewidth"] = 1
+      if "capsize" not in kwargs:
+        kwargs["capsize"] = 2.5
+
+      return self.errorbar(*args, **kwargs)
 
     def hist(self, axis="x", column=None, plot_axis=None, yscale=1, *args, **kwargs):
         if not plot_axis: plot_axis = plt.gca()
@@ -201,7 +222,8 @@ class HistFrame_matplotlib_helper:
 
         obj = plot_axis.hist(pdim, weights=self.c(column) * yscale, bins=self.get_1d_bins(axis), *args, **kwargs)
         plot_axis.set_xlabel(plab)
-        
+        plot_axis.set_ylabel(self.ldep(column))
+
         if errbar_obj:
           return (obj, errbar_obj)
         else:

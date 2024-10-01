@@ -14,6 +14,8 @@
 
 namespace Eigen {
 using ArrayXdRef = Ref<ArrayXd, 0, Stride<Dynamic, Dynamic>>;
+using ArrayXdCRef = Ref<ArrayXd const, 0, Stride<Dynamic, Dynamic>> const;
+
 } // namespace Eigen
 
 namespace nuis {
@@ -32,6 +34,7 @@ struct EventFrame {
   column_t find_column_index(std::string const &name) const;
 
   Eigen::ArrayXdRef col(std::string const &cn);
+  Eigen::ArrayXdCRef col(std::string const &cn) const;
   std::vector<Eigen::ArrayXdRef> cols(std::vector<std::string> const &cns);
 
   explicit operator bool() const { return table.rows(); }

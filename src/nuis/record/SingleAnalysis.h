@@ -7,6 +7,8 @@
 
 #include "NuHepMC/UnitsUtils.hxx"
 
+#include "fmt/core.h"
+
 namespace nuis {
 
 struct SingleAnalysis : public IAnalysis {
@@ -35,8 +37,72 @@ struct SingleAnalysis : public IAnalysis {
   Eigen::MatrixXd smearing;
 
   template <typename EFT>
-  double get_best_fatx_per_sumw_estimate(EFT const &) const {
-    throw std::runtime_error("unimplemented function called");
+  double get_best_fatx_per_sumw_estimate(EFT const &ef) const {
+
+    std::string fatx_colname;
+
+    if (xs_units.tgtscale ==
+        NuHepMC::CrossSection::Units::TargetScale::PerTarget) {
+      fatx_colname = "fatx_per_sumw.pb_per_target.estimate";
+    } else if (xs_units.tgtscale ==
+               NuHepMC::CrossSection::Units::TargetScale::PerTargetNucleon) {
+      fatx_colname = "fatx_per_sumw.pb_per_nucleon.estimate";
+    } else {
+      std::stringstream ss;
+      ss << xs_units.tgtscale;
+      throw std::runtime_error(
+          fmt::format("When retrieving best fatx_per_sumw estimate from "
+                      "proferred event frame, the analysis target "
+                      "scale was: {}, which is invalid for automatic scaling.",
+                      ss.str()));
+    }
+
+    static std::map<NuHepMC::CrossSection::Units::Scale, double> const
+        xsunit_factors = {
+            {NuHepMC::CrossSection::Units::Scale::pb,
+             NuHepMC::CrossSection::Units::pb},
+            {NuHepMC::CrossSection::Units::Scale::cm2,
+             NuHepMC::CrossSection::Units::cm2},
+            {NuHepMC::CrossSection::Units::Scale::cm2_ten38,
+             NuHepMC::CrossSection::Units::cm2_ten38},
+        };
+
+    double units_scale =
+        NuHepMC::CrossSection::Units::pb / xsunit_factors.at(xs_units.scale);
+
+    if constexpr (std::is_same_v<EFT, EventFrame>) {
+      return ef.col(fatx_colname).tail(1)(0) * units_scale;
+    }
+#ifdef NUIS_ARROW_ENABLED
+    else if constexpr (std::is_same_v<EFT,
+                                      std::shared_ptr<arrow::RecordBatch>>) {
+      if (!ef->num_rows()) {
+        throw std::runtime_error(
+            "in SingleAnalysis::process was passed an arrow "
+            "record batch with no rows.");
+      }
+      return get_col_cast_to<double>(ef, fatx_colname)(ef->num_rows() - 1) *
+             units_scale;
+    } else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::Table>>) {
+
+      double best_estimate = 0;
+      for (auto rb : arrow::TableBatchReader(ef)) {
+        if (!rb.ValueOrDie()->num_rows()) {
+          break;
+        }
+        best_estimate = get_col_cast_to<double>(rb.ValueOrDie(), fatx_colname)(
+                            rb.ValueOrDie()->num_rows() - 1) *
+                        units_scale;
+      }
+
+      if (best_estimate == 0) {
+        throw std::runtime_error("in SingleAnalysis::process was passed an "
+                                 "arrow table with no rows");
+      }
+
+      return best_estimate;
+    }
+#endif
   }
 
   template <typename EFT>
@@ -104,11 +170,7 @@ struct SingleAnalysis : public IAnalysis {
   Comparison process(INormalizedEventSourcePtr &events) {
 
     auto efg = EventFrameGen(events).filter(select);
-    //have to add this so that process_batched works
-    efg.add_typed_column<int>(select_name, select);
-    for (size_t pi = 0; pi < projections.size(); ++pi) {
-      efg.add_column(projection_names[pi], projections[pi]);
-    }
+    add_to_framegen(efg);
 
     prediction.reset();
 
@@ -122,6 +184,25 @@ struct SingleAnalysis : public IAnalysis {
     }
 
     return comp;
+  }
+
+  void add_to_framegen(EventFrameGen &efg) const {
+
+    auto sel_col_check = efg.has_typed_column<int>(select_name);
+    if (!sel_col_check.first) { // doesn't have a column with that name
+      efg.add_typed_column<int>(select_name, select);
+    } else if (!sel_col_check.second) {
+      throw std::runtime_error(fmt::format(
+          "when adding column named {} to EventFrameGen, a column with the "
+          "same name but a different type already exists.",
+          select_name));
+    }
+
+    for (size_t pi = 0; pi < projections.size(); ++pi) {
+      if (!efg.has_column(projection_names[pi])) {
+        efg.add_column(projection_names[pi], projections[pi]);
+      }
+    }
   }
 
   std::pair<std::string, SelectFunc> get_selection() const {

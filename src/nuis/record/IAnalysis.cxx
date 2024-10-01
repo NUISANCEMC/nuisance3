@@ -22,6 +22,10 @@ Comparison IAnalysis::process(std::shared_ptr<arrow::RecordBatch> const &) {
 }
 #endif
 
+void IAnalysis::add_to_framegen(EventFrameGen &) const {
+  throw IAnalysisUnimplementedInterfaceFunction();
+}
+
 // Throws if the actual analysis is more complicated
 std::pair<std::string, SelectFunc> IAnalysis::get_selection() const {
   throw IAnalysisUnimplementedInterfaceFunction();
