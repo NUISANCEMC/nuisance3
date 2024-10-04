@@ -108,10 +108,10 @@ void pyRecordInit(py::module &m) {
              throw std::runtime_error(
                  "IAnalysis::process passed an invalid py::handle");
            })
-#endif
       .def("process",
            py::overload_cast<std::shared_ptr<arrow::RecordBatch> const &>(
                &IAnalysis::process))
+#endif
       .def("add_to_framegen",
            [](AnalysisPtr const &ana, pyEventFrameGen &efg) {
              ana->add_to_framegen(*efg.gen);
