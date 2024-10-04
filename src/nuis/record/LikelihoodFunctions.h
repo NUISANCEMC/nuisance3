@@ -10,7 +10,7 @@ namespace nuis {
 namespace likelihood {
 using func = std::function<double(Comparison const &)>;
 
-inline func chi2_covariance(Eigen::MatrixXd const &covariance) {
+template <typename IMT> func chi2_inv_covariance(IMT const &inv_covariance) {
   return [=](Comparison const &comp) -> double {
     size_t nbins = 0;
     for (auto const &d : comp.data) {
@@ -28,7 +28,7 @@ inline func chi2_covariance(Eigen::MatrixXd const &covariance) {
       first_bin += comp.data[i].values.rows();
     }
 
-    return diff_vect.transpose() * covariance * diff_vect;
+    return diff_vect.transpose() * inv_covariance * diff_vect;
   };
 }
 } // namespace likelihood

@@ -105,8 +105,6 @@ public:
   EventFrame next(size_t nchunk = std::numeric_limits<size_t>::max());
   EventFrame all();
 
-  NormInfo norm_info() const { return fnorm_info; }
-
   auto const &get_error_event() { return error_event; }
 
 #ifdef NUIS_ARROW_ENABLED
@@ -182,7 +180,6 @@ private:
   size_t n_total_rows;
   size_t neventsprocessed;
   INormalizedEventSource_looper ev_it;
-  NormInfo fnorm_info;
 };
 
 } // namespace nuis

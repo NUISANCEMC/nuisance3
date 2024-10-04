@@ -26,7 +26,6 @@ struct EventFrame {
   std::vector<std::string> column_names;
   Eigen::ArrayXXd table;
   size_t num_rows;
-  NormInfo norm_info;
 
   using column_t = uint16_t;
   constexpr static column_t const npos = std::numeric_limits<column_t>::max();

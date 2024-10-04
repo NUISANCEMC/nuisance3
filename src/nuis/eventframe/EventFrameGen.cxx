@@ -99,8 +99,7 @@ EventFrame EventFrameGen::next(size_t nchunk) {
       neventsprocessed, max_events_to_loop);
 
   if (neventsprocessed >= max_events_to_loop) {
-    return {all_column_names, Eigen::ArrayXXd(0, all_column_names.size()), 0,
-            fnorm_info};
+    return {all_column_names, Eigen::ArrayXXd(0, all_column_names.size()), 0};
   }
 
   Eigen::ArrayXXd chunk(nchunk, all_column_names.size());
@@ -201,17 +200,24 @@ EventFrame EventFrameGen::next(size_t nchunk) {
   }
   nuis::StartTalking();
 
+  // reset the last fatx entries to be the final best estimate, otherwise if the
+  // last events are not selected, the cross section information read from the
+  // reader is not included.
+  auto [fatx_pt, sumweights_pt, nevents_pt] =
+      source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+  auto [fatx_pn, sumweights_pn, nevents_pn] =
+      source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+  chunk(chunk_row - 1, 2) = fatx_pt / sumweights_pt;
+  chunk(chunk_row - 1, 3) = fatx_pn / sumweights_pn;
+
   log_trace(
       "EventFrameGen::next() done looping  n_total_rows: {} neventsprocessed: "
       "{} chunk_row: {}",
       n_total_rows, neventsprocessed, chunk_row);
 
-  // grab the norm_info before reading the next event for the start of the next
-  // loop
-  fnorm_info = source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
   ++ev_it;
 
-  return {all_column_names, chunk.topRows(chunk_row), chunk_row, fnorm_info};
+  return {all_column_names, chunk.topRows(chunk_row), chunk_row};
 }
 
 EventFrame EventFrameGen::all() {
@@ -262,8 +268,7 @@ EventFrame EventFrameGen::all() {
 
   log_trace("EventFrameGen::all() done: nrows {}", builder.rows());
 
-  return {all_column_names, builder, size_t(builder.rows()),
-          source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget)};
+  return {all_column_names, builder, size_t(builder.rows())};
 }
 
 #ifdef NUIS_ARROW_ENABLED
@@ -392,6 +397,12 @@ EventFrameGen::_nextArrow(size_t nchunk) {
   auto end_it = end(source);
   auto nmaxloop = std::min(max_events_to_loop, nevents);
 
+  // have to keep track of these as we read them so that we can force the last
+  // entry to be the best estimate of the total fatx, rather than the best
+  // estimate by the time that entry has been read (where a filter cuts out
+  // the last N events)
+  std::vector<double> fatx_per_sumw_pn, fatx_per_sumw_pt;
+
   while (ev_it != end_it) {
     auto const &[evp, cvw] = *ev_it;
     auto const &ev = *evp;
@@ -443,16 +454,18 @@ EventFrameGen::_nextArrow(size_t nchunk) {
                    "event_number: {} ",
                    ev.event_number());
 
-    auto [fatx_pt, sumweights_pt, nevents_pt] =
-        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
-    auto [fatx_pn, sumweights_pn, nevents_pn] =
-        source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
-
     BuilderAs<int>(array_builders[0]).Append(ev.event_number());
     BuilderAs<double>(array_builders[1]).Append(cvw);
-    BuilderAs<double>(array_builders[2]).Append(fatx_pt / sumweights_pt);
-    BuilderAs<double>(array_builders[3]).Append(fatx_pn / sumweights_pn);
     BuilderAs<int>(array_builders[4]).Append(NuHepMC::ER3::ReadProcessID(ev));
+
+    // calculate and store the cross-section info up to the current event
+    auto [fatx_pn, sumweights_pn, nevents_pn] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+    auto [fatx_pt, sumweights_pt, nevents_pt] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+
+    fatx_per_sumw_pn.push_back(fatx_pn / sumweights_pn);
+    fatx_per_sumw_pt.push_back(fatx_pt / sumweights_pt);
 
     size_t col_id = default_efg_columns.size();
     for (auto &[column_names, typenum, proj_index] : columns) {
@@ -504,14 +517,25 @@ EventFrameGen::_nextArrow(size_t nchunk) {
     ++ev_it;
   }
 
+  // reset the last fatx entries to be the final best estimate, otherwise if the
+  // last events are not selected, the cross section information read from the
+  // reader is not included.
+  auto [fatx_pn, sumweights_pn, nevents_pn] =
+      source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+  auto [fatx_pt, sumweights_pt, nevents_pt] =
+      source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+
+  fatx_per_sumw_pn.back() = fatx_pn / sumweights_pn;
+  fatx_per_sumw_pt.back() = fatx_pt / sumweights_pt;
+  // push the whole arrays onto the array builder
+  BuilderAs<double>(array_builders[2]).AppendValues(fatx_per_sumw_pt);
+  BuilderAs<double>(array_builders[3]).AppendValues(fatx_per_sumw_pn);
+
   log_trace("EventFrameGen::nextArrow() done looping  n_total_rows: {} "
             "neventsprocessed: "
             "{} rbatch_row: {}",
             n_total_rows, neventsprocessed, rbatch_row);
 
-  // grab the norm_info before reading the next event for the start of the
-  // next loop
-  fnorm_info = source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
   ++ev_it;
 
   std::vector<std::shared_ptr<arrow::Array>> arrays(all_column_names.size(),

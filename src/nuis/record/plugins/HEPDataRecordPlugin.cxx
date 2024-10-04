@@ -163,7 +163,7 @@ int probe_particle_to_pdg(std::string const &probe) {
     return 14;
   } else if (probe == "numubar") {
     return -14;
-  } else if (probe == "nuebar") {
+  } else if (probe == "nue") {
     return 12;
   } else if (probe == "nuebar") {
     return -12;
@@ -298,7 +298,9 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
     throw std::runtime_error(
         "cannot yet process a test test_statistic other than chi2.");
   }
-  analysis->likelihood = likelihood::chi2_covariance(analysis->error);
+
+  analysis->likelihood = likelihood::chi2_inv_covariance(
+      Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
 
   auto const &[units, extra_target_scale] =
       get_units_scale(xsmeasurement.cross_section_units,
