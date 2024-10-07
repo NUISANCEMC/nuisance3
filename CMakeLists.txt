@@ -107,7 +107,7 @@ CPMAddPackage(
 CPMFindPackage(
     NAME ProSelecta
     GITHUB_REPOSITORY NUISANCEMC/ProSelecta
-    GIT_TAG v1-RC2
+    GIT_TAG v1-RC3
 )
 
 CPMAddPackage(
