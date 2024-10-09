@@ -9,7 +9,7 @@
 #install(TARGETS nuis-example-binning DESTINATION bin)
 
 add_executable(nuis-example-frame nuis-example-frame.cxx)
-target_link_libraries(nuis-example-frame eventinput eventframe)
+target_link_libraries(nuis-example-frame eventinput eventframe histframe)
 install(TARGETS nuis-example-frame DESTINATION bin)
 
 #add_executable(nuis-spline-test nuis-spline-test.cxx)

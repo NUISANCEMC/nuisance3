@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <random>
+#include <iostream>
 
 TEST_CASE("FramedResponse", "[Response]") {
 
