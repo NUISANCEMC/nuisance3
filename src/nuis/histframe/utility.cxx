@@ -10,7 +10,7 @@
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(InvalidAxisLabel);
+DECLARE_NUISANCE_EXCEPT(InvalidAxisLabel);
 
 struct ProjectionMap {
   std::vector<size_t> project_to_axes;

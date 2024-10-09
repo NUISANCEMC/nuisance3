@@ -6,6 +6,7 @@
 
 #include "nuis/histframe/HistFrame.h"
 #include "nuis/histframe/fill_from_EventFrame.h"
+#include "nuis/histframe/newfill.h"
 #include "nuis/histframe/utility.h"
 
 #include "NuHepMC/EventUtils.hxx"
@@ -22,13 +23,11 @@
 #include <iostream>
 #include <memory>
 
-std::vector<std::string> int_cols_names = {"process.id", "PDG.nu", "PDG.lep",
-                                           "Target.A", "Target.Z"};
+std::vector<std::string> int_cols_names = {"PDG.nu", "PDG.lep", "Target.A",
+                                           "Target.Z"};
 std::vector<int> int_cols(HepMC3::GenEvent const &evt) {
 
   std::vector<int> resp(int_cols_names.size(), nuis::kMissingDatum<int>);
-
-  resp[0] = NuHepMC::ER3::ReadProcessID(evt);
 
   if (!ps::event::has_beam_part(evt, ps::pdg::kNeutralLeptons)) {
     return resp;
@@ -36,7 +35,7 @@ std::vector<int> int_cols(HepMC3::GenEvent const &evt) {
 
   auto pin = ps::event::beam_part(evt, ps::pdg::kNeutralLeptons);
 
-  resp[1] = pin->pid();
+  resp[0] = pin->pid();
 
   int nupid = pin->pid();
   int ccpid = nupid > 0 ? (nupid - 1) : (nupid + 1);
@@ -47,7 +46,7 @@ std::vector<int> int_cols(HepMC3::GenEvent const &evt) {
 
   auto pout = ps::event::hm_out_part(evt, ps::pids(nupid, ccpid), ps::flatten);
 
-  resp[2] = pout->pid();
+  resp[1] = pout->pid();
 
   auto tgt = NuHepMC::Event::GetTargetParticle(evt);
 
@@ -56,8 +55,8 @@ std::vector<int> int_cols(HepMC3::GenEvent const &evt) {
   }
 
   //   //±10LZZZAAAI
-  resp[3] = (tgt->pid() / 10) % 1000;
-  resp[4] = (tgt->pid() / 10000) % 1000;
+  resp[2] = (tgt->pid() / 10) % 1000;
+  resp[3] = (tgt->pid() / 10000) % 1000;
 
   return resp;
 }
@@ -128,8 +127,18 @@ void ProcessRBatch(std::shared_ptr<arrow::RecordBatch> &rbatch) {
   nuis::fill_from_Arrow(hf, rbatch, {"true.event.lep.q0"});
   nuis::fill_from_Arrow(hf, rbatch, {"true.event.lep.q0", "true.event.lep.q3"});
 
+  auto hf3 = nuis::HistFrame(nuis::Binning::lin_space(0, 2E3, 10));
+  auto hf4 =
+      nuis::HistFrame(nuis::Binning::lin_spaceND({{0, 2E3, 10}, {0, 2E3, 10}}));
+  nuis::fill(hf4, rbatch, {"true.event.lep.q0", "true.event.lep.q3"},
+             nuis::fill_column("newcol"), nuis::split_by_ProcID(),
+             nuis::no_CV_weight());
+  nuis::fill(hf3, rbatch, {"true.event.lep.q0"}, nuis::fill_column("newcol"),
+             nuis::split_by_ProcID(), nuis::no_CV_weight());
   std::cout << hf << std::endl;
   std::cout << hf2 << std::endl;
+  std::cout << hf3 << std::endl;
+  std::cout << hf4 << std::endl;
 }
 
 arrow::Status RunMain(int, char const *argv[]) {
@@ -177,7 +186,7 @@ arrow::Status RunMain(int, char const *argv[]) {
 
   ProcessRBatch(rbatch);
 
-  while (rbatch = frame.nextArrow()) {
+  while (rbatch = frame.nextArrow(), rbatch->num_rows()) {
     ARROW_RETURN_NOT_OK(ipc_writer->WriteRecordBatch(*rbatch));
   }
 

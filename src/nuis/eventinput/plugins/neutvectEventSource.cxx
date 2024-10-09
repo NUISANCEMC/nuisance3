@@ -21,7 +21,7 @@
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(NeutVectNoFluxRateHistos);
+DECLARE_NUISANCE_EXCEPT(NeutVectNoFluxRateHistos);
 
 neutvectEventSource::neutvectEventSource(YAML::Node const &cfg) {
   if (cfg["filepath"] &&

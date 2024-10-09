@@ -98,7 +98,7 @@ CPMFindPackage(
 # try and find Protobuf as HepMC3 is broke
 find_package(Protobuf 2.6 QUIET)
 find_package(HepMC3 3.3 REQUIRED)
-CPMAddPackage(
+CPMFindPackage(
   NAME NuHepMC_CPPUtils
   GIT_TAG main
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
@@ -110,7 +110,7 @@ CPMFindPackage(
     GIT_TAG v1-RC3
 )
 
-CPMAddPackage(
+CPMFindPackage(
     NAME fmt
     VERSION 8.1.1
     GIT_TAG 8.1.1
@@ -119,7 +119,7 @@ CPMAddPackage(
             "BUILD_SHARED_LIBS ON"
 )
 
-CPMAddPackage(
+CPMFindPackage(
     NAME spdlog
     VERSION 1.10.0
     GIT_TAG v1.10.0

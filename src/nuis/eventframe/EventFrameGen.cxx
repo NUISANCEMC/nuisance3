@@ -17,8 +17,8 @@
   X(float)                                                                     \
   X(double)
 
-NEW_NUISANCE_EXCEPT(InvalidFrameColumnType);
-NEW_NUISANCE_EXCEPT(AttemptRestartFailedFrame);
+DECLARE_NUISANCE_EXCEPT(InvalidFrameColumnType);
+DECLARE_NUISANCE_EXCEPT(AttemptRestartFailedFrame);
 
 static std::vector<std::string> const default_efg_columns{
     "event.number", "weight.cv", "fatx_per_sumw.pb_per_target.estimate",
@@ -110,7 +110,7 @@ EventFrame EventFrameGen::next(size_t nchunk) {
 
   auto nmaxloop = std::min(max_events_to_loop, nevents);
 
-  nuis::StopTalking();
+  // nuis::StopTalking();
   while (ev_it != end_it) {
     auto const &[evp, cvw] = *ev_it;
     auto const &ev = *evp;
@@ -119,14 +119,14 @@ EventFrame EventFrameGen::next(size_t nchunk) {
 
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
-      nuis::StartTalking();
+      // nuis::StartTalking();
       log_info("EventFrameGen has selected {}{} from {} processed events.",
                n_total_rows,
                ((nmaxloop != std::numeric_limits<size_t>::max())
                     ? fmt::format("/{}", nmaxloop)
                     : ""),
                neventsprocessed);
-      nuis::StopTalking();
+      // nuis::StopTalking();
     }
 
     bool cut = false;
@@ -198,17 +198,19 @@ EventFrame EventFrameGen::next(size_t nchunk) {
     }
     ++ev_it;
   }
-  nuis::StartTalking();
+  // nuis::StartTalking();
 
-  // reset the last fatx entries to be the final best estimate, otherwise if the
-  // last events are not selected, the cross section information read from the
-  // reader is not included.
-  auto [fatx_pt, sumweights_pt, nevents_pt] =
-      source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
-  auto [fatx_pn, sumweights_pn, nevents_pn] =
-      source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
-  chunk(chunk_row - 1, 2) = fatx_pt / sumweights_pt;
-  chunk(chunk_row - 1, 3) = fatx_pn / sumweights_pn;
+  if (chunk_row) {
+    // reset the last fatx entries to be the final best estimate, otherwise if
+    // the last events are not selected, the cross section information read from
+    // the reader is not included.
+    auto [fatx_pt, sumweights_pt, nevents_pt] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+    auto [fatx_pn, sumweights_pn, nevents_pn] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+    chunk(chunk_row - 1, 2) = fatx_pt / sumweights_pt;
+    chunk(chunk_row - 1, 3) = fatx_pn / sumweights_pn;
+  }
 
   log_trace(
       "EventFrameGen::next() done looping  n_total_rows: {} neventsprocessed: "
@@ -229,9 +231,11 @@ EventFrame EventFrameGen::all() {
            chunk_size, all_column_names.size(),
            ((chunk_size * all_column_names.size()) * sizeof(double)) / 1024);
 
-  Eigen::ArrayXXd builder;
   Eigen::ArrayXXd next_chunk = first().table;
-  log_trace("EventFrameGen::all() first with nrows {}", builder.rows());
+
+  Eigen::ArrayXXd builder = Eigen::ArrayXXd::Zero(0, next_chunk.cols());
+
+  log_trace("EventFrameGen::all() first with nrows {}", next_chunk.rows());
 
   size_t last_report_size = 0;
   if ((neventsprocessed - last_report_size) > progress_report_every) {
@@ -244,8 +248,10 @@ EventFrame EventFrameGen::all() {
   }
 
   while (next_chunk.rows()) {
-    log_trace("EventFrameGen::all() got chunk with nrows {}",
-              next_chunk.rows());
+    log_trace("EventFrameGen::all() got chunk with {} rows {} cols, adding to "
+              "existing block with {} rows {} cols.",
+              next_chunk.rows(), next_chunk.cols(), builder.rows(),
+              builder.cols());
 
     Eigen::ArrayXXd new_builder(builder.rows() + next_chunk.rows(),
                                 next_chunk.cols());
@@ -517,19 +523,21 @@ EventFrameGen::_nextArrow(size_t nchunk) {
     ++ev_it;
   }
 
-  // reset the last fatx entries to be the final best estimate, otherwise if the
-  // last events are not selected, the cross section information read from the
-  // reader is not included.
-  auto [fatx_pn, sumweights_pn, nevents_pn] =
-      source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
-  auto [fatx_pt, sumweights_pt, nevents_pt] =
-      source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+  if (fatx_per_sumw_pn.size()) {
+    // reset the last fatx entries to be the final best estimate, otherwise if
+    // the last events are not selected, the cross section information read from
+    // the reader is not included.
+    auto [fatx_pn, sumweights_pn, nevents_pn] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+    auto [fatx_pt, sumweights_pt, nevents_pt] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
 
-  fatx_per_sumw_pn.back() = fatx_pn / sumweights_pn;
-  fatx_per_sumw_pt.back() = fatx_pt / sumweights_pt;
-  // push the whole arrays onto the array builder
-  BuilderAs<double>(array_builders[2]).AppendValues(fatx_per_sumw_pt);
-  BuilderAs<double>(array_builders[3]).AppendValues(fatx_per_sumw_pn);
+    fatx_per_sumw_pn.back() = fatx_pn / sumweights_pn;
+    fatx_per_sumw_pt.back() = fatx_pt / sumweights_pt;
+    // push the whole arrays onto the array builder
+    BuilderAs<double>(array_builders[2]).AppendValues(fatx_per_sumw_pt);
+    BuilderAs<double>(array_builders[3]).AppendValues(fatx_per_sumw_pn);
+  }
 
   log_trace("EventFrameGen::nextArrow() done looping  n_total_rows: {} "
             "neventsprocessed: "

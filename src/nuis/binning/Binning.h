@@ -34,7 +34,8 @@ struct Binning : public nuis_named_log("Binning") {
   //--- data members
   std::vector<std::string> axis_labels;
 
-  // extents[i] are the N SingleExtents of bin i.
+  // bins[i] are the N SingleExtents of bin i, one for each independent
+  // variable.
   std::vector<BinExtents> bins;
 
   std::function<index_t(std::vector<double> const &)> binning_function;

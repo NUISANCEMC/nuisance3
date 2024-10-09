@@ -6,7 +6,7 @@
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(EnvVarNotDefined);
+DECLARE_NUISANCE_EXCEPT(EnvVarNotDefined);
 
 namespace env {
 

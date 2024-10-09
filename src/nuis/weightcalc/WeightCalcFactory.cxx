@@ -14,9 +14,9 @@
 
 #include <regex>
 
-NEW_NUISANCE_EXCEPT(NUISANCE_ROOTUndefined);
-NEW_NUISANCE_EXCEPT(UnableToProvisionWeightCalcPlugin);
-NEW_NUISANCE_EXCEPT(InvalidWeightCalcPluginRequested);
+DECLARE_NUISANCE_EXCEPT(NUISANCE_ROOTUndefined);
+DECLARE_NUISANCE_EXCEPT(UnableToProvisionWeightCalcPlugin);
+DECLARE_NUISANCE_EXCEPT(InvalidWeightCalcPluginRequested);
 
 namespace nuis {
 WeightCalcFactory::WeightCalcFactory() {

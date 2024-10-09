@@ -16,7 +16,7 @@
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(NEUTCardRequired);
+DECLARE_NUISANCE_EXCEPT(NEUTCardRequired);
 
 double NReWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
   neut::CommonBlockIFace::ReadVect(nevs->neutvect(ev));

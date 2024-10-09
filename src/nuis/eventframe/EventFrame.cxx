@@ -1,6 +1,7 @@
 #include "nuis/eventframe/EventFrame.h"
 
 #include "fmt/core.h"
+#include "fmt/ranges.h"
 
 #include "nuis/except.h"
 #include "nuis/log.txx"
@@ -15,6 +16,18 @@ EventFrame::find_column_index(std::string const &cn) const {
     return EventFrame::npos;
   }
   return pos - column_names.begin();
+}
+
+EventFrame::column_t
+EventFrame::require_column_index(std::string const &cn) const {
+  auto col = find_column_index(cn);
+  if (col == EventFrame::npos) {
+    throw InvalidFrameColumnName()
+        << fmt::format("require_column_index(column=\"{}\"), but no such "
+                       "column exists. Valid columns: {}",
+                       cn, column_names);
+  }
+  return col;
 }
 
 Eigen::ArrayXdRef EventFrame::col(std::string const &cn) {

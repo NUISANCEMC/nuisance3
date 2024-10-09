@@ -7,8 +7,8 @@
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(InvalidYAMLData);
-NEW_NUISANCE_EXCEPT(InvalidYAMLSchemaObject);
+DECLARE_NUISANCE_EXCEPT(InvalidYAMLData);
+DECLARE_NUISANCE_EXCEPT(InvalidYAMLSchemaObject);
 
 using yamlvlogger = nuis_named_log("YAMLValid");
 

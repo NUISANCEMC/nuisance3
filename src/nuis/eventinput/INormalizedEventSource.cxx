@@ -8,7 +8,7 @@
 
 #include "HepMC3/GenParticle.h"
 
-NEW_NUISANCE_EXCEPT(EventMomentumUnitNotMeV);
+DECLARE_NUISANCE_EXCEPT(EventMomentumUnitNotMeV);
 
 namespace nuis {
 

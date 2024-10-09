@@ -1,14 +1,12 @@
 #include "nuis/histframe/HistFrame.h"
 
-#include "nuis/eventframe/missing_datum.h"
-
 #include "nuis/binning/exceptions.h"
 
 #include "nuis/log.txx"
 
 #include "fmt/ranges.h"
 
-NEW_NUISANCE_EXCEPT(InvalidColumnAccess);
+DECLARE_NUISANCE_EXCEPT(InvalidColumnAccess);
 
 namespace nuis {
 

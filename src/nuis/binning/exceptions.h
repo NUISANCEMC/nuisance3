@@ -3,18 +3,17 @@
 #include "nuis/except.h"
 
 namespace nuis {
-NEW_NUISANCE_EXCEPT(BinningNotIncreasing);
-NEW_NUISANCE_EXCEPT(UnbinnableNumber);
-NEW_NUISANCE_EXCEPT(InvalidBinEdgeForLogarithmicBinning);
-NEW_NUISANCE_EXCEPT(TooFewProjectionsForBinning);
-NEW_NUISANCE_EXCEPT(BinningUnsorted);
-NEW_NUISANCE_EXCEPT(TooFewBinEdges);
-NEW_NUISANCE_EXCEPT(BinningHasOverlaps);
-NEW_NUISANCE_EXCEPT(BinningNotUnique);
-NEW_NUISANCE_EXCEPT(MismatchedAxisCount);
-NEW_NUISANCE_EXCEPT(AxisOverflow);
-NEW_NUISANCE_EXCEPT(CatastrophicBinningFailure);
-NEW_NUISANCE_EXCEPT(EmptyBinning);
-NEW_NUISANCE_EXCEPT(NonContiguousBinning);
-
+DECLARE_NUISANCE_EXCEPT(BinningNotIncreasing);
+DECLARE_NUISANCE_EXCEPT(UnbinnableNumber);
+DECLARE_NUISANCE_EXCEPT(InvalidBinEdgeForLogarithmicBinning);
+DECLARE_NUISANCE_EXCEPT(TooFewProjectionsForBinning);
+DECLARE_NUISANCE_EXCEPT(BinningUnsorted);
+DECLARE_NUISANCE_EXCEPT(TooFewBinEdges);
+DECLARE_NUISANCE_EXCEPT(BinningHasOverlaps);
+DECLARE_NUISANCE_EXCEPT(BinningNotUnique);
+DECLARE_NUISANCE_EXCEPT(MismatchedAxisCount);
+DECLARE_NUISANCE_EXCEPT(AxisOverflow);
+DECLARE_NUISANCE_EXCEPT(CatastrophicBinningFailure);
+DECLARE_NUISANCE_EXCEPT(EmptyBinning);
+DECLARE_NUISANCE_EXCEPT(NonContiguousBinning);
 } // namespace nuis

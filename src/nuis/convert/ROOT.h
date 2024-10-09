@@ -179,8 +179,8 @@ template <typename TN> BinnedValues BinnedValues_from_ROOT(TN const &hist) {
   return bv;
 }
 
-NEW_NUISANCE_EXCEPT(NonExistantInputROOTFile);
-NEW_NUISANCE_EXCEPT(NonExistantTH1);
+DECLARE_NUISANCE_EXCEPT(NonExistantInputROOTFile);
+DECLARE_NUISANCE_EXCEPT(NonExistantTH1);
 
 NuHepMC::GC7::EnergyDistribution get_EnergyDistribution_from_ROOT(
     std::string const &fname, std::string const &hname,
