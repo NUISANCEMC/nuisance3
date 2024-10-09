@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef NUIS_RECORD_HEPData_Enabled
-#include "nuis/record/plugins/HEPDataRecord.h"
+#include "nuis/record/plugins/HEPDataRecordPlugin.h"
 #endif
 
 #ifdef NUIS_RECORD_NUISANCE2_Enabled

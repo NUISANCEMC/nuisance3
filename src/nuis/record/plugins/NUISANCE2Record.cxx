@@ -51,8 +51,8 @@ struct nuis2mblob {
 
 NUISANCE2Record::NUISANCE2Record(YAML::Node const &cfg) { node = cfg; }
 
-TablePtr NUISANCE2Record::table(YAML::Node const &cfg) {
-  auto tbl = std::make_shared<Table>();
+AnalysisPtr NUISANCE2Record::table(YAML::Node const &cfg) {
+  auto ana = std::make_shared<Analysis>();
 
   Config::SetPar("EventManager", false);
   Config::SetPar("UseSVDInverse", true);
@@ -70,27 +70,27 @@ TablePtr NUISANCE2Record::table(YAML::Node const &cfg) {
   if (auto meas1d = mblob.measurement_as<Measurement1D>()) {
 
     auto bv = BinnedValues_from_ROOT<TH1>(*meas1d->GetDataHistogram());
-    tbl->blueprint = std::make_shared<Comparison>(bv.binning);
-    tbl->blueprint->data = bv;
+    ana->blueprint = std::make_shared<Comparison>(bv.binning);
+    ana->blueprint->data = bv;
 
   } else if (auto meas2d = mblob.measurement_as<Measurement2D>()) {
     auto bv = BinnedValues_from_ROOT<TH2>(*meas2d->GetDataHistogram());
-    tbl->blueprint = std::make_shared<Comparison>(bv.binning);
-    tbl->blueprint->data = bv;
+    ana->blueprint = std::make_shared<Comparison>(bv.binning);
+    ana->blueprint->data = bv;
   }
 
-  tbl->clear = nuis::clear::DefaultClear;
-  tbl->weight = nuis::weight::DefaultWeight;
-  tbl->finalize = nuis::finalize::FATXNormalizedByBinWidth;
-  tbl->likelihood = nuis::likelihood::Chi2;
+  ana->clear = nuis::clear::DefaultClear;
+  ana->weight = nuis::weight::DefaultWeight;
+  ana->finalise = nuis::finalise::FATXNormalizedByBinWidth;
+  ana->likelihood = nuis::likelihood::Chi2;
 
-  tbl->select = [mblob](HepMC3::GenEvent const &ev) -> int {
+  ana->select = [mblob](HepMC3::GenEvent const &ev) -> int {
     return mblob.measurement->isSignal(mblob.to_fit_event(ev));
   };
 
   // always return a vector of three, it is up to users to know how many they
   // need to listen for
-  tbl->project = [mblob](HepMC3::GenEvent const &ev) -> std::vector<double> {
+  ana->project = [mblob](HepMC3::GenEvent const &ev) -> std::vector<double> {
     // allows us to call project on samples that may not be careful with
     // their projection functions
     auto fe = mblob.to_fit_event(ev);
@@ -103,7 +103,7 @@ TablePtr NUISANCE2Record::table(YAML::Node const &cfg) {
             mblob.measurement->GetZVar()};
   };
 
-  return tbl;
+  return ana;
 }
 
 IRecordPluginPtr NUISANCE2Record::MakeRecord(YAML::Node const &cfg) {

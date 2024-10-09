@@ -7,27 +7,31 @@
 
 #include "ProSelecta/ProSelecta.h"
 
-#include "nuis/record/Table.h"
+#include "nuis/record/IAnalysis.h"
 
 #include "nuis/log.h"
 
 namespace nuis {
-using TablePtr = std::shared_ptr<Table>;
 struct IRecord : public nuis_named_log("Record") {
   IRecord() {}
 
-  IRecord(YAML::Node /*n*/) {}
+  IRecord(YAML::Node) {}
 
-  virtual TablePtr table(std::string const &name) {
+  virtual AnalysisPtr analysis(std::string const &name) {
     YAML::Node cfg = node;
-    cfg["table"] = name;
-    return table(cfg);
+    cfg["analysis"] = name;
+    return analysis(cfg);
   }
 
-  virtual TablePtr table(YAML::Node const &cfg) = 0;
+  virtual std::vector<std::string> get_analyses() const = 0;
 
-  TablePtr operator[](std::string const &name) { return table(name); }
+  virtual AnalysisPtr analysis(YAML::Node const &cfg) = 0;
+
+  AnalysisPtr operator[](std::string const &name) { return analysis(name); }
 
   YAML::Node node;
 };
-}  // namespace nuis
+
+using IRecordPtr = std::shared_ptr<IRecord>;
+
+} // namespace nuis

@@ -1,15 +1,24 @@
 #include "nuis/record/Comparison.h"
+#include "nuis/record/IAnalysis.h"
 #include "nuis/record/IRecord.h"
 #include "nuis/record/RecordFactory.h"
-#include "nuis/record/Table.h"
 #include "nuis/record/Utility.h"
 
+#include "nuis/python/pyEventFrame.h"
+#include "nuis/python/pyEventInput.h"
 #include "nuis/python/pyNUISANCE.h"
+#include "nuis/python/pyYAML.h"
 
 #include "HepMC3/GenEvent.h"
 
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
+
+#include "fmt/core.h"
+
+#ifdef NUIS_ARROW_ENABLED
+#include "arrow/python/pyarrow.h"
+#endif
 
 #include <string>
 
@@ -17,18 +26,13 @@ namespace py = pybind11;
 using namespace nuis;
 
 namespace nuis {
-using TablePtr = std::shared_ptr<Table>;
-using IRecordPtr = std::shared_ptr<IRecord>;
 
 struct pyRecord {
 
   pyRecord() {}
 
-  // explicit pyRecord(YAML::Node const &cfg = {}) {}
-
-  TablePtr table(std::string name) { return rec->table(name); }
-
-  TablePtr operator[](std::string name) { return rec->table(name); }
+  AnalysisPtr analysis(std::string name) { return rec->analysis(name); }
+  auto get_analyses() { return rec->get_analyses(); }
 
   IRecordPtr rec;
 };
@@ -44,8 +48,8 @@ struct pyRecordFactory {
     return pyrec;
   }
 
-  TablePtr make_table(YAML::Node const &cfg = {}) {
-    return rfact.make_table(cfg);
+  AnalysisPtr make_analysis(YAML::Node const &cfg = {}) {
+    return rfact.make_analysis(cfg);
   }
 
   RecordFactory rfact;
@@ -54,76 +58,84 @@ struct pyRecordFactory {
 
 void pyRecordInit(py::module &m) {
 
-// py::enum_<YAML::NodeType::value>(m, "NodeType")
-//     .value("Undefined", YAML::NodeType::Undefined)
-//     .value("Null", YAML::NodeType::Null)
-//     .value("Scalar", YAML::NodeType::Scalar)
-//     .value("Sequence", YAML::NodeType::Sequence)
-//     .value("Map", YAML::NodeType::Map);
-
-    py::class_<YAML::Node>(m, "YAMLNode")
-        .def(py::init<const std::string &>())
-        .def("__getitem__",
-            [](const YAML::Node node, const std::string& key){
-              return node[key];
-            })
-        .def("__setitem__",
-            [](YAML::Node node, const std::string& key, const double& val){
-              return node[key] = val;
-            })
-        .def("__iter__",
-            [](const YAML::Node &node) {
-              return py::make_iterator(node.begin(), node.end());},
-             py::keep_alive<0, 1>())
-        .def("__str__",
-             [](const YAML::Node& node) {
-               YAML::Emitter out;
-               out << node;
-               return std::string(out.c_str());
-             })
-        .def("type", &YAML::Node::Type)
-        .def("__len__", &YAML::Node::size)
-        ;
-
-//     py::class_<YAML::detail::iterator_value, YAML::Node>(m, "YamlDetailIteratorValue")
-//         .def(py::init<>())
-//         .def("first", [](YAML::detail::iterator_value& val) { return val.first;})
-//         .def("second", [](YAML::detail::iterator_value& val) { return val.second;})
-//         ;
-
   py::class_<Comparison, std::shared_ptr<Comparison>>(m, "Comparison")
-      .def_readwrite("metadata", &Comparison::metadata)
-      .def_readwrite("mc", &Comparison::mc)
       .def_readwrite("data", &Comparison::data)
-      .def_readwrite("estimate", &Comparison::estimate);
+      .def_readwrite("predictions", &Comparison::predictions)
+      .def("likelihood", [](Comparison &comp) { return comp.likelihood(); });
+
+  py::class_<IAnalysis::Target>(m, "IAnalysis_Target")
+      .def_readonly("A", &IAnalysis::Target::A)
+      .def_readonly("N", &IAnalysis::Target::N)
+      .def_readonly("Z", &IAnalysis::Target::Z)
+      .def_readonly("weight_by_mass", &IAnalysis::Target::weight_by_mass)
+      .def("__str__", [](IAnalysis::Target const &tgt) {
+        return fmt::format("{{ A = {}, Z = {}, weight_by_mass = {} }}", tgt.A,
+                           tgt.Z, tgt.weight_by_mass);
+      });
+
+  py::class_<IAnalysis::XSScaling>(m, "IAnalysis_XSScaling")
+      .def_readonly("units", &IAnalysis::XSScaling::units)
+      .def_readonly("extra_scale_factor",
+                    &IAnalysis::XSScaling::extra_scale_factor)
+      .def_readonly("divide_by_bin_width",
+                    &IAnalysis::XSScaling::divide_by_bin_width)
+      .def("__str__", [](IAnalysis::XSScaling const &scl) {
+        std::stringstream ss;
+        ss << scl.units;
+        return fmt::format("{{ units = {}, extra_scale_factor = {}, "
+                           "divide_by_bin_width = {} }}",
+                           ss.str(), scl.extra_scale_factor,
+                           scl.divide_by_bin_width);
+      });
+
+  py::class_<IAnalysis, AnalysisPtr>(m, "IAnalysis")
+      .def("process",
+           [](AnalysisPtr const &ana, pyNormalizedEventSource &evs) {
+             return ana->process(evs.evs);
+           })
+      .def("process",
+           py::overload_cast<EventFrame const &>(&IAnalysis::process))
+#ifdef NUIS_ARROW_ENABLED
+      .def("process",
+           [](AnalysisPtr const &ana, py::handle pyrb) {
+             if (arrow::py::is_table(pyrb.ptr())) {
+               return ana->process(
+                   arrow::py::unwrap_table(pyrb.ptr()).ValueOrDie());
+             } else if (arrow::py::is_batch(pyrb.ptr())) {
+               return ana->process(
+                   arrow::py::unwrap_batch(pyrb.ptr()).ValueOrDie());
+             }
+             throw std::runtime_error(
+                 "IAnalysis::process passed an invalid py::handle");
+           })
+      .def("process",
+           py::overload_cast<std::shared_ptr<arrow::RecordBatch> const &>(
+               &IAnalysis::process))
+#endif
+      .def("add_to_framegen",
+           [](AnalysisPtr const &ana, pyEventFrameGen &efg) {
+             ana->add_to_framegen(*efg.gen);
+           })
+      .def("get_selection", &IAnalysis::get_selection)
+      .def("get_projections", &IAnalysis::get_projections)
+      .def("get_data", &IAnalysis::get_data)
+      .def("get_probe_flux", &IAnalysis::get_probe_flux)
+      .def("get_target", &IAnalysis::get_target)
+      .def("get_covariance_matrix", &IAnalysis::get_covariance_matrix)
+      .def("get_correlation_matrix", &IAnalysis::get_correlation_matrix)
+      .def("get_smearing_matrix", &IAnalysis::get_smearing_matrix)
+      .def("get_cross_section_scaling", &IAnalysis::get_cross_section_scaling)
+      .def("prediction_generation_hint",
+           &IAnalysis::prediction_generation_hint);
+
+  py::class_<pyRecord>(m, "Record")
+      .def(py::init<>())
+      .def("analysis", &pyRecord::analysis)
+      .def("get_analyses", &pyRecord::get_analyses)
+      .def("__getattr__", &pyRecord::analysis);
 
   py::class_<pyRecordFactory>(m, "RecordFactory")
       .def(py::init<>())
       .def("make_record", &pyRecordFactory::make)
-      .def("make_table", &pyRecordFactory::make_table);
-
-
-  py::class_<pyRecord>(m, "Record")
-      .def(py::init<>())
-      .def("table", &pyRecord::table)
-      .def("__getattr__", &pyRecord::table);
-
-  py::class_<Table,TablePtr>(m, "Table")
-      .def(py::init<>())
-      .def("metadata", [](const Table &t) { return t.metadata; })
-      .def("get_metadata", [](const Table &t) { return t.metadata; })
-      .def("set_metadata", [](Table &t, YAML::Node node) { t.metadata = node; })
-      .def_readwrite("blueprint", &Table::blueprint)
-      .def_readwrite("clear", &Table::clear)
-      .def_readwrite("select", &Table::select)
-      .def_readwrite("project", &Table::project)
-      .def_readwrite("weight", &Table::weight)
-      .def_readwrite("finalize", &Table::finalize)
-      .def("comparison", &Table::comparison)
-      .def_readwrite("likelihood", &Table::likelihood);
-
-  //      .def_readwrite("likeihood", &Table::likeihood)
-  //      .def("add_column", &Table::add_column)
-  //      .def("find_column_index", &Table::find_column_index);
+      .def("make_analysis", &pyRecordFactory::make_analysis);
 }
-

@@ -2,41 +2,34 @@
 
 #include "nuis/record/Comparison.h"
 
+#include "Eigen/Dense"
+
+#include <functional>
+
 namespace nuis {
 namespace likelihood {
-// Fix these for full covariance estimates
-double Chi2(const Comparison& fr) {
-    Eigen::ArrayXd res = (fr.data[0].value - fr.estimate[0].value);
-    res /= fr.data[0].error;
+using func = std::function<double(Comparison const &)>;
 
-    Eigen::ArrayXd covar = fr.correlation;
-    return (res * res).sum();
-}
-
-double Poisson(const Comparison& fr) {
-    Eigen::ArrayXd res = (fr.data[0].value - fr.estimate[0].value);
-
-    double chi2 = 0;
-    for (long int i = 0; i < fr.data[0].value.rows(); i++){
-        double dt = fr.data[0].value[i];
-        double mc = fr.estimate[0].value[i];
-
-        if (mc <= 0) continue; // From old NUISANCE, Is this correct?
-
-        if (dt <= 0) {
-            chi2 += 2 * (mc - dt);
-        } else {
-            chi2 += 2 * (mc - dt + (dt * log(dt / mc)));
-        }
-
+template <typename IMT> func chi2_inv_covariance(IMT const &inv_covariance) {
+  return [=](Comparison const &comp) -> double {
+    size_t nbins = 0;
+    for (auto const &d : comp.data) {
+      nbins += d.values.rows();
     }
-    return chi2;
-}
 
-double SimpleResidual(const Comparison& fr) {
-    Eigen::ArrayXd res = (fr.data[0].value - fr.estimate[0].value);
-    res /= fr.data[0].error;
-    return (res * res).sum();
+    Eigen::VectorXd diff_vect = Eigen::VectorXd::Zero(nbins);
+
+    // assumes first column, could extend to one that returns a vector of chi2
+    // and operates colwise
+    size_t first_bin = 0;
+    for (size_t i = 0; i < comp.data.size(); ++i) {
+      diff_vect.segment(first_bin, comp.data[i].values.rows()) =
+          comp.data[i].values.col(0) - comp.predictions[i].values.col(0);
+      first_bin += comp.data[i].values.rows();
+    }
+
+    return diff_vect.transpose() * inv_covariance * diff_vect;
+  };
 }
-}
-}
+} // namespace likelihood
+} // namespace nuis

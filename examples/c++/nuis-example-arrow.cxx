@@ -5,8 +5,8 @@
 #include "nuis/eventframe/missing_datum.h"
 
 #include "nuis/histframe/HistFrame.h"
-#include "nuis/histframe/utility.h"
 #include "nuis/histframe/fill_from_EventFrame.h"
+#include "nuis/histframe/utility.h"
 
 #include "NuHepMC/EventUtils.hxx"
 #include "NuHepMC/ReaderUtils.hxx"
@@ -24,32 +24,32 @@
 
 std::vector<std::string> int_cols_names = {"process.id", "PDG.nu", "PDG.lep",
                                            "Target.A", "Target.Z"};
-std::vector<int> int_cols(HepMC3::GenEvent const &ev) {
+std::vector<int> int_cols(HepMC3::GenEvent const &evt) {
 
   std::vector<int> resp(int_cols_names.size(), nuis::kMissingDatum<int>);
 
-  resp[0] = NuHepMC::ER3::ReadProcessID(ev);
+  resp[0] = NuHepMC::ER3::ReadProcessID(evt);
 
-  auto pin = ps::sel::BeamAny(ev, ps::pdg::groups::kNeutralLeptons);
-
-  if (!pin) {
+  if (!ps::event::has_beam_part(evt, ps::pdg::kNeutralLeptons)) {
     return resp;
   }
+
+  auto pin = ps::event::beam_part(evt, ps::pdg::kNeutralLeptons);
 
   resp[1] = pin->pid();
 
   int nupid = pin->pid();
   int ccpid = nupid > 0 ? (nupid - 1) : (nupid + 1);
 
-  auto pout = ps::sel::OutPartFirstAny(ev, {ccpid, nupid});
-
-  if (!pout) {
+  if (!ps::event::has_out_part(evt, ps::pids(nupid, ccpid))) {
     return resp;
   }
 
-  resp[2] = pin->pid();
+  auto pout = ps::event::hm_out_part(evt, ps::pids(nupid, ccpid), ps::flatten);
 
-  auto tgt = NuHepMC::Event::GetTargetParticle(ev);
+  resp[2] = pout->pid();
+
+  auto tgt = NuHepMC::Event::GetTargetParticle(evt);
 
   if (!tgt) {
     return resp;
@@ -66,34 +66,36 @@ std::vector<std::string> double_cols_names = {
     "true.nu.E",         "true.fslep.E",      "true.fslep.cos_theta",
     "true.event.lep.Q2", "true.event.lep.q0", "true.event.lep.q3",
 };
-std::vector<double> double_cols(HepMC3::GenEvent const &ev) {
+std::vector<double> double_cols(HepMC3::GenEvent const &evt) {
 
   std::vector<double> resp(double_cols_names.size(),
                            nuis::kMissingDatum<double>);
 
-  auto pin = ps::sel::BeamAny(ev, ps::pdg::groups::kNeutralLeptons);
-
-  if (!pin) {
+  if (!ps::event::has_beam_part(evt, ps::pdg::kNeutralLeptons)) {
     return resp;
   }
 
-  resp[0] = pin->momentum().e();
+  auto pin = ps::event::beam_part(evt, ps::pdg::kNeutralLeptons);
+
+  resp[0] = ps::energy(pin) / ps::unit::GeV;
 
   int nupid = pin->pid();
   int ccpid = nupid > 0 ? (nupid - 1) : (nupid + 1);
-  auto pout = ps::sel::OutPartFirstAny(ev, {ccpid, nupid});
 
-  if (!pout) {
+  if (!ps::event::has_out_part(evt, ps::pids(nupid, ccpid))) {
     return resp;
   }
 
-  resp[1] = pout->momentum().e();
-  resp[2] = std::cos(pout->momentum().theta());
-  resp[3] = std::cos(pout->momentum().theta());
+  auto pout = ps::event::hm_out_part(evt, ps::pids(nupid, ccpid), ps::flatten);
 
-  resp[4] = ps::proj::parts::q0(pin, pout);
-  resp[5] = ps::proj::parts::q3(pin, pout);
-  resp[6] = ps::proj::parts::Q2(pin, pout);
+  resp[1] = ps::energy(pout) / ps::unit::GeV;
+  resp[2] = ps::costheta(pin->momentum())(pout);
+
+  auto fmtransfer = ps::momentum(pin) - ps::momentum(pout);
+
+  resp[3] = fmtransfer.e() / ps::unit::GeV;
+  resp[4] = fmtransfer.p3mod() / ps::unit::GeV_c;
+  resp[5] = fmtransfer.interval() / ps::unit::GeV2;
 
   return resp;
 
@@ -124,8 +126,7 @@ void ProcessRBatch(std::shared_ptr<arrow::RecordBatch> &rbatch) {
       nuis::HistFrame(nuis::Binning::lin_spaceND({{0, 2E3, 10}, {0, 2E3, 10}}));
 
   nuis::fill_from_Arrow(hf, rbatch, {"true.event.lep.q0"});
-  nuis::fill_from_Arrow(hf, rbatch,
-                              {"true.event.lep.q0", "true.event.lep.q3"});
+  nuis::fill_from_Arrow(hf, rbatch, {"true.event.lep.q0", "true.event.lep.q3"});
 
   std::cout << hf << std::endl;
   std::cout << hf2 << std::endl;
@@ -145,16 +146,15 @@ arrow::Status RunMain(int, char const *argv[]) {
   auto frame = nuis::EventFrameGen(evs, 250000);
 
   frame.add_typed_column<bool>(
-      "hasscclep", [](HepMC3::GenEvent const &ev) -> bool {
-        auto pin = ps::sel::BeamAny(ev, ps::pdg::groups::kNeutralLeptons);
-        if (!pin) {
+      "hasscclep", [](HepMC3::GenEvent const &evt) -> bool {
+        if (!ps::event::has_beam_part(evt, ps::pdg::kNeutralLeptons)) {
           return false;
         }
-        int nupid = pin->pid();
-        int ccpid = nupid > 0 ? (nupid - 1) : (nupid + 1);
-        auto pout = ps::sel::OutPartFirstAny(ev, {ccpid, nupid});
 
-        if (!pout) {
+        int nupid = ps::event::beam_part(evt, ps::pdg::kNeutralLeptons)->pid();
+        int ccpid = nupid > 0 ? (nupid - 1) : (nupid + 1);
+
+        if (!ps::event::has_out_part(evt, ps::pids(nupid, ccpid))) {
           return false;
         }
         return true;

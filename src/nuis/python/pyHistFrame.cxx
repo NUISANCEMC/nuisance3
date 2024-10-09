@@ -175,10 +175,8 @@ void pyHistFrameInit(py::module &m) {
       .def(py::init<BinningPtr, std::string const &, std::string const &>(),
            py::arg("binop"), py::arg("def_col_name") = "mc",
            py::arg("def_col_label") = "")
-      .def_readwrite("values", &BinnedValues::values,
-                     py::return_value_policy::reference_internal)
-      .def_readwrite("errors", &BinnedValues::errors,
-                     py::return_value_policy::reference_internal)
+      .def_readwrite("values", &BinnedValues::values)
+      .def_readwrite("errors", &BinnedValues::errors)
       .def("make_HistFrame", &BinnedValues::make_HistFrame, py::arg("col") = 0)
       .def("__getattr__", &binnedvalues_gettattr)
       .def("__getitem__", &binnedvalues_gettattr)

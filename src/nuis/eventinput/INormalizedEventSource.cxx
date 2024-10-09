@@ -69,8 +69,9 @@ std::optional<EventCVWeightPair> INormalizedEventSource::next() {
   return process(wrapped_ev_source->next());
 }
 
-NormInfo INormalizedEventSource::norm_info() {
-  return {xs_acc->fatx(), xs_acc->sumweights(), xs_acc->events()};
+NormInfo INormalizedEventSource::norm_info(
+    NuHepMC::CrossSection::Units::Unit const &units) {
+  return {xs_acc->fatx(units), xs_acc->sumweights(), xs_acc->events()};
 }
 
 INormalizedEventSource::~INormalizedEventSource() {}

@@ -175,8 +175,6 @@ pybind11::object pyEventFrameGen::nextArrow(size_t nchunk) {
 }
 #endif
 
-NormInfo pyEventFrameGen::norm_info() const { return gen->norm_info(); }
-
 Eigen::ArrayXdRef frame_gettattr(EventFrame &s, std::string const &column) {
   return s.col(column);
 }
@@ -202,7 +200,6 @@ void pyEventFrameInit(py::module &m) {
                      py::return_value_policy::reference_internal)
       .def_readwrite("column_names", &EventFrame::column_names,
                      py::return_value_policy::reference_internal)
-      .def("norm_info", [](EventFrame const &s) { return s.norm_info; })
       .def_readonly("num_rows", &EventFrame::num_rows)
       .def("__bool__", [](EventFrame const &s) { return bool(s.table.rows()); })
       .def("find_column_index", &EventFrame::find_column_index)
@@ -241,7 +238,6 @@ void pyEventFrameInit(py::module &m) {
       .def("add_float_columns", &pyEventFrameGen::add_float_columns)
       .def("limit", &pyEventFrameGen::limit)
       .def("limit", [](pyEventFrameGen &s, double i) { return s.limit(i); })
-      .def("norm_info", &pyEventFrameGen::norm_info)
       .def("progress", &pyEventFrameGen::progress, py::arg("every") = 100000)
       .def("first", &pyEventFrameGen::first,
            py::arg("nchunk") = std::numeric_limits<size_t>::max())

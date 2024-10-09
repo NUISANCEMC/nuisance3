@@ -393,7 +393,8 @@ class NUISANCE2FlatTreeEventSource : public IEventSource {
                    .size();
 
     if (!beamp) {
-      log_critical("NUISANCE2FlatTree event contained no beam particle");
+      log_debug("NUISANCE2FlatTree event contained no beam particle, giving a "
+                "weight of 0.");
     }
     if (!tgtp) {
       if (**tgt > 1000000000) {
@@ -403,22 +404,22 @@ class NUISANCE2FlatTreeEventSource : public IEventSource {
 
         tgtp = NuHepMC::Event::GetTargetParticle(*evt);
       } else {
-        log_critical("NUISANCE2FlatTree event contained no target particle");
+        log_debug("NUISANCE2FlatTree event contained no target particle, "
+                  "giving a weight of 0.");
       }
     }
     if (!nfs) {
-      log_critical(
-          "NUISANCE2FlatTree event contained no final state particles");
+      log_debug("NUISANCE2FlatTree event contained no final state particles, "
+                "giving a weight of 0.");
     }
 
     if ((!beamp) || (!tgtp) || (!nfs)) {
-      HepMC3::Print::content(*evt);
-      abort();
+      evt->weights().push_back(0);
+    } else {
+      evt->weights().push_back(1);
     }
 
     NuHepMC::ER5::SetLabPosition(*evt, std::vector<double>{0, 0, 0, 0});
-
-    evt->weights().push_back(1);
 
     return evt;
   }
@@ -511,7 +512,7 @@ public:
       flux->SetDirectory(nullptr);
     }
 
-    fatx = *(*fScaleFactor) * double(reader->GetEntries());
+    fatx = *(*fScaleFactor) * double(reader->GetEntries()) * 1E38;
     gri = BuildRunInfo(reader->GetEntries(), fatx,
                        NuHepMC::Event::GetBeamParticle(*ge)->pid(), flux);
 
@@ -534,7 +535,8 @@ public:
     ge->set_run_info(gri);
     ge->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
     // accounts for per-file variations over an input chain
-    ge->weights()[0] = *(*fScaleFactor) * double(reader->GetEntries()) / fatx;
+    ge->weights()[0] *=
+        *(*fScaleFactor) * double(reader->GetEntries()) * 1E38 / fatx;
 
     return ge;
   }

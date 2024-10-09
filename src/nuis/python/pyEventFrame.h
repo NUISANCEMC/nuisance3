@@ -78,8 +78,6 @@ struct pyEventFrameGen {
   pybind11::object nextArrow(size_t nchunk);
 #endif
 
-  nuis::NormInfo norm_info() const;
-
   std::shared_ptr<nuis::EventFrameGen> gen;
 };
 

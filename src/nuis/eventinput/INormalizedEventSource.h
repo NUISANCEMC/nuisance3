@@ -3,11 +3,12 @@
 #include "nuis/eventinput/IEventSourceIterator.h"
 #include "nuis/eventinput/IEventSourceWrapper.h"
 
-namespace NuHepMC {
-namespace FATX {
+namespace NuHepMC::FATX {
 class Accumulator;
-}
-} // namespace NuHepMC
+} // namespace NuHepMC::FATX
+namespace NuHepMC::CrossSection::Units {
+struct Unit;
+} // namespace NuHepMC::CrossSection::Units
 
 namespace nuis {
 
@@ -34,7 +35,7 @@ public:
   std::optional<EventCVWeightPair> first();
   std::optional<EventCVWeightPair> next();
 
-  NormInfo norm_info();
+  NormInfo norm_info(NuHepMC::CrossSection::Units::Unit const &units);
   virtual ~INormalizedEventSource();
 };
 

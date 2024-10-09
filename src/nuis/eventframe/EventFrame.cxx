@@ -28,6 +28,19 @@ Eigen::ArrayXdRef EventFrame::col(std::string const &cn) {
   }
   return table.col(cid);
 }
+
+Eigen::ArrayXdCRef EventFrame::col(std::string const &cn) const {
+  auto cid = find_column_index(cn);
+  if (cid == EventFrame::npos) {
+    nuis_named_log("EventFrame")::log_critical(
+        "Tried to get column, named {} from Eventframe. But no such column "
+        "exists.",
+        cn);
+    throw InvalidFrameColumnName();
+  }
+  return table.col(cid);
+}
+
 std::vector<Eigen::ArrayXdRef>
 EventFrame::cols(std::vector<std::string> const &cns) {
   std::vector<Eigen::ArrayXdRef> rtn;

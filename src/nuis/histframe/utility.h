@@ -64,4 +64,7 @@ BinnedValues Divide(BinnedValues const &hf1, BinnedValues const &hf2);
 
 std::ostream &operator<<(std::ostream &os, nuis::BinnedValuesBase const &);
 
+BinnedValues ToCountDensity(BinnedValues const &bv);
+BinnedValues ToCount(BinnedValues const &bv);
+
 } // namespace nuis

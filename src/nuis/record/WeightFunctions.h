@@ -1,12 +1,14 @@
 #pragma once
 
-#include "nuis/record/Comparison.h"
+#include <functional>
+
+namespace HepMC3 {
+  class GenEvent;
+}
 
 namespace nuis {
 namespace weight {
-// Fix these for full covariance estimates
-double DefaultWeight(HepMC3::GenEvent const &) {
-    return 1;
-}
-}
-}
+using func = std::function<double(HepMC3::GenEvent const &)>;
+
+} // namespace weight
+} // namespace nuis

@@ -25,6 +25,16 @@ struct BinnedValuesBase : public nuis_named_log("HistFrame") {
 
   BinnedValuesBase(BinningPtr binop, std::string const &def_col_name = "mc",
                    std::string const &def_col_label = "");
+  
+  BinnedValuesBase(BinnedValuesBase const &other)
+      : binning{other.binning}, column_info{other.column_info} {}
+
+  BinnedValuesBase &operator=(BinnedValuesBase const &other) {
+    binning = other.binning;
+    column_info = other.column_info;
+    return *this;
+  }
+
   BinnedValuesBase() {}
 
   // --- types
@@ -81,7 +91,19 @@ struct BinnedValues : public BinnedValuesBase {
       : BinnedValuesBase(binop, def_col_name, def_col_label) {
     resize();
   }
-  BinnedValues(){};
+
+  BinnedValues(BinnedValues const &other)
+      : BinnedValuesBase(other), values{other.values}, errors{other.errors} {};
+
+  BinnedValues &operator=(BinnedValues const &other) {
+    binning = other.binning;
+    column_info = other.column_info;
+    values = other.values;
+    errors = other.errors;
+    return *this;
+  }
+
+  BinnedValues() {};
 
   // --- methods
 

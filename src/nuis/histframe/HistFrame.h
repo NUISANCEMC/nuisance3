@@ -25,12 +25,16 @@ struct HistFrame : public BinnedValuesBase {
 
   // --- constructors
 
+  HistFrame() = default;
+
   HistFrame(BinningPtr binop, std::string const &def_col_name = "mc",
             std::string const &def_col_label = "")
       : BinnedValuesBase(binop, def_col_name, def_col_label) {
     reset();
   }
-  HistFrame(){};
+
+  HistFrame(HistFrame const &other) = default;
+  HistFrame &operator=(HistFrame const &other) = default;
 
   struct column_view {
     Eigen::ArrayXdRef count;

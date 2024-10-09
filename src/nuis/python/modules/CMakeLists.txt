@@ -40,8 +40,6 @@ if(TARGET Prob3plusplus::Prob3plusplus)
 
   install(TARGETS pyNUISANCEProb3plusplus
       LIBRARY DESTINATION ${NUISANCE3_PYTHONPATH}/pyNUISANCE)
-else()
-  message(FATAL_ERROR "argh")
 endif()
 
 install(FILES

@@ -40,13 +40,3 @@ install(TARGETS _pyNUISANCE
     LIBRARY DESTINATION ${NUISANCE3_PYTHONPATH}/pyNUISANCE)
 
 add_subdirectory(modules)
-
-CPMFindPackage(
-    NAME nuisancehepdata
-    GITHUB_REPOSITORY NUISANCEMC/HEPData
-    GIT_TAG main
-    DOWNLOAD_ONLY TRUE
-)
-
-install(DIRECTORY ${nuisancehepdata_SOURCE_DIR}/NUISANCEHEPData DESTINATION ${NUISANCE3_PYTHONPATH})
-install(PROGRAMS ${nuisancehepdata_SOURCE_DIR}/nuis-hepdata DESTINATION bin)

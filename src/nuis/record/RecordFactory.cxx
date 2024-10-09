@@ -47,7 +47,7 @@ IRecordPtr TryAllKnownRecordPlugins(YAML::Node const &cfg) {
 
 #ifdef NUIS_RECORD_HEPData_Enabled
   if (type_name == "hepdata") {
-    auto rec = HEPDataRecord::MakeRecord(cfg);
+    auto rec = HEPDataRecordPlugin::MakeRecord(cfg);
     if (!rec->good()) {
       log_error("record plugin {} requested cannot be instantiated with "
                 "proferred config.",
@@ -102,9 +102,9 @@ IRecordPtr RecordFactory::make(YAML::Node cfg) {
 #endif
 }
 
-TablePtr RecordFactory::make_table(YAML::Node cfg) {
+AnalysisPtr RecordFactory::make_analysis(YAML::Node cfg) {
   auto record = make(cfg);
-  return record->table(cfg);
+  return record->analysis(cfg);
 }
 
 } // namespace nuis

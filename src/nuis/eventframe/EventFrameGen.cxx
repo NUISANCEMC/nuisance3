@@ -1,6 +1,7 @@
 #include "nuis/eventframe/EventFrameGen.h"
 
 #include "NuHepMC/ReaderUtils.hxx"
+#include "NuHepMC/UnitsUtils.hxx"
 
 #include "fmt/chrono.h"
 #include "fmt/ranges.h"
@@ -18,6 +19,10 @@
 
 NEW_NUISANCE_EXCEPT(InvalidFrameColumnType);
 NEW_NUISANCE_EXCEPT(AttemptRestartFailedFrame);
+
+static std::vector<std::string> const default_efg_columns{
+    "event.number", "weight.cv", "fatx_per_sumw.pb_per_target.estimate",
+    "fatx_per_sumw.pb_per_nucleon.estimate", "process.id"};
 
 namespace nuis {
 
@@ -50,15 +55,14 @@ EventFrame EventFrameGen::first(size_t nchunk) {
   if (in_error_state) {
     throw AttemptRestartFailedFrame();
   }
-  all_column_names = std::accumulate(
-      columns.begin(), columns.end(),
-      std::vector<std::string>{"event.number", "weight.cv", "process.id"},
-      [](auto cols, auto const &hcp) {
-        for (auto h : hcp.column_names) {
-          cols.push_back(h);
-        }
-        return cols;
-      });
+  all_column_names =
+      std::accumulate(columns.begin(), columns.end(), default_efg_columns,
+                      [](auto cols, auto const &hcp) {
+                        for (auto h : hcp.column_names) {
+                          cols.push_back(h);
+                        }
+                        return cols;
+                      });
 
   n_total_rows = 0;
   neventsprocessed = 0;
@@ -95,8 +99,7 @@ EventFrame EventFrameGen::next(size_t nchunk) {
       neventsprocessed, max_events_to_loop);
 
   if (neventsprocessed >= max_events_to_loop) {
-    return {all_column_names, Eigen::ArrayXXd(0, all_column_names.size()), 0,
-            fnorm_info};
+    return {all_column_names, Eigen::ArrayXXd(0, all_column_names.size()), 0};
   }
 
   Eigen::ArrayXXd chunk(nchunk, all_column_names.size());
@@ -145,15 +148,22 @@ EventFrame EventFrameGen::next(size_t nchunk) {
       continue;
     }
 
+    auto [fatx_pt, sumweights_pt, nevents_pt] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+    auto [fatx_pn, sumweights_pn, nevents_pn] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+
     chunk(chunk_row, 0) = ev.event_number();
     chunk(chunk_row, 1) = cvw;
-    chunk(chunk_row, 2) = NuHepMC::ER3::ReadProcessID(ev);
+    chunk(chunk_row, 2) = fatx_pt / sumweights_pt;
+    chunk(chunk_row, 3) = fatx_pn / sumweights_pn;
+    chunk(chunk_row, 4) = NuHepMC::ER3::ReadProcessID(ev);
 
     NUIS_LOG_TRACE(
         "EventFrameGen::next() chunk_row: {} was kept, event_number: {} ",
         ev.event_number());
 
-    size_t col_id = 3;
+    size_t col_id = default_efg_columns.size();
     for (auto &[column_names, typenum, proj_index] : columns) {
       size_t next_col_id = col_id;
 
@@ -190,17 +200,24 @@ EventFrame EventFrameGen::next(size_t nchunk) {
   }
   nuis::StartTalking();
 
+  // reset the last fatx entries to be the final best estimate, otherwise if the
+  // last events are not selected, the cross section information read from the
+  // reader is not included.
+  auto [fatx_pt, sumweights_pt, nevents_pt] =
+      source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+  auto [fatx_pn, sumweights_pn, nevents_pn] =
+      source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+  chunk(chunk_row - 1, 2) = fatx_pt / sumweights_pt;
+  chunk(chunk_row - 1, 3) = fatx_pn / sumweights_pn;
+
   log_trace(
       "EventFrameGen::next() done looping  n_total_rows: {} neventsprocessed: "
       "{} chunk_row: {}",
       n_total_rows, neventsprocessed, chunk_row);
 
-  // grab the norm_info before reading the next event for the start of the next
-  // loop
-  fnorm_info = source->norm_info();
   ++ev_it;
 
-  return {all_column_names, chunk.topRows(chunk_row), chunk_row, fnorm_info};
+  return {all_column_names, chunk.topRows(chunk_row), chunk_row};
 }
 
 EventFrame EventFrameGen::all() {
@@ -251,8 +268,7 @@ EventFrame EventFrameGen::all() {
 
   log_trace("EventFrameGen::all() done: nrows {}", builder.rows());
 
-  return {all_column_names, builder, size_t(builder.rows()),
-          source->norm_info()};
+  return {all_column_names, builder, size_t(builder.rows())};
 }
 
 #ifdef NUIS_ARROW_ENABLED
@@ -293,9 +309,7 @@ std::shared_ptr<arrow::RecordBatch> EventFrameGen::firstArrow(size_t nchunk) {
     throw AttemptRestartFailedFrame();
   }
   all_column_names =
-      std::accumulate(columns.begin(), columns.end(),
-                      std::vector<std::string>{"event.number", "weight.cv",
-                                               "process.id", "fatx.estimate"},
+      std::accumulate(columns.begin(), columns.end(), default_efg_columns,
                       [](auto cols, auto const &hcp) {
                         for (auto h : hcp.column_names) {
                           cols.push_back(h);
@@ -336,8 +350,11 @@ EventFrameGen::_nextArrow(size_t nchunk) {
   for (auto const &[name, typenum] : std::vector<std::pair<std::string, int>>{
            {"event.number", nuis::column_type<int>::id},
            {"weight.cv", nuis::column_type<double>::id},
-           {"process.id", nuis::column_type<int>::id},
-           {"fatx.estimate", nuis::column_type<double>::id}}) {
+           {"fatx_per_sumw.pb_per_target.estimate",
+            nuis::column_type<double>::id},
+           {"fatx_per_sumw.pb_per_nucleon.estimate",
+            nuis::column_type<double>::id},
+           {"process.id", nuis::column_type<int>::id}}) {
 
     std::shared_ptr<arrow::Field> col = nullptr;
     ArrowBuilderPtr builder = nullptr;
@@ -379,6 +396,12 @@ EventFrameGen::_nextArrow(size_t nchunk) {
   size_t rbatch_row = 0;
   auto end_it = end(source);
   auto nmaxloop = std::min(max_events_to_loop, nevents);
+
+  // have to keep track of these as we read them so that we can force the last
+  // entry to be the best estimate of the total fatx, rather than the best
+  // estimate by the time that entry has been read (where a filter cuts out
+  // the last N events)
+  std::vector<double> fatx_per_sumw_pn, fatx_per_sumw_pt;
 
   while (ev_it != end_it) {
     auto const &[evp, cvw] = *ev_it;
@@ -433,12 +456,18 @@ EventFrameGen::_nextArrow(size_t nchunk) {
 
     BuilderAs<int>(array_builders[0]).Append(ev.event_number());
     BuilderAs<double>(array_builders[1]).Append(cvw);
-    BuilderAs<int>(array_builders[2]).Append(NuHepMC::ER3::ReadProcessID(ev));
+    BuilderAs<int>(array_builders[4]).Append(NuHepMC::ER3::ReadProcessID(ev));
 
-    auto [fatx, sumweights, nevents] = source->norm_info();
-    BuilderAs<double>(array_builders[3]).Append(fatx);
+    // calculate and store the cross-section info up to the current event
+    auto [fatx_pn, sumweights_pn, nevents_pn] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+    auto [fatx_pt, sumweights_pt, nevents_pt] =
+        source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
 
-    size_t col_id = 4;
+    fatx_per_sumw_pn.push_back(fatx_pn / sumweights_pn);
+    fatx_per_sumw_pt.push_back(fatx_pt / sumweights_pt);
+
+    size_t col_id = default_efg_columns.size();
     for (auto &[column_names, typenum, proj_index] : columns) {
       try {
         switch (typenum) {
@@ -451,6 +480,15 @@ EventFrameGen::_nextArrow(size_t nchunk) {
           COLUMN_TYPE_ITER
 #undef X
         }
+      } catch (std::exception const &expt) {
+        log_error("EventFrameGen::nextArrow() failed calling while calling "
+                  "projections: {} on "
+                  "event {}.",
+                  column_names, neventsprocessed);
+        error_event = ev;
+        in_error_state = true;
+        throw FrameGenerationException()
+            << "Underlying exception: " << expt.what();
       } catch (...) {
         log_error("EventFrameGen::nextArrow() failed calling while calling "
                   "projections: {} on "
@@ -458,7 +496,8 @@ EventFrameGen::_nextArrow(size_t nchunk) {
                   column_names, neventsprocessed);
         error_event = ev;
         in_error_state = true;
-        throw FrameGenerationException();
+        throw FrameGenerationException()
+            << "Unknown object type rethrown, no more information available.";
       }
 
       col_id += column_names.size();
@@ -478,14 +517,25 @@ EventFrameGen::_nextArrow(size_t nchunk) {
     ++ev_it;
   }
 
+  // reset the last fatx entries to be the final best estimate, otherwise if the
+  // last events are not selected, the cross section information read from the
+  // reader is not included.
+  auto [fatx_pn, sumweights_pn, nevents_pn] =
+      source->norm_info(NuHepMC::CrossSection::Units::pb_PerNucleon);
+  auto [fatx_pt, sumweights_pt, nevents_pt] =
+      source->norm_info(NuHepMC::CrossSection::Units::pb_PerTarget);
+
+  fatx_per_sumw_pn.back() = fatx_pn / sumweights_pn;
+  fatx_per_sumw_pt.back() = fatx_pt / sumweights_pt;
+  // push the whole arrays onto the array builder
+  BuilderAs<double>(array_builders[2]).AppendValues(fatx_per_sumw_pt);
+  BuilderAs<double>(array_builders[3]).AppendValues(fatx_per_sumw_pn);
+
   log_trace("EventFrameGen::nextArrow() done looping  n_total_rows: {} "
             "neventsprocessed: "
             "{} rbatch_row: {}",
             n_total_rows, neventsprocessed, rbatch_row);
 
-  // grab the norm_info before reading the next event for the start of the
-  // next loop
-  fnorm_info = source->norm_info();
   ++ev_it;
 
   std::vector<std::shared_ptr<arrow::Array>> arrays(all_column_names.size(),
@@ -493,9 +543,12 @@ EventFrameGen::_nextArrow(size_t nchunk) {
   ARROW_ASSIGN_OR_RAISE(arrays[0], BuilderAs<int>(array_builders[0]).Finish());
   ARROW_ASSIGN_OR_RAISE(arrays[1],
                         BuilderAs<double>(array_builders[1]).Finish());
-  ARROW_ASSIGN_OR_RAISE(arrays[2], BuilderAs<int>(array_builders[2]).Finish());
+  ARROW_ASSIGN_OR_RAISE(arrays[2],
+                        BuilderAs<double>(array_builders[2]).Finish());
   ARROW_ASSIGN_OR_RAISE(arrays[3],
                         BuilderAs<double>(array_builders[3]).Finish());
+  ARROW_ASSIGN_OR_RAISE(arrays[4], BuilderAs<int>(array_builders[4]).Finish());
+
   log_debug("EventFrameGen::nextArrow() building arrays: ");
   log_debug("\t\t col: {}, name: {}, type: {}, num: {}", 0, all_column_names[0],
             column_typenum_as_string(column_type<int>::id),
@@ -510,7 +563,7 @@ EventFrameGen::_nextArrow(size_t nchunk) {
             column_typenum_as_string(column_type<double>::id),
             arrays[3]->length());
 
-  size_t col_id = 4;
+  size_t col_id = default_efg_columns.size();
   for (auto &[column_names, typenum, proj_index] : columns) {
 
     switch (typenum) {

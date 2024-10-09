@@ -538,7 +538,7 @@ BinningPtr Binning::brute_force(std::vector<BinExtents> bins,
                                 std::vector<std::string> const &labels) {
 
   if (!bins.size()) {
-    log_critical("from_extents passed an empty bin vector.");
+    log_critical("brute_force passed an empty bin vector.");
     throw EmptyBinning();
   }
 
@@ -551,7 +551,7 @@ BinningPtr Binning::brute_force(std::vector<BinExtents> bins,
   auto const &sorted_unique_bins = unique(bins);
 
   if (bins.size() != sorted_unique_bins.size()) {
-    log_critical("[from_extents]: When building Binning from vector of "
+    log_critical("[brute_force]: When building Binning from vector of "
                  "BinExtents, the list of unique bins was {} long, while "
                  "the original list was {}. Binnings must be unique.",
                  sorted_unique_bins.size(), bins.size());
@@ -560,7 +560,7 @@ BinningPtr Binning::brute_force(std::vector<BinExtents> bins,
   }
 
   if (binning_has_overlaps(bins)) {
-    log_critical("[from_extents]: When building Binning from vector of "
+    log_critical("[brute_force]: When building Binning from vector of "
                  "BinExtents, the list of bins appears to contain "
                  "overlaps. Binnings must be non-overlapping.");
     log_critical("Bins: {}", str_via_ss(bins));
