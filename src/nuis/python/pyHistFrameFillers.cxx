@@ -389,6 +389,7 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
           },
           py::arg("EventFrame"), py::arg("projection_column_name"),
           py::arg("operations") = std::vector<nuis::detail::FrameFillOp>{})
+#ifdef NUIS_ARROW_ENABLED
       .def(
           "fill",
           [](HistFrame &hf, py::handle pyarrobj,
@@ -415,7 +416,10 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
             if (arrow::py::is_table(pyarrobj.ptr())) {
               auto tab = arrow::py::unwrap_table(pyarrobj.ptr()).ValueOrDie();
               for (auto rb : arrow::TableBatchReader(tab)) {
-                detail::fill(hf, rb.ValueOrDie(), {projection_column_name,},
+                detail::fill(hf, rb.ValueOrDie(),
+                             {
+                                 projection_column_name,
+                             },
                              operations);
               }
             } else if (arrow::py::is_batch(pyarrobj.ptr())) {
@@ -428,5 +432,7 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
             }
           },
           py::arg("EventFrame"), py::arg("projection_column_name"),
-          py::arg("operations") = std::vector<nuis::detail::FrameFillOp>{});
+          py::arg("operations") = std::vector<nuis::detail::FrameFillOp>{})
+#endif
+      ;
 }
