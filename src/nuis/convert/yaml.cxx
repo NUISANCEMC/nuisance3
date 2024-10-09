@@ -177,7 +177,7 @@ BinnedValues from_yaml_str(std::string const &shf) {
   return YAML::Load(shf).as<BinnedValues>();
 }
 
-NEW_NUISANCE_EXCEPT(InvalidYAML);
+DECLARE_NUISANCE_EXCEPT(InvalidYAML);
 
 Eigen::ArrayXXd covar_from_yaml(YAML::Node const &node) {
   if (!node.IsMap() || !node["independent_variables"] ||

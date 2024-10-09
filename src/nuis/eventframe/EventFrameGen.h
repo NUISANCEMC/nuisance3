@@ -14,7 +14,7 @@
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(FrameGenerationException);
+DECLARE_NUISANCE_EXCEPT(FrameGenerationException);
 
 class EventFrameGen : public nuis_named_log("EventFrame") {
 

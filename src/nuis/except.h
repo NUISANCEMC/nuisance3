@@ -24,7 +24,7 @@ struct except : public std::exception {
 
 } // namespace nuis
 
-#define NEW_NUISANCE_EXCEPT(EXCEPT_NAME)                                       \
+#define DECLARE_NUISANCE_EXCEPT(EXCEPT_NAME)                                       \
   struct EXCEPT_NAME : public nuis::except {                                   \
     EXCEPT_NAME() : nuis::except() {}                                          \
     EXCEPT_NAME(EXCEPT_NAME const &other) : except(other) {}                   \

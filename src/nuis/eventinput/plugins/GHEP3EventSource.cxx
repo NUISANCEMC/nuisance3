@@ -43,7 +43,7 @@ namespace nuis {
 
 namespace ghepconv {
 
-NEW_NUISANCE_EXCEPT(FailedGHEPParsing);
+DECLARE_NUISANCE_EXCEPT(FailedGHEPParsing);
 
 std::map<int, std::pair<std::string, std::string>> Modes = {
     {700, {"NuElectronElastic", ""}},

@@ -3,7 +3,8 @@
 #include "nuis/except.h"
 
 namespace nuis {
-NEW_NUISANCE_EXCEPT(MissingProjectionEncountered);
-NEW_NUISANCE_EXCEPT(InvalidColumnAccess);
-NEW_NUISANCE_EXCEPT(InvalidColumnName);
+DECLARE_NUISANCE_EXCEPT(MissingProjectionEncountered);
+DECLARE_NUISANCE_EXCEPT(InvalidColumnAccess);
+DECLARE_NUISANCE_EXCEPT(InvalidColumnName);
+DECLARE_NUISANCE_EXCEPT(InvalidOperation);
 } // namespace nuis

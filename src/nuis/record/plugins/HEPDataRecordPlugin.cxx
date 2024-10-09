@@ -28,7 +28,7 @@ using namespace ps;
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(InvalidAnalysisForRecord);
+DECLARE_NUISANCE_EXCEPT(InvalidAnalysisForRecord);
 
 // YAML::Node schema() {
 //   YAML::Node sc = YAML::Load("{}");

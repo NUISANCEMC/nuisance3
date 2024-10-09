@@ -30,7 +30,7 @@ using SelectFunc = std::function<int(HepMC3::GenEvent const &)>;
 
 struct IAnalysis {
 
-  NEW_NUISANCE_EXCEPT(IAnalysisUnimplementedInterfaceFunction);
+  DECLARE_NUISANCE_EXCEPT(IAnalysisUnimplementedInterfaceFunction);
 
   virtual Comparison process(std::vector<INormalizedEventSourcePtr> &);
   virtual Comparison process(INormalizedEventSourcePtr &);

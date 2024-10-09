@@ -32,4 +32,14 @@ fill_procid_columns_from_RecordBatch
 fill_procid_columns_from_RecordBatch_if
 ```
 
+fill(Arrow, fill_if({"column_name"}), weight_by({"column"}), fill_column(), pick_column_from(""))
+
 ## Finalizing `HistFrame`s
+
+## functions
+project
+slice
+tocount
+tocountdensity
+add/subtract/multiple/divide
+finalize

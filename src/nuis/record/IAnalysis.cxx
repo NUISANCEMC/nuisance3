@@ -2,7 +2,7 @@
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(IAnalysisUnimplementedInterfaceFunction);
+DECLARE_NUISANCE_EXCEPT(IAnalysisUnimplementedInterfaceFunction);
 
 Comparison IAnalysis::process(std::vector<INormalizedEventSourcePtr> &) {
   throw IAnalysisUnimplementedInterfaceFunction();

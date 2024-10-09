@@ -8,9 +8,9 @@
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(EvalOutOfValidityRange);
-NEW_NUISANCE_EXCEPT(InvalidYVals);
-NEW_NUISANCE_EXCEPT(InvalidNumParameters);
+DECLARE_NUISANCE_EXCEPT(EvalOutOfValidityRange);
+DECLARE_NUISANCE_EXCEPT(InvalidYVals);
+DECLARE_NUISANCE_EXCEPT(InvalidNumParameters);
 
 // from
 // https://people.clas.ufl.edu/kees/files/CubicSplines.pdf

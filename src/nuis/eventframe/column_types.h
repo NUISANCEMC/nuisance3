@@ -79,8 +79,8 @@ inline std::string column_typenum_as_string(int i) {
 
 #ifdef NUIS_ARROW_ENABLED
 
-NEW_NUISANCE_EXCEPT(NonExistantColumnName);
-NEW_NUISANCE_EXCEPT(WrongColumnType);
+DECLARE_NUISANCE_EXCEPT(NonExistantColumnName);
+DECLARE_NUISANCE_EXCEPT(WrongColumnType);
 
 template <typename From, typename To> struct ColumnValueCaster {
   std::shared_ptr<typename column_type<From>::ATT::ArrayType> cast_col;

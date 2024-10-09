@@ -20,7 +20,7 @@ using ArrayXdCRef = Ref<ArrayXd const, 0, Stride<Dynamic, Dynamic>> const;
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(InvalidFrameColumnName);
+DECLARE_NUISANCE_EXCEPT(InvalidFrameColumnName);
 
 struct EventFrame {
   std::vector<std::string> column_names;
@@ -31,6 +31,8 @@ struct EventFrame {
   constexpr static column_t const npos = std::numeric_limits<column_t>::max();
 
   column_t find_column_index(std::string const &name) const;
+  //as find but throws if named column doesn't exist
+  column_t require_column_index(std::string const &name) const;
 
   Eigen::ArrayXdRef col(std::string const &cn);
   Eigen::ArrayXdCRef col(std::string const &cn) const;

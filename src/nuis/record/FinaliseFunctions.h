@@ -6,8 +6,8 @@
 
 namespace nuis {
 
-NEW_NUISANCE_EXCEPT(EmptyData);
-NEW_NUISANCE_EXCEPT(EmptyMC);
+DECLARE_NUISANCE_EXCEPT(EmptyData);
+DECLARE_NUISANCE_EXCEPT(EmptyMC);
 
 namespace finalise {
 
