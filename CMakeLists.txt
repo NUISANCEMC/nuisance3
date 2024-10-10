@@ -85,7 +85,7 @@ ENDIF("${isSystemDir}" STREQUAL "-1")
 
 ######################### Dependencies
 
-include(CPM)
+include(get_cpm)
 
 CPMFindPackage(
   NAME Eigen3
@@ -100,29 +100,20 @@ find_package(Protobuf 2.6 QUIET)
 find_package(HepMC3 3.3 REQUIRED)
 CPMFindPackage(
   NAME NuHepMC_CPPUtils
-  GIT_TAG main
+  GIT_TAG v1-RC1
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
 )
 
 CPMFindPackage(
     NAME ProSelecta
     GITHUB_REPOSITORY NUISANCEMC/ProSelecta
-    GIT_TAG v1-RC3
-)
-
-CPMFindPackage(
-    NAME fmt
-    VERSION 8.1.1
-    GIT_TAG 8.1.1
-    GITHUB_REPOSITORY fmtlib/fmt
-    OPTIONS "FMT_INSTALL ON" 
-            "BUILD_SHARED_LIBS ON"
+    GIT_TAG v1-RC4
 )
 
 CPMFindPackage(
     NAME spdlog
-    VERSION 1.10.0
-    GIT_TAG v1.10.0
+    VERSION 1.14.1
+    GIT_TAG v1.14.1
     GITHUB_REPOSITORY gabime/spdlog
     OPTIONS
         "SPDLOG_COMPILED_LIB ON"
@@ -150,9 +141,9 @@ set(NUISANCE3_PYTHONPATH "python/${NUISANCE3_PYVMAJMIN}")
 
 CPMFindPackage(
     NAME pybind11
-    VERSION 2.9.2
+    VERSION 2.13.6
     GITHUB_REPOSITORY pybind/pybind11
-    GIT_TAG "v2.9.2"
+    GIT_TAG "v2.13.6"
 )
 
 if(NUISANCE_USE_ARROW)
@@ -180,7 +171,7 @@ target_include_directories(nuis_options INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter NuHepMC::CPPUtils 
-  yaml-cpp::yaml-cpp spdlog::spdlog fmt::fmt Eigen3::Eigen)
+  yaml-cpp::yaml-cpp spdlog::spdlog Eigen3::Eigen)
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 target_link_options(nuis_options INTERFACE)
 

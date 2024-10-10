@@ -9,7 +9,7 @@
 
 #include "nuis/log.txx"
 
-#include "fmt/ranges.h"
+#include "spdlog/fmt/bundled/ranges.h"
 
 namespace nuis {
 

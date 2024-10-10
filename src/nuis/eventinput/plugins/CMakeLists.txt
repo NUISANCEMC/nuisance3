@@ -4,7 +4,7 @@ find_package(NEUT 5.6.4 QUIET)
 if(NEUT_FOUND)
   CPMFindPackage(
     NAME nvconv
-    GIT_TAG main
+    GIT_TAG v1-RC1
     GITHUB_REPOSITORY "neut-devel/neutvect-converter"
   )
 
@@ -24,7 +24,7 @@ endif()
 if(BUILTIN_NuWro)
   CPMFindPackage(
     NAME nuwroconv
-    GIT_TAG main
+    GIT_TAG v1-RC1
     GITHUB_REPOSITORY "NuHepMC/nuwro2hepmc3"
   )
 

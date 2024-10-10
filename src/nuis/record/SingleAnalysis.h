@@ -7,7 +7,7 @@
 
 #include "NuHepMC/UnitsUtils.hxx"
 
-#include "fmt/core.h"
+#include "spdlog/fmt/bundled/core.h"
 
 namespace nuis {
 

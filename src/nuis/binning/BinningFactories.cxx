@@ -3,7 +3,7 @@
 #include "nuis/binning/log_bin_edges.txx"
 #include "nuis/binning/utility.h"
 
-#include "fmt/ranges.h"
+#include "spdlog/fmt/bundled/ranges.h"
 
 namespace nuis {
 

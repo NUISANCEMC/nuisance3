@@ -307,8 +307,8 @@ int ConvertGENIEReactionCode(::genie::GHepRecord const &GHep) {
   {}
   {}
   {})",
-                 GHep.Summary()->ProcInfo().ScatteringTypeId(),
-                 GHep.Summary()->ProcInfo().InteractionTypeId(),
+                 int(GHep.Summary()->ProcInfo().ScatteringTypeId()),
+                 int(GHep.Summary()->ProcInfo().InteractionTypeId()),
                  genie::ScatteringType::AsString(
                      GHep.Summary()->ProcInfo().ScatteringTypeId()),
                  genie::InteractionType::AsString(

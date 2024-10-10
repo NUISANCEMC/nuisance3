@@ -4,7 +4,7 @@
 #include "nuis/binning/exceptions.h"
 #include "nuis/binning/utility.h"
 
-#include "fmt/ranges.h"
+#include "spdlog/fmt/bundled/ranges.h"
 
 #include "nuis/log.txx"
 

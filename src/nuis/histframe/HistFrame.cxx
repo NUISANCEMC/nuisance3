@@ -4,7 +4,7 @@
 
 #include "nuis/log.txx"
 
-#include "fmt/ranges.h"
+#include "spdlog/fmt/bundled/ranges.h"
 
 DECLARE_NUISANCE_EXCEPT(InvalidColumnAccess);
 

@@ -2,8 +2,8 @@
 
 #include "nuis/binning/utility.h"
 
-#include "fmt/core.h"
-#include "fmt/ranges.h"
+#include "spdlog/fmt/bundled/core.h"
+#include "spdlog/fmt/bundled/ranges.h"
 
 namespace nuis {
 

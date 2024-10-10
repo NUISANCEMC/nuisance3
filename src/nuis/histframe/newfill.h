@@ -8,8 +8,8 @@
 
 #include "nuis/log.txx"
 
-#include "fmt/core.h"
-#include "fmt/ranges.h"
+#include "spdlog/fmt/bundled/core.h"
+#include "spdlog/fmt/bundled/ranges.h"
 
 #ifdef NUIS_ARROW_ENABLED
 #include "arrow/api.h"

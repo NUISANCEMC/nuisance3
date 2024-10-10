@@ -1,6 +1,6 @@
 #include "nuis/binning/SingleExtent.h"
 
-#include "fmt/core.h"
+#include "spdlog/fmt/bundled/core.h"
 
 namespace nuis {
 

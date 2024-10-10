@@ -37,8 +37,7 @@ Prob3plusplusWeightCalc::NuTypes GetNuType(int pdg) {
   case -12:
     return Prob3plusplusWeightCalc::kNuebarType;
   default: {
-    log_warn("[Prob3plusplusWeightCalc]: Invalid neutrino PDG code: {}",
-                 pdg);
+    log_warn("[Prob3plusplusWeightCalc]: Invalid neutrino PDG code: {}", pdg);
     return Prob3plusplusWeightCalc::kInvalid;
   }
   }
@@ -61,13 +60,13 @@ double Prob3plusplusWeightCalc::prob(double enu_GeV) {
 
   if (from_type == kInvalid) {
     log_warn("[Prob3plusplusWeightCalc]: Oscillation channel not "
-                 "configured: \"osc:from\" == kInvalid");
+             "configured: \"osc:from\" == kInvalid");
     return 1;
   }
 
   if (to_type == kInvalid) {
     log_warn("[Prob3plusplusWeightCalc]: Oscillation channel not "
-                 "configured: \"osc:to\" == kInvalid");
+             "configured: \"osc:to\" == kInvalid");
     return 1;
   }
 
@@ -83,7 +82,7 @@ double Prob3plusplusWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
   auto beamp = NuHepMC::Event::GetBeamParticle(ev);
   if (!beamp) {
     log_warn("[Prob3plusplusWeightCalc]: Failed to find valid beam "
-                 "particle in event");
+             "particle in event");
     return 1;
   }
   if (from_type == kInvalid) {
@@ -141,64 +140,63 @@ void Prob3plusplusWeightCalc::set_parameters(
   }
   if (params.count("dcp_npi")) {
     dcp_rad = params.at("dcp_npi") * M_PI;
-    log_info(
-        "[Prob3plusplusWeightCalc]: Set dcp_rad = {}, from dcp_npi = {}",
-        dcp_rad, params.at("dcp_npi"));
+    log_info("[Prob3plusplusWeightCalc]: Set dcp_rad = {}, from dcp_npi = {}",
+             dcp_rad, params.at("dcp_npi"));
   }
 
   if (params.count("baseline_km")) {
     set_baseline(params.at("baseline_km"));
     log_info("[Prob3plusplusWeightCalc]: Set baseline_km = {}",
-                 params.at("baseline_km"));
+             params.at("baseline_km"));
   }
 
   if (params.count("dip_angle_deg")) {
     set_dipangle(params.at("dip_angle_deg"));
     log_info("[Prob3plusplusWeightCalc]: Set dip_angle_deg = {}",
-                 params.at("dip_angle_deg"));
+             params.at("dip_angle_deg"));
   }
 
   if (params.count("osc:from")) {
     from_type = GetNuType(params.at("osc:from"));
     log_info("[Prob3plusplusWeightCalc]: Set oscillation from {}",
-                 from_type);
+             int(from_type));
   }
 
   if (params.count("osc:to")) {
     to_type = GetNuType(params.at("osc:to"));
-    log_info("[Prob3plusplusWeightCalc]: Set oscillation to {}", to_type);
+    log_info("[Prob3plusplusWeightCalc]: Set oscillation to {}", int(to_type));
   }
 
   if (params.count("osc:numu_disp")) {
     from_type = GetNuType(14);
     to_type = GetNuType(14);
     log_info("[Prob3plusplusWeightCalc]: Set numu disappearance "
-                 "oscillation channel: {} -> {}",
-                 from_type, to_type);
+             "oscillation channel: {} -> {}",
+             int(from_type), int(to_type));
   }
 
   if (params.count("osc:numubar_disp")) {
     from_type = GetNuType(-14);
     to_type = GetNuType(-14);
     log_info("[Prob3plusplusWeightCalc]: Set numubar disappearance "
-                 "oscillation channel: {} -> {}",
-                 from_type, to_type);
+             "oscillation channel: {} -> {}",
+             int(from_type), int(to_type));
   }
 
   if (params.count("osc:numu_to_nue")) {
     from_type = GetNuType(14);
     to_type = GetNuType(12);
     log_info("[Prob3plusplusWeightCalc]: Set numu to nue appearance "
-                 "oscillation channel: {} -> {}",
-                 from_type, to_type);
+             "oscillation channel: {} -> {}",
+             int(from_type), int(to_type));
   }
 
   if (params.count("osc:numubar_to_nuebar")) {
     from_type = GetNuType(-14);
     to_type = GetNuType(-12);
     log_info("[Prob3plusplusWeightCalc]: Set numubar to nuebar appearance "
-                 "oscillation channel: {} -> {}",
-                 from_type, to_type);
+             "oscillation channel: {} -> {}",
+             int(from_type), int(to_type));
   }
 
   if (params.count("baseline:t2k")) {

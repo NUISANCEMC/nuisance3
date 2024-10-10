@@ -3,8 +3,8 @@
 #include "NuHepMC/ReaderUtils.hxx"
 #include "NuHepMC/UnitsUtils.hxx"
 
-#include "fmt/chrono.h"
-#include "fmt/ranges.h"
+#include "spdlog/fmt/bundled/chrono.h"
+#include "spdlog/fmt/bundled/ranges.h"
 
 #include "nuis/log.txx"
 

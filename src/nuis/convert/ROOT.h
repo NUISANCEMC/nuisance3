@@ -16,8 +16,8 @@
 #include "TH2.h"
 #include "TH3.h"
 
-#include "fmt/core.h"
-#include "fmt/ranges.h"
+#include "spdlog/fmt/bundled/core.h"
+#include "spdlog/fmt/bundled/ranges.h"
 
 // This should be header-only so that ROOT is not required by NUISANCE core
 //   but is available for user scripts that want to write out ROOT histograms
@@ -204,9 +204,9 @@ NuHepMC::GC7::EnergyDistribution get_EnergyDistribution_from_ROOT(
   ed.energy_unit =
       energy_unit.size() ? energy_unit : hist->GetXaxis()->GetTitle();
   ed.rate_unit = hist->GetYaxis()->GetTitle();
-  ed.bin_edges = Eigen::ArrayXd::Zero(hist->GetXaxis()->GetNbins() + 1);
+  ed.bin_edges = std::vector<double>(hist->GetXaxis()->GetNbins() + 1);
   ed.bin_edges[0] = hist->GetXaxis()->GetBinLowEdge(1);
-  ed.bin_content = Eigen::ArrayXd::Zero(hist->GetXaxis()->GetNbins());
+  ed.bin_content = std::vector<double>(hist->GetXaxis()->GetNbins());
   for (int i = 0; i < hist->GetXaxis()->GetNbins(); ++i) {
     ed.bin_edges[i + 1] = hist->GetXaxis()->GetBinUpEdge(i + 1);
     ed.bin_content[i] = hist->GetBinContent(i + 1);
