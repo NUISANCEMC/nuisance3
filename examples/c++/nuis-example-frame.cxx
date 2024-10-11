@@ -4,7 +4,7 @@
 
 #include "nuis/eventframe/EventFrameGen.h"
 
-#include "nuis/histframe/newfill.h"
+#include "nuis/histframe/frame_fill.h"
 #include "nuis/histframe/utility.h"
 
 #include "NuHepMC/EventUtils.hxx"
