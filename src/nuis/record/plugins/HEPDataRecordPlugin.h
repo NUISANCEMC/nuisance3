@@ -15,6 +15,11 @@ public:
   HEPDataRecordPlugin(YAML::Node const &cfg);
 
   std::vector<std::string> get_analyses() const;
+
+  AnalysisPtr
+  make_SingleDistributionAnalysis(HEPData::CrossSectionMeasurement const &);
+  AnalysisPtr make_SingleFluxAnalysis(HEPData::CrossSectionMeasurement const &);
+
   AnalysisPtr analysis(YAML::Node const &cfg_in);
 
   bool good() const { return true; }

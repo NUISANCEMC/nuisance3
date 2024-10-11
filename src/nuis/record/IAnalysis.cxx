@@ -50,12 +50,11 @@ std::vector<BinnedValues> IAnalysis::get_data() const {
   throw IAnalysisUnimplementedInterfaceFunction();
 }
 
-std::pair<int, BinnedValues> IAnalysis::get_probe_flux(bool) const {
+IAnalysis::ProbeFlux IAnalysis::get_probe_flux(bool) const {
   throw IAnalysisUnimplementedInterfaceFunction();
 }
 
-std::vector<std::pair<int, BinnedValues>>
-IAnalysis::get_all_probe_fluxes(bool) const {
+std::vector<IAnalysis::ProbeFlux> IAnalysis::get_all_probe_fluxes(bool) const {
   throw IAnalysisUnimplementedInterfaceFunction();
 }
 
@@ -71,6 +70,10 @@ Eigen::MatrixXd IAnalysis::get_smearing_matrix() const {
   throw IAnalysisUnimplementedInterfaceFunction();
 }
 
+std::vector<Eigen::MatrixXd> IAnalysis::get_all_smearing_matrices() const {
+  throw IAnalysisUnimplementedInterfaceFunction();
+}
+
 std::vector<IAnalysis::Target> IAnalysis::get_target() const {
   throw IAnalysisUnimplementedInterfaceFunction();
 }
@@ -79,12 +82,12 @@ std::vector<std::vector<IAnalysis::Target>> IAnalysis::get_all_targets() const {
   throw IAnalysisUnimplementedInterfaceFunction();
 }
 
-std::vector<IAnalysis::XSScaling>
-IAnalysis::get_all_cross_section_scalings() const {
+IAnalysis::XSScaling IAnalysis::get_cross_section_scaling() const {
   throw IAnalysisUnimplementedInterfaceFunction();
 }
 
-IAnalysis::XSScaling IAnalysis::get_cross_section_scaling() const {
+std::vector<IAnalysis::XSScaling>
+IAnalysis::get_all_cross_section_scalings() const {
   throw IAnalysisUnimplementedInterfaceFunction();
 }
 

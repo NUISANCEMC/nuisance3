@@ -18,6 +18,7 @@
 #include "arrow/api.h"
 #endif
 
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -50,20 +51,29 @@ struct IAnalysis {
   // Throws if the actual analysis is more complicated
   virtual std::pair<std::vector<std::string>, std::vector<ProjectFunc>>
   get_projections() const;
+
+  // The outer vector corresponds to the independant variables, so all
+  // projection functions for the 'y' variable live in projectfuncs[1];
   virtual std::pair<std::vector<std::vector<std::string>>,
                     std::vector<std::vector<ProjectFunc>>>
   get_all_projections() const;
 
   virtual std::vector<BinnedValues> get_data() const;
 
-  virtual std::pair<int, BinnedValues> get_probe_flux(bool = false) const;
-  virtual std::vector<std::pair<int, BinnedValues>>
-  get_all_probe_fluxes(bool = false) const;
+  struct ProbeFlux {
+    int probe_pdg;
+    BinnedValues spectrum;
+    std::filesystem::path source;
+  };
+
+  virtual ProbeFlux get_probe_flux(bool = false) const;
+  virtual std::vector<ProbeFlux> get_all_probe_fluxes(bool = false) const;
 
   virtual Eigen::MatrixXd get_covariance_matrix() const;
   virtual Eigen::MatrixXd get_correlation_matrix() const;
 
   virtual Eigen::MatrixXd get_smearing_matrix() const;
+  virtual std::vector<Eigen::MatrixXd> get_all_smearing_matrices() const;
 
   struct Target {
     Target(std::pair<double, double> const &target_spec,
@@ -88,9 +98,9 @@ struct IAnalysis {
     bool divide_by_bin_width;
   };
 
-  virtual std::vector<XSScaling> get_all_cross_section_scalings() const;
-
   virtual XSScaling get_cross_section_scaling() const;
+
+  virtual std::vector<XSScaling> get_all_cross_section_scalings() const;
 
   weight::func weight;
   finalise::func finalise;

@@ -5,7 +5,8 @@
 #include "nuis/record/Utility.h"
 #include "nuis/record/plugins/IRecordPlugin.h"
 
-#include "nuis/record/SingleAnalysis.h"
+#include "nuis/record/SingleDistributionAnalysis.h"
+#include "nuis/record/SingleFluxAnalysis.h"
 
 #include "nuis/env.h"
 #include "nuis/except.h"
@@ -206,21 +207,12 @@ Eigen::MatrixXd mat_from_table(HEPData::Table const &tbl, int nbins) {
   return mat;
 }
 
-AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
-
-  auto analysisname = cfg_in["analysis"].as<std::string>();
-
-  auto const &xsmeasurement = get_measurement(record, analysisname);
-
-  if (xsmeasurement.is_composite) {
-    throw std::runtime_error(
-        "cannot yet handle composite measurements... sorry");
-  }
-
+AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
+    HEPData::CrossSectionMeasurement const &xsmeasurement) {
   auto const &ivars = xsmeasurement.independent_vars;
   auto const &dvar = xsmeasurement.dependent_vars[0];
 
-  auto analysis = std::make_shared<SingleAnalysis>();
+  auto analysis = std::make_shared<SingleDistributionAnalysis>();
 
   // load all of the proselecta source files
   std::set<std::filesystem::path> proselecta_sources;
@@ -291,8 +283,10 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
   }
 
   auto probe_flux = xsmeasurement.get_single_probe_flux();
-  analysis->probe_particle = probe_particle_to_pdg(probe_flux.probe_particle);
-  analysis->probe_flux_count = ProbeFluxToBinnedValuesCount(probe_flux);
+  analysis->probe_count.probe_pdg =
+      probe_particle_to_pdg(probe_flux.probe_particle);
+  analysis->probe_count.spectrum = ProbeFluxToBinnedValuesCount(probe_flux);
+  analysis->probe_count.source = probe_flux.source;
 
   if (xsmeasurement.test_statistic != "chi2") {
     throw std::runtime_error(
@@ -306,16 +300,34 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
       get_units_scale(xsmeasurement.cross_section_units,
                       IAnalysis::Target(xsmeasurement.get_simple_target()));
 
-  analysis->xs_units = units;
-  analysis->extra_unit_scale = extra_target_scale;
+  analysis->xsscale.units = units;
+  analysis->xsscale.extra_scale_factor = extra_target_scale;
 
-  analysis->per_bin_width =
+  analysis->xsscale.divide_by_bin_width =
       xsmeasurement.cross_section_units.count("per_bin_width");
 
   analysis->finalise =
-      finalise::scale_to_cross_section(analysis->per_bin_width);
+      finalise::scale_to_cross_section(analysis->xsscale.divide_by_bin_width);
 
   return analysis;
+}
+
+AnalysisPtr HEPDataRecordPlugin::make_SingleFluxAnalysis(
+    HEPData::CrossSectionMeasurement const &) {
+  return nullptr;
+}
+
+AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
+
+  auto analysisname = cfg_in["analysis"].as<std::string>();
+
+  auto const &xsmeasurement = get_measurement(record, analysisname);
+
+  if (!xsmeasurement.is_composite) {
+    return make_SingleDistributionAnalysis(xsmeasurement);
+  } else {
+    return make_SingleFluxAnalysis(xsmeasurement);
+  }
 }
 
 IRecordPluginPtr HEPDataRecordPlugin::MakeRecord(YAML::Node const &cfg) {

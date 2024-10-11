@@ -73,6 +73,11 @@ void pyRecordInit(py::module &m) {
                            tgt.Z, tgt.weight_by_mass);
       });
 
+  py::class_<IAnalysis::ProbeFlux>(m, "IAnalysis_ProbeFlux")
+      .def_readonly("probe_pdg", &IAnalysis::ProbeFlux::probe_pdg)
+      .def_readonly("spectrum", &IAnalysis::ProbeFlux::spectrum)
+      .def_readonly("source", &IAnalysis::ProbeFlux::source);
+
   py::class_<IAnalysis::XSScaling>(m, "IAnalysis_XSScaling")
       .def_readonly("units", &IAnalysis::XSScaling::units)
       .def_readonly("extra_scale_factor",
