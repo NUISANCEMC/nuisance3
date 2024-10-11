@@ -18,7 +18,8 @@ public:
 
   AnalysisPtr
   make_SingleDistributionAnalysis(HEPData::CrossSectionMeasurement const &);
-  AnalysisPtr make_SingleFluxAnalysis(HEPData::CrossSectionMeasurement const &);
+  AnalysisPtr
+  make_MultiDistributionMeasurement(HEPData::CrossSectionMeasurement const &);
 
   AnalysisPtr analysis(YAML::Node const &cfg_in);
 

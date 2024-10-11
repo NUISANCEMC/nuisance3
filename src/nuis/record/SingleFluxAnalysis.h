@@ -56,23 +56,19 @@ struct SingleFluxAnalysis : public IAnalysis {
 
     std::vector<std::string> dist_projection_names;
 
-    for (size_t var_i = 0; var_i < projection_names.size(); ++var_i) {
-      if (projection_names[var_i].size() ==
-          1) { // use the same projections for each distribution
-        dist_projection_names.push_back(projection_names[var_i][0]);
-      } else if (projection_names[var_i].size() ==
-                 data.size()) { // use a different projection for each
-                                // distribution
-        dist_projection_names.push_back(projection_names[var_i][dist_i]);
-      } else {
-        throw std::runtime_error(fmt::format(
-            "when building distribution {}, for projection axis {}, found "
-            "that the dataset had {} projection function names for this "
-            "axis ({}), but as we have {} distributions, the mapping is "
-            "ambiguous.",
-            dist_i, var_i, projection_names[var_i].size(),
-            projection_names[var_i], data.size()));
-      }
+    if (projection_names.size() ==
+        1) { // use the same projections for each distribution
+      dist_projection_names = projection_names[0];
+    } else if (projection_names.size() ==
+               data.size()) { // use a different projection for each
+                              // distribution
+      dist_projection_names = projection_names[dist_i];
+    } else {
+      throw std::runtime_error(
+          fmt::format("when building distribution {}, found that the dataset "
+                      "had {} sets of projection function names for this, but "
+                      "as we have {} distributions, the mapping is ambiguous.",
+                      dist_i, projection_names.size(), data.size()));
     }
 
     // note that this doesn't reset the prediction so can be used for
@@ -93,20 +89,24 @@ struct SingleFluxAnalysis : public IAnalysis {
             dist_i, smearings.size(), data.size()));
       }
 
-      for (int icol = 0; icol < comparison_prediction.sumweights.cols();
-           ++icol) {
-        comparison_prediction.sumweights.col(icol) =
-            smearings[dist_i] *
-            comparison_prediction.sumweights.col(icol).matrix();
-        comparison_prediction.variances.col(icol) =
-            smearings[dist_i] *
-            comparison_prediction.variances.col(icol).matrix();
+      // some sub measurements might not be smeared, in which case they will be
+      // empty matrices
+      if (smearings[dist_i].rows()) {
+        for (int icol = 0; icol < comparison_prediction.sumweights.cols();
+             ++icol) {
+          comparison_prediction.sumweights.col(icol) =
+              smearings[dist_i] *
+              comparison_prediction.sumweights.col(icol).matrix();
+          comparison_prediction.variances.col(icol) =
+              smearings[dist_i] *
+              comparison_prediction.variances.col(icol).matrix();
+        }
       }
     }
 
     XSScaling xsscale;
 
-    if (select_names.size() == 1) {
+    if (xsscales.size() == 1) {
       xsscale = xsscales[0];
     } else if (xsscales.size() == data.size()) {
       xsscale = xsscales[dist_i];
@@ -118,9 +118,10 @@ struct SingleFluxAnalysis : public IAnalysis {
                       dist_i, xsscales.size(), data.size()));
     }
 
-    return finalise(comparison_prediction,
-                    get_best_fatx_per_sumw_estimate(batch, xsscale.units) *
-                        xsscale.extra_scale_factor);
+    return finalise_all[dist_i](
+        comparison_prediction,
+        get_best_fatx_per_sumw_estimate(batch, xsscale.units) *
+            xsscale.extra_scale_factor);
   }
 
   template <typename EF> Comparison process_batched(EF const &ef) {

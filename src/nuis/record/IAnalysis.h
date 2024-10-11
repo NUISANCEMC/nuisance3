@@ -52,8 +52,10 @@ struct IAnalysis {
   virtual std::pair<std::vector<std::string>, std::vector<ProjectFunc>>
   get_projections() const;
 
-  // The outer vector corresponds to the independant variables, so all
-  // projection functions for the 'y' variable live in projectfuncs[1];
+  // The outer vector corresponds to the different measurement components, and
+  // the inner vector corresponds to the independent variable list for that
+  // component. Note this is swapped relative to
+  // HEPData::CrossSectionMeasurement
   virtual std::pair<std::vector<std::vector<std::string>>,
                     std::vector<std::vector<ProjectFunc>>>
   get_all_projections() const;
@@ -104,6 +106,7 @@ struct IAnalysis {
 
   weight::func weight;
   finalise::func finalise;
+  std::vector<finalise::func> finalise_all;
   likelihood::func likelihood;
 
   virtual std::string prediction_generation_hint(std::string const &) const;

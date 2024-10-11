@@ -31,16 +31,7 @@ namespace nuis {
 
 DECLARE_NUISANCE_EXCEPT(InvalidAnalysisForRecord);
 
-// YAML::Node schema() {
-//   YAML::Node sc = YAML::Load("{}");
-//   sc["type"] = "hepdata";
-//   sc["recordref"] = "recordref";
-//   return sc;
-// }
-
 HEPDataRecordPlugin::HEPDataRecordPlugin(YAML::Node const &cfg) {
-  // auto sc = schema();
-  // nuis::validate_yaml_map("HEPDataRecordPlugin", sc, cfg);
   node = cfg;
 
   HEPData::ResourceReference recordref;
@@ -249,12 +240,9 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
     }
   }
 
-  analysis->data = BinnedValues(
-      Binning::brute_force(to_extents(xsmeasurement.independent_vars),
-                           ivar_labels),
-      "data",
-      fmt::format("{} [{}]", xsmeasurement.dependent_vars[0].prettyname,
-                  xsmeasurement.dependent_vars[0].units));
+  analysis->data =
+      BinnedValues(Binning::brute_force(to_extents(ivars), ivar_labels), "data",
+                   fmt::format("{} [{}]", dvar.prettyname, dvar.units));
 
   analysis->data.resize();
   analysis->prediction = analysis->data.make_HistFrame();
@@ -312,9 +300,158 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
   return analysis;
 }
 
-AnalysisPtr HEPDataRecordPlugin::make_SingleFluxAnalysis(
-    HEPData::CrossSectionMeasurement const &) {
-  return nullptr;
+AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
+    HEPData::CrossSectionMeasurement const &xsmeasurement) {
+
+  auto analysis = std::make_shared<SingleFluxAnalysis>();
+
+  if (xsmeasurement.errors.size()) {
+    analysis->error = mat_from_table(xsmeasurement.get_single_errors(),
+                                     analysis->data.back().values.rows());
+  }
+
+  size_t nsubm = xsmeasurement.sub_measurements.size();
+
+  std::set<std::filesystem::path> proselecta_sources;
+  for (auto const &subm : xsmeasurement.sub_measurements) {
+    // load all of the proselecta source files
+    proselecta_sources.insert(subm.get_single_selectfunc().source);
+    for (auto const &projfs : subm.get_single_projectfuncs()) {
+      proselecta_sources.insert(projfs.source);
+    }
+  }
+
+  for (auto const &src : proselecta_sources) {
+    ProSelecta::Get().load_file(src);
+  }
+
+  for (size_t subm_i = 0; subm_i < nsubm; ++subm_i) {
+    auto const &subm = xsmeasurement.sub_measurements[subm_i];
+
+    auto const &ivars = subm.independent_vars;
+    auto const &dvar = subm.dependent_vars[0];
+
+    if (!subm_i ||
+        (analysis->select_names.back() != subm.get_single_selectfunc().fname)) {
+      analysis->select_names.push_back(subm.get_single_selectfunc().fname);
+      analysis->selects.push_back(ProSelecta::Get().get_select_func(
+          subm.get_single_selectfunc().fname, ProSelecta::Interpreter::kCling));
+    }
+
+    if (analysis->projection_names.size() < subm.independent_vars.size()) {
+      analysis->projection_names.resize(subm.independent_vars.size());
+      analysis->projections.resize(subm.independent_vars.size());
+    }
+
+    auto pfuncs = subm.get_single_projectfuncs();
+    // if we know we need to add it, we can skip most of the checks below, we
+    // need to add if its the first sub measutement or if the different sub
+    // measurements have a different number of axes
+    bool need_add =
+        (!subm_i) || (analysis->projection_names[0].size() != pfuncs.size());
+    for (size_t pi = 0; need_add && (pi < pfuncs.size()); ++pi) {
+      if (analysis->projection_names[0][pi] != pfuncs[pi].fname) {
+        need_add = true;
+        break;
+      }
+    }
+    if (need_add) {
+      for (size_t pi = 0; pi < pfuncs.size(); ++pi) {
+        analysis->projection_names[pi].push_back(pfuncs[pi].fname);
+        analysis->projections[pi].push_back(
+            ProSelecta::Get().get_projection_func(
+                pfuncs[pi].fname, ProSelecta::Interpreter::kCling));
+      }
+    }
+
+    std::vector<std::string> ivar_labels;
+    auto project_prettynames = subm.get_single_project_prettynames();
+    for (size_t vi = 0; vi < ivars.size(); ++vi) {
+      if (project_prettynames[vi].size()) {
+        ivar_labels.push_back(project_prettynames[vi]);
+      } else {
+        ivar_labels.push_back(ivars[vi].name);
+      }
+      if (ivars[vi].units.size()) {
+        ivar_labels.back() += fmt::format(" [{}]", ivars[vi].units);
+      }
+    }
+
+    analysis->data.push_back(BinnedValues(
+        Binning::brute_force(to_extents(ivars), ivar_labels), "data",
+        fmt::format("{} [{}]", dvar.prettyname, dvar.units)));
+
+    analysis->data.back().resize();
+    analysis->predictions.push_back(analysis->data.back().make_HistFrame());
+
+    for (size_t bin_i = 0; bin_i < dvar.values.size(); ++bin_i) {
+      analysis->data.back().values(bin_i, 0) =
+          std::get<double>(dvar.values[bin_i].value);
+
+      if (dvar.values[bin_i].errors.count("total")) {
+        analysis->data.back().errors(bin_i, 0) =
+            dvar.values[bin_i].errors.at("total");
+      }
+    }
+    if (subm.smearings.size()) {
+      if (!analysis->smearings.size()) {
+        analysis->smearings.resize(nsubm);
+      }
+      analysis->smearings[subm_i] = mat_from_table(
+          subm.get_single_smearing(), analysis->data.back().values.rows());
+    }
+    for (auto const &wtgt : subm.targets[subm_i]) {
+      if (!analysis->targets.size()) {
+        analysis->targets.resize(nsubm);
+      }
+      analysis->targets[subm_i].push_back(
+          IAnalysis::Target({wtgt->A, wtgt->Z}, wtgt.weight));
+    }
+
+    if (!analysis->xsscales.size()) {
+      analysis->xsscales.resize(nsubm);
+    }
+
+    auto const &[units, extra_target_scale] = get_units_scale(
+        subm.cross_section_units, IAnalysis::Target(subm.get_simple_target()));
+
+    analysis->xsscales[subm_i].units = units;
+    analysis->xsscales[subm_i].extra_scale_factor = extra_target_scale;
+
+    analysis->xsscales[subm_i].divide_by_bin_width =
+        subm.cross_section_units.count("per_bin_width");
+
+    analysis->finalise_all.push_back(finalise::scale_to_cross_section(
+        analysis->xsscales[subm_i].divide_by_bin_width));
+
+  } // end loop over submeasurements
+
+  if (xsmeasurement.probe_fluxes.size() == 1) {
+    auto probe_flux = xsmeasurement.get_single_probe_flux();
+    analysis->probe_count.probe_pdg =
+        probe_particle_to_pdg(probe_flux.probe_particle);
+    analysis->probe_count.spectrum = ProbeFluxToBinnedValuesCount(probe_flux);
+    analysis->probe_count.source = probe_flux.source;
+  } else if (xsmeasurement.sub_measurements[0].probe_fluxes.size() == 1) {
+    auto probe_flux = xsmeasurement.sub_measurements[0].get_single_probe_flux();
+    analysis->probe_count.probe_pdg =
+        probe_particle_to_pdg(probe_flux.probe_particle);
+    analysis->probe_count.spectrum = ProbeFluxToBinnedValuesCount(probe_flux);
+    analysis->probe_count.source = probe_flux.source;
+  } else {
+    throw InvalidAnalysisForRecord()
+        << "Couldn't find single flux distribution for composite measurement.";
+  }
+
+  if (xsmeasurement.test_statistic != "chi2") {
+    throw std::runtime_error(
+        "cannot yet process a test test_statistic other than chi2.");
+  }
+
+  analysis->likelihood = likelihood::chi2_inv_covariance(
+      Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
+
+  return analysis;
 }
 
 AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
@@ -325,9 +462,13 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
 
   if (!xsmeasurement.is_composite) {
     return make_SingleDistributionAnalysis(xsmeasurement);
-  } else {
-    return make_SingleFluxAnalysis(xsmeasurement);
+  } else if (xsmeasurement.sub_measurements.size()) {
+    return make_MultiDistributionMeasurement(xsmeasurement);
   }
+
+  throw InvalidAnalysisForRecord()
+      << "Can currently only build simple composite measurements that "
+         "provide combined errors for multiple distributions.";
 }
 
 IRecordPluginPtr HEPDataRecordPlugin::MakeRecord(YAML::Node const &cfg) {
