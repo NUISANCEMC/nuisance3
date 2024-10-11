@@ -103,6 +103,7 @@ CPMFindPackage(
   GIT_TAG v1-RC1
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
   VERSION 0.9
+  OPTIONS "NuHepMC_CPPUtils_PYTHON_ENABLED ON"
 )
 
 CPMFindPackage(
