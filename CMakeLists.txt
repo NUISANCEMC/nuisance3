@@ -102,12 +102,14 @@ CPMFindPackage(
   NAME NuHepMC_CPPUtils
   GIT_TAG v1-RC1
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
+  VERSION 0.9
 )
 
 CPMFindPackage(
     NAME ProSelecta
     GITHUB_REPOSITORY NUISANCEMC/ProSelecta
     GIT_TAG v1-RC4
+    VERSION 0.1
 )
 
 CPMFindPackage(
