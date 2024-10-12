@@ -12,6 +12,11 @@ add_executable(nuis-example-frame nuis-example-frame.cxx)
 target_link_libraries(nuis-example-frame eventinput eventframe histframe)
 install(TARGETS nuis-example-frame DESTINATION bin)
 
+add_executable(nuis-hepdata-rec nuis-hepdata-rec.cxx)
+target_link_libraries(nuis-hepdata-rec eventinput eventframe histframe record)
+install(TARGETS nuis-hepdata-rec DESTINATION bin)
+
+
 #add_executable(nuis-spline-test nuis-spline-test.cxx)
 #target_link_libraries(nuis-spline-test eventinput)
 #install(TARGETS nuis-spline-test DESTINATION bin)

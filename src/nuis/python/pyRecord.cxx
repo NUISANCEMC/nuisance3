@@ -68,15 +68,13 @@ void pyRecordInit(py::module &m) {
       .def_readonly("N", &IAnalysis::Target::N)
       .def_readonly("Z", &IAnalysis::Target::Z)
       .def_readonly("weight_by_mass", &IAnalysis::Target::weight_by_mass)
-      .def("__str__", [](IAnalysis::Target const &tgt) {
-        return fmt::format("{{ A = {}, Z = {}, weight_by_mass = {} }}", tgt.A,
-                           tgt.Z, tgt.weight_by_mass);
-      });
+      .def("__str__", &IAnalysis::Target::to_str);
 
   py::class_<IAnalysis::ProbeFlux>(m, "IAnalysis_ProbeFlux")
       .def_readonly("probe_pdg", &IAnalysis::ProbeFlux::probe_pdg)
       .def_readonly("spectrum", &IAnalysis::ProbeFlux::spectrum)
-      .def_readonly("source", &IAnalysis::ProbeFlux::source);
+      .def_readonly("source", &IAnalysis::ProbeFlux::source)
+      .def_readonly("series_name", &IAnalysis::ProbeFlux::series_name);
 
   py::class_<IAnalysis::XSScaling>(m, "IAnalysis_XSScaling")
       .def_readonly("units", &IAnalysis::XSScaling::units)
@@ -99,6 +97,15 @@ void pyRecordInit(py::module &m) {
              return ana->process(evs.evs);
            })
       .def("process",
+           [](AnalysisPtr const &ana,
+              std::vector<pyNormalizedEventSource> &py_evs) {
+             std::vector<INormalizedEventSourcePtr> evs;
+             for (auto &py_ev : py_evs) {
+               evs.push_back(py_ev.evs);
+             }
+             return ana->process(evs);
+           })
+      .def("process",
            py::overload_cast<EventFrame const &>(&IAnalysis::process))
 #ifdef NUIS_ARROW_ENABLED
       .def("process",
@@ -113,9 +120,6 @@ void pyRecordInit(py::module &m) {
              throw std::runtime_error(
                  "IAnalysis::process passed an invalid py::handle");
            })
-      .def("process",
-           py::overload_cast<std::shared_ptr<arrow::RecordBatch> const &>(
-               &IAnalysis::process))
 #endif
       .def("add_to_framegen",
            [](AnalysisPtr const &ana, pyEventFrameGen &efg) {

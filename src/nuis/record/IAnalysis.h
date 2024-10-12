@@ -29,6 +29,9 @@ namespace nuis {
 using ProjectFunc = std::function<double(HepMC3::GenEvent const &)>;
 using SelectFunc = std::function<int(HepMC3::GenEvent const &)>;
 
+// The union of interfaces to different analysis types. Throws if you call the
+// wrong function for the wrong analysis, but enables automated comparison and
+// full specific analysis interrogation by experts
 struct IAnalysis {
 
   DECLARE_NUISANCE_EXCEPT(IAnalysisUnimplementedInterfaceFunction);
@@ -66,6 +69,9 @@ struct IAnalysis {
     int probe_pdg;
     BinnedValues spectrum;
     std::filesystem::path source;
+    // dependent variable name if source points to HEPData yaml, or TKey if it
+    // points to a root file
+    std::string series_name;
   };
 
   virtual ProbeFlux get_probe_flux(bool = false) const;
@@ -88,6 +94,7 @@ struct IAnalysis {
     }
     double A, N, Z;
     double weight_by_mass;
+    std::string to_str() const;
   };
 
   virtual std::vector<Target> get_target() const;
@@ -104,12 +111,12 @@ struct IAnalysis {
 
   virtual std::vector<XSScaling> get_all_cross_section_scalings() const;
 
-  weight::func weight;
-  finalise::func finalise;
-  std::vector<finalise::func> finalise_all;
+  virtual finalise::func get_finalise() const;
+  virtual std::vector<finalise::func> get_all_finalise() const;
+
   likelihood::func likelihood;
 
-  virtual std::string prediction_generation_hint(std::string const &) const;
+  virtual std::string prediction_generation_hint() const;
 
   virtual ~IAnalysis() {};
 };

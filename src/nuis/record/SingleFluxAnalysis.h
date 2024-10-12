@@ -37,6 +37,8 @@ struct SingleFluxAnalysis : public IAnalysis {
   Eigen::MatrixXd error;
   std::vector<Eigen::MatrixXd> smearings;
 
+  std::vector<finalise::func> finalise_all;
+
   template <typename EFT>
   BinnedValues process_dist_batched(EFT const &batch, size_t dist_i) {
 
@@ -313,9 +315,9 @@ struct SingleFluxAnalysis : public IAnalysis {
   IAnalysis::ProbeFlux get_probe_flux(bool count_density = false) const {
     if (count_density) {
       return {probe_count.probe_pdg, ToCountDensity(probe_count.spectrum),
-              probe_count.source};
+              probe_count.source, probe_count.series_name};
     }
-    return {probe_count.probe_pdg, probe_count.spectrum, probe_count.source};
+    return probe_count;
   }
 
   std::vector<IAnalysis::Target> get_target() const {
@@ -376,13 +378,24 @@ struct SingleFluxAnalysis : public IAnalysis {
     return xsscales;
   }
 
-  std::string
-  prediction_generation_hint(std::string const &generator_name) const {
-    std::stringstream ss("");
-    if (generator_name == "NEUT") {
-      // ss << "nuis gen NEUT -P " << probe_particle << " -t " << target << "
-      // -f
-      // ";
+  virtual std::vector<finalise::func> get_all_finalise() const {
+    return finalise_all;
+  }
+
+  std::string prediction_generation_hint() const {
+    std::set<std::string> gen_lines;
+    for (auto const &target : targets) {
+      std::stringstream ss;
+      for (size_t tgti = 0; tgti < target.size(); ++tgti) {
+        ss << target[tgti].to_str() << ((tgti + 1) == target.size() ? "" : ",");
+      }
+      gen_lines.insert(fmt::format("-P {} -f {},{} -t {}",
+                                   probe_count.probe_pdg, probe_count.source.native(),
+                                   probe_count.series_name, ss.str()));
+    }
+    std::stringstream ss;
+    for (auto const &gl : gen_lines) {
+      ss << gl << "\n";
     }
     return ss.str();
   }

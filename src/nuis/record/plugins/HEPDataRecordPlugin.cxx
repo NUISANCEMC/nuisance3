@@ -16,6 +16,7 @@
 
 #include "NuHepMC/ReaderUtils.hxx"
 
+#include "spdlog/fmt/bundled/core.h"
 #include "spdlog/fmt/bundled/ranges.h"
 
 #ifdef NUISANCE_USE_BOOSTDLL
@@ -30,6 +31,7 @@ using namespace ps;
 namespace nuis {
 
 DECLARE_NUISANCE_EXCEPT(InvalidAnalysisForRecord);
+DECLARE_NUISANCE_EXCEPT(InvalidRecordForAnalysisType);
 
 HEPDataRecordPlugin::HEPDataRecordPlugin(YAML::Node const &cfg) {
   node = cfg;
@@ -74,7 +76,7 @@ auto get_measurement(HEPData::Record const &record, std::string const &name) {
                "tables: {}",
                name, record.record_ref.str(), table_names);
   throw InvalidAnalysisForRecord()
-      << "analysis table, nameed " << name
+      << "analysis table, named " << name
       << ", does not exist on record: " << record.record_ref.str();
 }
 
@@ -281,8 +283,13 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
         "cannot yet process a test test_statistic other than chi2.");
   }
 
-  analysis->likelihood = likelihood::chi2_inv_covariance(
-      Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
+  // analysis->likelihood = likelihood::chi2_inv_covariance(
+  //     Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
+
+  analysis->likelihood = [](Comparison const &) {
+    std::cout << "made it" << std::endl;
+    return 123;
+  };
 
   auto const &[units, extra_target_scale] =
       get_units_scale(xsmeasurement.cross_section_units,
@@ -305,12 +312,8 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
 
   auto analysis = std::make_shared<SingleFluxAnalysis>();
 
-  if (xsmeasurement.errors.size()) {
-    analysis->error = mat_from_table(xsmeasurement.get_single_errors(),
-                                     analysis->data.back().values.rows());
-  }
-
   size_t nsubm = xsmeasurement.sub_measurements.size();
+  size_t nbins = 0;
 
   std::set<std::filesystem::path> proselecta_sources;
   for (auto const &subm : xsmeasurement.sub_measurements) {
@@ -345,7 +348,7 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
 
     auto pfuncs = subm.get_single_projectfuncs();
     // if we know we need to add it, we can skip most of the checks below, we
-    // need to add if its the first sub measutement or if the different sub
+    // need to add if its the first sub measurement or if the different sub
     // measurements have a different number of axes
     bool need_add =
         (!subm_i) || (analysis->projection_names[0].size() != pfuncs.size());
@@ -382,6 +385,7 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
         fmt::format("{} [{}]", dvar.prettyname, dvar.units)));
 
     analysis->data.back().resize();
+    nbins += analysis->data.back().values.rows();
     analysis->predictions.push_back(analysis->data.back().make_HistFrame());
 
     for (size_t bin_i = 0; bin_i < dvar.values.size(); ++bin_i) {
@@ -393,6 +397,7 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
             dvar.values[bin_i].errors.at("total");
       }
     }
+
     if (subm.smearings.size()) {
       if (!analysis->smearings.size()) {
         analysis->smearings.resize(nsubm);
@@ -400,7 +405,8 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
       analysis->smearings[subm_i] = mat_from_table(
           subm.get_single_smearing(), analysis->data.back().values.rows());
     }
-    for (auto const &wtgt : subm.targets[subm_i]) {
+
+    for (auto const &wtgt : subm.targets[0]) {
       if (!analysis->targets.size()) {
         analysis->targets.resize(nsubm);
       }
@@ -426,6 +432,10 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
 
   } // end loop over submeasurements
 
+  if (xsmeasurement.errors.size()) {
+    analysis->error = mat_from_table(xsmeasurement.get_single_errors(), nbins);
+  }
+
   if (xsmeasurement.probe_fluxes.size() == 1) {
     auto probe_flux = xsmeasurement.get_single_probe_flux();
     analysis->probe_count.probe_pdg =
@@ -439,7 +449,7 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
     analysis->probe_count.spectrum = ProbeFluxToBinnedValuesCount(probe_flux);
     analysis->probe_count.source = probe_flux.source;
   } else {
-    throw InvalidAnalysisForRecord()
+    throw InvalidRecordForAnalysisType()
         << "Couldn't find single flux distribution for composite measurement.";
   }
 
@@ -466,7 +476,7 @@ AnalysisPtr HEPDataRecordPlugin::analysis(YAML::Node const &cfg_in) {
     return make_MultiDistributionMeasurement(xsmeasurement);
   }
 
-  throw InvalidAnalysisForRecord()
+  throw InvalidRecordForAnalysisType()
       << "Can currently only build simple composite measurements that "
          "provide combined errors for multiple distributions.";
 }

@@ -34,6 +34,8 @@ struct SingleDistributionAnalysis : public IAnalysis {
   Eigen::MatrixXd error;
   Eigen::MatrixXd smearing;
 
+  finalise::func finalise;
+
   template <typename EFT> Comparison process_batched(EFT const &batch) {
     // note that this doesn't reset the prediction so can be used for batched
     // processing
@@ -144,9 +146,9 @@ struct SingleDistributionAnalysis : public IAnalysis {
   IAnalysis::ProbeFlux get_probe_flux(bool count_density = false) const {
     if (count_density) {
       return {probe_count.probe_pdg, ToCountDensity(probe_count.spectrum),
-              probe_count.source};
+              probe_count.source, probe_count.series_name};
     }
-    return {probe_count.probe_pdg, probe_count.spectrum, probe_count.source};
+    return probe_count;
   }
 
   std::vector<IAnalysis::Target> get_target() const { return target; }
@@ -167,14 +169,15 @@ struct SingleDistributionAnalysis : public IAnalysis {
 
   IAnalysis::XSScaling get_cross_section_scaling() const { return xsscale; }
 
-  std::string
-  prediction_generation_hint(std::string const &generator_name) const {
-    std::stringstream ss("");
-    if (generator_name == "NEUT") {
-      // ss << "nuis gen NEUT -P " << probe_particle << " -t " << target << " -f
-      // ";
+  finalise::func get_finalise() const { return finalise; }
+
+  std::string prediction_generation_hint() const {
+    std::stringstream ss;
+    for (size_t tgti = 0; tgti < target.size(); ++tgti) {
+      ss << target[tgti].to_str() << ((tgti + 1) == target.size() ? "" : ",");
     }
-    return ss.str();
+    return fmt::format("-P {} -f {},{} -t {}", probe_count.probe_pdg,
+                       probe_count.source.native(), probe_count.series_name, ss.str());
   }
 };
 
