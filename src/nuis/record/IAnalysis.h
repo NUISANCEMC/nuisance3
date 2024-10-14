@@ -46,22 +46,30 @@ struct IAnalysis {
 
   virtual void add_to_framegen(EventFrameGen &) const;
 
-  // Throws if the actual analysis is more complicated
-  virtual std::pair<std::string, SelectFunc> get_selection() const;
-  virtual std::pair<std::vector<std::string>, std::vector<SelectFunc>>
-  get_all_selections() const;
+  struct Selection {
+    std::string fname;
+    SelectFunc op;
+  };
 
   // Throws if the actual analysis is more complicated
-  virtual std::pair<std::vector<std::string>, std::vector<ProjectFunc>>
-  get_projections() const;
+  virtual Selection get_selection() const;
+  virtual std::vector<Selection> get_all_selections() const;
+
+  struct Projection {
+    std::string fname;
+    ProjectFunc op;
+    std::string prettyname;
+    std::string units;
+  };
+
+  // Throws if the actual analysis is more complicated
+  virtual std::vector<Projection> get_projections() const;
 
   // The outer vector corresponds to the different measurement components, and
   // the inner vector corresponds to the independent variable list for that
   // component. Note this is swapped relative to
   // HEPData::CrossSectionMeasurement
-  virtual std::pair<std::vector<std::vector<std::string>>,
-                    std::vector<std::vector<ProjectFunc>>>
-  get_all_projections() const;
+  virtual std::vector<std::vector<Projection>> get_all_projections() const;
 
   virtual std::vector<BinnedValues> get_data() const;
 

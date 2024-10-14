@@ -218,28 +218,37 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
     ProSelecta::Get().load_file(src);
   }
 
-  analysis->select_name = xsmeasurement.get_single_selectfunc().fname;
-  analysis->select = ProSelecta::Get().get_select_func(
-      xsmeasurement.get_single_selectfunc().fname,
-      ProSelecta::Interpreter::kCling);
-
-  for (auto const &projfs : xsmeasurement.get_single_projectfuncs()) {
-    analysis->projection_names.push_back(projfs.fname);
-    analysis->projections.push_back(ProSelecta::Get().get_projection_func(
-        projfs.fname, ProSelecta::Interpreter::kCling));
-  }
+  analysis->selection = {xsmeasurement.get_single_selectfunc().fname,
+                         ProSelecta::Get().get_select_func(
+                             xsmeasurement.get_single_selectfunc().fname,
+                             ProSelecta::Interpreter::kCling)};
 
   std::vector<std::string> ivar_labels;
-  auto project_prettynames = xsmeasurement.get_single_project_prettynames();
+
+  auto const &project_functions = xsmeasurement.get_single_projectfuncs();
+  auto const &project_prettynames =
+      xsmeasurement.get_single_project_prettynames();
+
   for (size_t vi = 0; vi < ivars.size(); ++vi) {
-    if (project_prettynames[vi].size()) {
-      ivar_labels.push_back(project_prettynames[vi]);
-    } else {
-      ivar_labels.push_back(ivars[vi].name);
+    auto const &projfs = project_functions[vi];
+
+    std::string prettyname = ivars[vi].name;
+    if ((project_prettynames.size() > vi) && (project_prettynames[vi].size())) {
+      prettyname = project_prettynames[vi];
     }
-    if (ivars[vi].units.size()) {
+
+    auto units = ivars[vi].units;
+
+    ivar_labels.push_back(prettyname);
+    if (units.size()) {
       ivar_labels.back() += fmt::format(" [{}]", ivars[vi].units);
     }
+
+    analysis->projections.push_back(
+        {projfs.fname,
+         ProSelecta::Get().get_projection_func(projfs.fname,
+                                               ProSelecta::Interpreter::kCling),
+         prettyname, units});
   }
 
   analysis->data =
@@ -329,51 +338,39 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
     auto const &ivars = subm.independent_vars;
     auto const &dvar = subm.dependent_vars[0];
 
-    if (!subm_i ||
-        (analysis->select_names.back() != subm.get_single_selectfunc().fname)) {
-      analysis->select_names.push_back(subm.get_single_selectfunc().fname);
-      analysis->selects.push_back(ProSelecta::Get().get_select_func(
-          subm.get_single_selectfunc().fname, ProSelecta::Interpreter::kCling));
-    }
-
-    if (analysis->projection_names.size() < subm.independent_vars.size()) {
-      analysis->projection_names.resize(subm.independent_vars.size());
-      analysis->projections.resize(subm.independent_vars.size());
-    }
-
-    auto pfuncs = subm.get_single_projectfuncs();
-    // if we know we need to add it, we can skip most of the checks below, we
-    // need to add if its the first sub measurement or if the different sub
-    // measurements have a different number of axes
-    bool need_add =
-        (!subm_i) || (analysis->projection_names[0].size() != pfuncs.size());
-    for (size_t pi = 0; !need_add && (pi < pfuncs.size()); ++pi) {
-      if (analysis->projection_names[0][pi] != pfuncs[pi].fname) {
-        need_add = true;
-        break;
-      }
-    }
-
-    if (need_add) {
-      for (size_t pi = 0; pi < pfuncs.size(); ++pi) {
-        analysis->projection_names[pi].push_back(pfuncs[pi].fname);
-        analysis->projections[pi].push_back(
-            ProSelecta::Get().get_projection_func(
-                pfuncs[pi].fname, ProSelecta::Interpreter::kCling));
-      }
-    }
+    analysis->selections.push_back(
+        {subm.get_single_selectfunc().fname,
+         ProSelecta::Get().get_select_func(subm.get_single_selectfunc().fname,
+                                           ProSelecta::Interpreter::kCling)});
 
     std::vector<std::string> ivar_labels;
-    auto project_prettynames = subm.get_single_project_prettynames();
+
+    auto const &project_functions = subm.get_single_projectfuncs();
+    auto const &project_prettynames = subm.get_single_project_prettynames();
+
+    analysis->projections.emplace_back();
+
     for (size_t vi = 0; vi < ivars.size(); ++vi) {
-      if (project_prettynames[vi].size()) {
-        ivar_labels.push_back(project_prettynames[vi]);
-      } else {
-        ivar_labels.push_back(ivars[vi].name);
+      auto const &projfs = project_functions[vi];
+
+      std::string prettyname = ivars[vi].name;
+      if ((project_prettynames.size() > vi) &&
+          (project_prettynames[vi].size())) {
+        prettyname = project_prettynames[vi];
       }
-      if (ivars[vi].units.size()) {
+
+      auto units = ivars[vi].units;
+
+      ivar_labels.push_back(prettyname);
+      if (units.size()) {
         ivar_labels.back() += fmt::format(" [{}]", ivars[vi].units);
       }
+
+      analysis->projections.back().push_back(
+          {projfs.fname,
+           ProSelecta::Get().get_projection_func(
+               projfs.fname, ProSelecta::Interpreter::kCling),
+           prettyname, units});
     }
 
     analysis->data.push_back(BinnedValues(
@@ -427,6 +424,43 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
         analysis->xsscales[subm_i].divide_by_bin_width));
 
   } // end loop over submeasurements
+
+  // see if we can get away with a single selection function
+  bool only_one_selection = true;
+  for (size_t si = 1; si < analysis->selections.size(); ++si) {
+    if (analysis->selections[0].fname != analysis->selections[si].fname) {
+      only_one_selection = false;
+      break;
+    }
+  }
+  if (only_one_selection) {
+    analysis->selections =
+        std::vector<IAnalysis::Selection>{analysis->selections[0]};
+  }
+
+  // see if we can get away with a single set of projection functions
+  bool only_one_projections = true;
+  for (size_t dist_i = 1; dist_i < analysis->projections.size(); ++dist_i) {
+    if (analysis->projections[0].size() !=
+        analysis->projections[dist_i].size()) {
+      only_one_projections = false;
+      break;
+    }
+    for (size_t pi = 1; pi < analysis->projections[dist_i].size(); ++pi) {
+      if (analysis->projections[0][pi].fname !=
+          analysis->projections[dist_i][pi].fname) {
+        only_one_projections = false;
+        break;
+      }
+    }
+    if (!only_one_projections) {
+      break;
+    }
+  }
+  if (only_one_projections) {
+    analysis->projections = std::vector<std::vector<IAnalysis::Projection>>{
+        analysis->projections[0]};
+  }
 
   if (xsmeasurement.errors.size()) {
     analysis->error = mat_from_table(xsmeasurement.get_single_errors(), nbins);

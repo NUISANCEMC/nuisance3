@@ -37,30 +37,27 @@ void IAnalysis::add_to_framegen(EventFrameGen &) const {
 }
 
 // Throws if the actual analysis is more complicated
-std::pair<std::string, SelectFunc> IAnalysis::get_selection() const {
+IAnalysis::Selection IAnalysis::get_selection() const {
   throw IAnalysisUnimplementedInterfaceFunction()
-      << "std::pair<std::string, SelectFunc> IAnalysis::get_selection() const ";
+      << "IAnalysis::Selectio IAnalysis::get_selection() const ";
 }
-std::pair<std::vector<std::string>, std::vector<SelectFunc>>
-IAnalysis::get_all_selections() const {
+std::vector<IAnalysis::Selection> IAnalysis::get_all_selections() const {
   throw IAnalysisUnimplementedInterfaceFunction()
-      << "std::pair<std::vector<std::string>, std::vector<SelectFunc>> "
+      << "std::vector<IAnalysis::Selection> "
          "IAnalysis::get_all_selections() const";
 }
 
 // Throws if the actual analysis is more complicated
-std::pair<std::vector<std::string>, std::vector<ProjectFunc>>
-IAnalysis::get_projections() const {
+std::vector<IAnalysis::Projection> IAnalysis::get_projections() const {
   throw IAnalysisUnimplementedInterfaceFunction()
-      << "std::pair<std::vector<std::string>, std::vector<ProjectFunc>> "
+      << "std::vector<IAnalysis::Projection> "
          "IAnalysis::get_projections() const";
 }
-std::pair<std::vector<std::vector<std::string>>,
-          std::vector<std::vector<ProjectFunc>>>
+std::vector<std::vector<IAnalysis::Projection>>
 IAnalysis::get_all_projections() const {
   throw IAnalysisUnimplementedInterfaceFunction()
-      << "std::pair<std::vector<std::vector<std::string>>,std::vector<std::"
-         "vector<ProjectFunc>>> IAnalysis::get_all_projections() const";
+      << "std::vector<std::vector<IAnalysis::Projection>> "
+         "IAnalysis::get_all_projections() const";
 }
 
 std::vector<BinnedValues> IAnalysis::get_data() const {

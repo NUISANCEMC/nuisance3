@@ -19,11 +19,8 @@ struct SingleDistributionAnalysis : public IAnalysis {
   BinnedValues data;
   HistFrame prediction;
 
-  std::string select_name;
-  SelectFunc select;
-
-  std::vector<std::string> projection_names;
-  std::vector<ProjectFunc> projections;
+  IAnalysis::Selection selection;
+  std::vector<IAnalysis::Projection> projections;
 
   std::vector<IAnalysis::Target> target;
 
@@ -39,8 +36,14 @@ struct SingleDistributionAnalysis : public IAnalysis {
   template <typename EFT> Comparison process_batched(EFT const &batch) {
     // note that this doesn't reset the prediction so can be used for batched
     // processing
+
+    std::vector<std::string> projection_names;
+    for (auto const &proj : projections) {
+      projection_names.push_back(proj.fname);
+    }
+
     fill(prediction, batch, projection_names, fill_column(0),
-         fill_if(select_name));
+         fill_if(selection.fname));
 
     // acting on a copy of the current prediction also enables batched
     // processing
@@ -98,7 +101,7 @@ struct SingleDistributionAnalysis : public IAnalysis {
 
   Comparison process(INormalizedEventSourcePtr &events) {
 
-    auto efg = EventFrameGen(events).filter(select);
+    auto efg = EventFrameGen(events).filter(selection.op);
     add_to_framegen(efg);
 
     prediction.reset();
@@ -116,30 +119,27 @@ struct SingleDistributionAnalysis : public IAnalysis {
 
   void add_to_framegen(EventFrameGen &efg) const {
 
-    auto sel_col_check = efg.has_typed_column<int>(select_name);
+    auto sel_col_check = efg.has_typed_column<int>(selection.fname);
     if (!sel_col_check.first) { // doesn't have a column with that name
-      efg.add_typed_column<int>(select_name, select);
+      efg.add_typed_column<int>(selection.fname, selection.op);
     } else if (!sel_col_check.second) {
       throw std::runtime_error(fmt::format(
           "when adding column named {} to EventFrameGen, a column with the "
           "same name but a different type already exists.",
-          select_name));
+          selection.fname));
     }
 
-    for (size_t pi = 0; pi < projections.size(); ++pi) {
-      if (!efg.has_column(projection_names[pi])) {
-        efg.add_column(projection_names[pi], projections[pi]);
+    for (auto const &proj : projections) {
+      if (!efg.has_column(proj.fname)) {
+        efg.add_column(proj.fname, proj.op);
       }
     }
   }
 
-  std::pair<std::string, SelectFunc> get_selection() const {
-    return {select_name, select};
-  }
+  IAnalysis::Selection get_selection() const { return selection; }
 
-  std::pair<std::vector<std::string>, std::vector<ProjectFunc>>
-  get_projections() const {
-    return {projection_names, projections};
+  std::vector<IAnalysis::Projection> get_projections() const {
+    return projections;
   }
 
   std::vector<BinnedValues> get_data() const {

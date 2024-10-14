@@ -22,11 +22,8 @@ struct SingleFluxAnalysis : public IAnalysis {
   std::vector<BinnedValues> data;
   std::vector<HistFrame> predictions;
 
-  std::vector<std::string> select_names;
-  std::vector<SelectFunc> selects;
-
-  std::vector<std::vector<std::string>> projection_names;
-  std::vector<std::vector<ProjectFunc>> projections;
+  std::vector<IAnalysis::Selection> selections;
+  std::vector<std::vector<IAnalysis::Projection>> projections;
 
   std::vector<std::vector<IAnalysis::Target>> targets;
 
@@ -44,33 +41,41 @@ struct SingleFluxAnalysis : public IAnalysis {
 
     std::string select_name;
 
-    if (select_names.size() == 1) {
-      select_name = select_names[0];
-    } else if (select_names.size() == data.size()) {
-      select_name = select_names[dist_i];
+    static auto get_fnames = [](auto const &funcvect) {
+      std::vector<std::string> output(funcvect.size());
+      std::transform(funcvect.begin(), funcvect.end(), output.begin(),
+                     [](auto const &func) { return func.fname; });
+      return output;
+    };
+
+    if (selections.size() == 1) {
+      select_name = selections[0].fname;
+    } else if (selections.size() == data.size()) {
+      select_name = selections[dist_i].fname;
     } else {
+      auto selection_names = get_fnames(selections);
       throw std::runtime_error(
           fmt::format("when building distribution {}, found that the dataset "
                       "had {} selection function names ({}), but as we have {} "
                       "distributions, the mapping is ambiguous.",
-                      dist_i, select_names.size(), select_names, data.size()));
+                      dist_i, selections.size(), selection_names, data.size()));
     }
 
     std::vector<std::string> dist_projection_names;
 
-    if (projection_names.size() ==
+    if (projections.size() ==
         1) { // use the same projections for each distribution
-      dist_projection_names = projection_names[0];
-    } else if (projection_names.size() ==
+      dist_projection_names = get_fnames(projections[0]);
+    } else if (projections.size() ==
                data.size()) { // use a different projection for each
                               // distribution
-      dist_projection_names = projection_names[dist_i];
+      dist_projection_names = get_fnames(projections[dist_i]);
     } else {
       throw std::runtime_error(
           fmt::format("when building distribution {}, found that the dataset "
                       "had {} sets of projection function names for this, but "
                       "as we have {} distributions, the mapping is ambiguous.",
-                      dist_i, projection_names.size(), data.size()));
+                      dist_i, projections.size(), data.size()));
     }
 
     // note that this doesn't reset the prediction so can be used for
@@ -132,7 +137,14 @@ struct SingleFluxAnalysis : public IAnalysis {
       finalised_predictions.push_back(process_dist_batched(ef, dist_i));
     }
     Comparison comp{data, finalised_predictions, nullptr};
-    comp.likelihood = [=]() { return likelihood(comp); };
+
+    // take an explicit copy of the closure so that the comparison likelihood
+    // function doesn't depend on the lifetime of this object.
+    auto ana_lhood_func = this->likelihood;
+
+    // holds two copies of the data, but I don't think it should be a huge
+    // problem
+    comp.likelihood = [=]() { return ana_lhood_func(comp); };
     return comp;
   }
 
@@ -196,16 +208,16 @@ struct SingleFluxAnalysis : public IAnalysis {
 
       auto efg = EventFrameGen(events);
 
-      if (select_names.size() == 1) {
-        efg.filter(selects[0]);
-      } else if (select_names.size() == data.size()) {
-        efg.filter(selects[dist_i]);
+      if (selections.size() == 1) {
+        efg.filter(selections[0].op);
+      } else if (selections.size() == data.size()) {
+        efg.filter(selections[dist_i].op);
       } else {
         throw std::runtime_error(
             fmt::format("when building distribution {}, found that the dataset "
                         "had {} selection functions, but as we have {} "
                         "distributions, the mapping is ambiguous.",
-                        dist_i, selects.size(), data.size()));
+                        dist_i, selections.size(), data.size()));
       }
 
       add_to_framegen(efg);
@@ -232,67 +244,46 @@ struct SingleFluxAnalysis : public IAnalysis {
 
   void add_to_framegen(EventFrameGen &efg) const {
 
-    for (size_t si = 0; si < select_names.size(); ++si) {
-      auto sel_col_check = efg.has_typed_column<int>(select_names[si]);
+    for (auto const &dist_sel : selections) {
+      auto sel_col_check = efg.has_typed_column<int>(dist_sel.fname);
       if (!sel_col_check.first) { // doesn't have a column with that name
-        efg.add_typed_column<int>(select_names[si], selects[si]);
+        efg.add_typed_column<int>(dist_sel.fname, dist_sel.op);
       } else if (!sel_col_check.second) {
         throw std::runtime_error(fmt::format(
             "when adding column named {} to EventFrameGen, a column with the "
             "same name but a different type already exists.",
-            select_names[si]));
+            dist_sel.fname));
       }
     }
 
-    for (size_t var_i = 0; var_i < projections.size(); ++var_i) {
-      for (size_t pi = 0; pi < projections[var_i].size(); ++pi) {
-        if (!efg.has_column(projection_names[var_i][pi])) {
-          efg.add_column(projection_names[var_i][pi], projections[var_i][pi]);
+    for (auto const &dist_projs : projections) {
+      for (auto const &proj : dist_projs) {
+        if (!efg.has_column(proj.fname)) {
+          efg.add_column(proj.fname, proj.op);
         }
       }
     }
   }
 
-  std::pair<std::string, SelectFunc> get_selection() const {
-    if (select_names.size() != 1) {
+  IAnalysis::Selection get_selection() const {
+    if (selections.size() != 1) {
       throw std::runtime_error(fmt::format(
           "IAnalysis::get_selection can only be used for measurements "
-          "with a single selection specifier, but we find: {} select_names.",
-          select_names.size()));
+          "with a single selection specifier, but we find: {} selections.",
+          selections.size()));
     }
 
-    if (selects.size() != 1) {
-      throw std::runtime_error(fmt::format(
-          "IAnalysis::get_selection can only be used for measurements "
-          "with a single selection specifier, but we find: {} selects.",
-          selects.size()));
-    }
-
-    return {select_names[0], selects[0]};
+    return selections[0];
   }
-  std::pair<std::vector<std::string>, std::vector<SelectFunc>>
-  get_all_selections() const {
-    if (!select_names.size()) {
-      throw std::runtime_error("analysis had no selection names set.");
+  std::vector<IAnalysis::Selection> get_all_selections() const {
+    if (!selections.size()) {
+      throw std::runtime_error("analysis had no selection set.");
     }
 
-    if (!selects.size()) {
-      throw std::runtime_error("analysis had no selection functions set.");
-    }
-
-    return {select_names, selects};
+    return selections;
   }
 
-  std::pair<std::vector<std::string>, std::vector<ProjectFunc>>
-  get_projections() const {
-    if (projection_names.size() != 1) {
-      throw std::runtime_error(fmt::format(
-          "IAnalysis::get_projections can only be used for measurements "
-          "with a single set of projections, but we find: {} sets of "
-          "projection_names.",
-          projection_names.size()));
-    }
-
+  std::vector<IAnalysis::Projection> get_projections() const {
     if (projections.size() != 1) {
       throw std::runtime_error(fmt::format(
           "IAnalysis::get_projections can only be used for measurements "
@@ -301,20 +292,13 @@ struct SingleFluxAnalysis : public IAnalysis {
           projections.size()));
     }
 
-    return {projection_names[0], projections[0]};
+    return projections[0];
   }
-  std::pair<std::vector<std::vector<std::string>>,
-            std::vector<std::vector<ProjectFunc>>>
-  get_all_projections() const {
-    if (!projection_names.size()) {
-      throw std::runtime_error("analysis had no projection names set.");
-    }
-
+  std::vector<std::vector<IAnalysis::Projection>> get_all_projections() const {
     if (!projections.size()) {
-      throw std::runtime_error("analysis had no projection functions set.");
+      throw std::runtime_error("analysis had no projections set.");
     }
-
-    return {projection_names, projections};
+    return projections;
   }
 
   std::vector<BinnedValues> get_data() const { return data; }

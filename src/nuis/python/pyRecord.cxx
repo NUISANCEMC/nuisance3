@@ -91,6 +91,16 @@ void pyRecordInit(py::module &m) {
                            scl.divide_by_bin_width);
       });
 
+  py::class_<IAnalysis::Selection>(m, "IAnalysis_Selection")
+      .def_readonly("fname", &IAnalysis::Selection::fname)
+      .def_readonly("op", &IAnalysis::Selection::op);
+
+  py::class_<IAnalysis::Projection>(m, "IAnalysis_Projection")
+      .def_readonly("fname", &IAnalysis::Projection::fname)
+      .def_readonly("op", &IAnalysis::Projection::op)
+      .def_readonly("prettyname", &IAnalysis::Projection::prettyname)
+      .def_readonly("units", &IAnalysis::Projection::units);
+
   py::class_<IAnalysis, AnalysisPtr>(m, "IAnalysis")
       .def("process",
            [](AnalysisPtr const &ana, pyNormalizedEventSource &evs) {
@@ -126,7 +136,9 @@ void pyRecordInit(py::module &m) {
              ana->add_to_framegen(*efg.gen);
            })
       .def("get_selection", &IAnalysis::get_selection)
+      .def("get_all_selection", &IAnalysis::get_all_selections)
       .def("get_projections", &IAnalysis::get_projections)
+      .def("get_all_projections", &IAnalysis::get_all_projections)
       .def("get_data", &IAnalysis::get_data)
       .def("get_probe_flux", &IAnalysis::get_probe_flux)
       .def("get_target", &IAnalysis::get_target)
