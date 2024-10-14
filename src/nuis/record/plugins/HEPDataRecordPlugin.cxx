@@ -283,13 +283,8 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
         "cannot yet process a test test_statistic other than chi2.");
   }
 
-  // analysis->likelihood = likelihood::chi2_inv_covariance(
-  //     Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
-
-  analysis->likelihood = [](Comparison const &) {
-    std::cout << "made it" << std::endl;
-    return 123;
-  };
+  analysis->likelihood = likelihood::chi2_inv_covariance(
+      Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
 
   auto const &[units, extra_target_scale] =
       get_units_scale(xsmeasurement.cross_section_units,
@@ -352,12 +347,13 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
     // measurements have a different number of axes
     bool need_add =
         (!subm_i) || (analysis->projection_names[0].size() != pfuncs.size());
-    for (size_t pi = 0; need_add && (pi < pfuncs.size()); ++pi) {
+    for (size_t pi = 0; !need_add && (pi < pfuncs.size()); ++pi) {
       if (analysis->projection_names[0][pi] != pfuncs[pi].fname) {
         need_add = true;
         break;
       }
     }
+
     if (need_add) {
       for (size_t pi = 0; pi < pfuncs.size(); ++pi) {
         analysis->projection_names[pi].push_back(pfuncs[pi].fname);

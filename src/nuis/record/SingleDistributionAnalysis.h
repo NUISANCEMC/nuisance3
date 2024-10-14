@@ -68,9 +68,14 @@ struct SingleDistributionAnalysis : public IAnalysis {
                         final_prediction,
                     },
                     nullptr};
+
+    // take an explicit copy of the closure so that the comparison likelihood
+    // function doesn't depend on the lifetime of this object.
+    auto ana_lhood_func = this->likelihood;
+
     // holds two copies of the data, but I don't think it should be a huge
     // problem
-    comp.likelihood = [=]() { return likelihood(comp); };
+    comp.likelihood = [=]() { return ana_lhood_func(comp); };
 
     return comp;
   }
@@ -177,7 +182,8 @@ struct SingleDistributionAnalysis : public IAnalysis {
       ss << target[tgti].to_str() << ((tgti + 1) == target.size() ? "" : ",");
     }
     return fmt::format("-P {} -f {},{} -t {}", probe_count.probe_pdg,
-                       probe_count.source.native(), probe_count.series_name, ss.str());
+                       probe_count.source.native(), probe_count.series_name,
+                       ss.str());
   }
 };
 

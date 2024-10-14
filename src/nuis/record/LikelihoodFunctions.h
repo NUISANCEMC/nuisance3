@@ -2,6 +2,8 @@
 
 #include "nuis/record/Comparison.h"
 
+#include "spdlog/fmt/bundled/core.h"
+
 #include "Eigen/Dense"
 
 #include <functional>
@@ -10,7 +12,7 @@ namespace nuis {
 namespace likelihood {
 using func = std::function<double(Comparison const &)>;
 
-template <typename IMT> func chi2_inv_covariance(IMT const &inv_covariance) {
+inline func chi2_inv_covariance(Eigen::MatrixXd const &inv_covariance) {
   return [=](Comparison const &comp) -> double {
     size_t nbins = 0;
     for (auto const &d : comp.data) {
@@ -25,6 +27,7 @@ template <typename IMT> func chi2_inv_covariance(IMT const &inv_covariance) {
     for (size_t i = 0; i < comp.data.size(); ++i) {
       diff_vect.segment(first_bin, comp.data[i].values.rows()) =
           comp.data[i].values.col(0) - comp.predictions[i].values.col(0);
+
       first_bin += comp.data[i].values.rows();
     }
 

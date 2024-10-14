@@ -218,7 +218,14 @@ struct SingleFluxAnalysis : public IAnalysis {
         batch = efg.next(1E4);
       }
     }
-    comp.likelihood = [=]() { return likelihood(comp); };
+
+    // take an explicit copy of the closure so that the comparison likelihood
+    // function doesn't depend on the lifetime of this object.
+    auto ana_lhood_func = this->likelihood;
+
+    // holds two copies of the data, but I don't think it should be a huge
+    // problem
+    comp.likelihood = [=]() { return ana_lhood_func(comp); };
 
     return comp;
   }
@@ -389,9 +396,9 @@ struct SingleFluxAnalysis : public IAnalysis {
       for (size_t tgti = 0; tgti < target.size(); ++tgti) {
         ss << target[tgti].to_str() << ((tgti + 1) == target.size() ? "" : ",");
       }
-      gen_lines.insert(fmt::format("-P {} -f {},{} -t {}",
-                                   probe_count.probe_pdg, probe_count.source.native(),
-                                   probe_count.series_name, ss.str()));
+      gen_lines.insert(fmt::format(
+          "-P {} -f {},{} -t {}", probe_count.probe_pdg,
+          probe_count.source.native(), probe_count.series_name, ss.str()));
     }
     std::stringstream ss;
     for (auto const &gl : gen_lines) {
