@@ -4,8 +4,7 @@ name: Image CD
 # The events that trigger the workflow
 on:
   push:
-    branches:
-      - main
+    branches: [main, feature_CICD]
 
 permissions:
   contents: read
