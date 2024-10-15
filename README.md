@@ -65,7 +65,7 @@ NUISANCEv3 provides two types of 'dateframe'. A `nuis::Frame` is intended to be 
 
 ## Contributing to NUISANCEv3
 
-1. Read the [Developer README.md](README_ForDevelopers.md)
+1. Read the [Developer README.md](CONTRIBUTING.md)
 1. Discuss on [Slack](https://nuisance-xsec.slack.com)
 1. Issue pull requests
 1. Be a NUISANCE
