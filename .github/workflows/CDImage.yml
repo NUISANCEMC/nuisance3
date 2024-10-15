@@ -34,12 +34,12 @@ jobs:
       run: |
           docker build . \
             --file ${{ matrix.file }} \
-            --tag ghcr.io/${{ github.repository_owner }}/nuisance3:${{ matrix.tag_latest }} \
+            --tag ghcr.io/nuisancemc/nuisance3:${{ matrix.tag_latest }} \
             --build-arg NUISANCE3_VERSION=main
 
     - name: Push Docker image
       run: |
-          docker push ghcr.io/${{ github.repository_owner }}/nuisance3:${{ matrix.tag_latest }}
+          docker push ghcr.io/nuisancemc/nuisance3:${{ matrix.tag_latest }}
 
     - name: Delete old images
       uses: actions/delete-package-versions@v5
