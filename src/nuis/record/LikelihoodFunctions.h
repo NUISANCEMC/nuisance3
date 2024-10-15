@@ -7,6 +7,7 @@
 #include "Eigen/Dense"
 
 #include <functional>
+#include <stdexcept>
 
 namespace nuis {
 namespace likelihood {
@@ -33,6 +34,12 @@ inline func chi2_inv_covariance(Eigen::MatrixXd const &inv_covariance) {
 
     return diff_vect.transpose() * inv_covariance * diff_vect;
   };
+}
+
+inline double no_likelihood(Comparison const &) {
+  throw std::runtime_error(
+      "Measurement has no valid likelihood function. Check the data release "
+      "and the parsing code for this analysis type.");
 }
 } // namespace likelihood
 } // namespace nuis
