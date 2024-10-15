@@ -17,7 +17,7 @@ WORKDIR /opt/nuisance3-build
 RUN cmake /opt/nuisance3-src \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/opt/nuisance3/git_master \
-      -DNUISANCE_LEGACY_INTERFACE=ON \
+    #  -DNUISANCE_LEGACY_INTERFACE=ON \ TODO
     && make install -j 4
 
 #output container image
