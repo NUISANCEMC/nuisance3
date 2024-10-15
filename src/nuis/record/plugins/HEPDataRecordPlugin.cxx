@@ -205,6 +205,9 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
   auto const &ivars = xsmeasurement.independent_vars;
   auto const &dvar = xsmeasurement.dependent_vars[0];
 
+  log_trace("make_SingleDistributionAnalysis({})",
+            xsmeasurement.source.native());
+
   auto analysis = std::make_shared<SingleDistributionAnalysis>();
 
   // load all of the proselecta source files
@@ -215,6 +218,7 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
   }
 
   for (auto const &src : proselecta_sources) {
+    log_trace("ProSelecta::Get().load_file({})", src.native());
     ProSelecta::Get().load_file(src);
   }
 
@@ -222,6 +226,8 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
                          ProSelecta::Get().get_select_func(
                              xsmeasurement.get_single_selectfunc().fname,
                              ProSelecta::Interpreter::kCling)};
+
+  log_trace("  -> selection.fname = {}", analysis->selection.fname);
 
   std::vector<std::string> ivar_labels;
 
@@ -249,6 +255,10 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
          ProSelecta::Get().get_projection_func(projfs.fname,
                                                ProSelecta::Interpreter::kCling),
          prettyname, units});
+
+    log_trace("  -> projection[{}].fname = {}, prettyname = {}", vi,
+              analysis->projections.back().fname,
+              analysis->projections.back().prettyname);
   }
 
   analysis->data =
@@ -267,18 +277,32 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
     }
   }
 
+  log_trace("  read data histogram with {} values.",
+            analysis->data.values.rows());
+
   if (xsmeasurement.errors.size()) {
     analysis->error = mat_from_table(xsmeasurement.get_single_errors(),
                                      analysis->data.values.rows());
+    log_trace("  * read error matrix");
+  } else {
+
+    log_trace("  X no error matrix found");
   }
+
   if (xsmeasurement.smearings.size()) {
     analysis->smearing = mat_from_table(xsmeasurement.get_single_smearing(),
                                         analysis->data.values.rows());
+    log_trace("  * read smearing matrix");
+  } else {
+
+    log_trace("  X no smearing matrix found");
   }
 
+  log_trace("  -> targets:");
   for (auto const &wtgt : xsmeasurement.targets[0]) {
     analysis->target.push_back(
         IAnalysis::Target({wtgt->A, wtgt->Z}, wtgt.weight));
+    log_trace("    {}", analysis->target.back().to_str());
   }
 
   auto probe_flux = xsmeasurement.get_single_probe_flux();
@@ -287,13 +311,21 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
   analysis->probe_count.spectrum = ProbeFluxToBinnedValuesCount(probe_flux);
   analysis->probe_count.source = probe_flux.source;
 
+  log_trace("  -> flux from: ", probe_flux.source.native());
+
   if (xsmeasurement.test_statistic != "chi2") {
     throw std::runtime_error(
         "cannot yet process a test test_statistic other than chi2.");
   }
 
-  analysis->likelihood = likelihood::chi2_inv_covariance(
-      Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
+  if (analysis->error.rows()) {
+    analysis->likelihood = likelihood::chi2_inv_covariance(
+        Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
+    log_trace("  -> using chi2 likelihood with pre-inverted error matrix");
+  } else {
+    analysis->likelihood = likelihood::no_likelihood;
+    log_trace("  X no error matrix, using dummy likelihood.");
+  }
 
   auto const &[units, extra_target_scale] =
       get_units_scale(xsmeasurement.cross_section_units,
@@ -304,6 +336,12 @@ AnalysisPtr HEPDataRecordPlugin::make_SingleDistributionAnalysis(
 
   analysis->xsscale.divide_by_bin_width =
       xsmeasurement.cross_section_units.count("per_bin_width");
+
+  log_trace("  -> cross section scaling to {}, with an additional target "
+            "factor of {}.",
+            str_via_ss(units), extra_target_scale);
+  log_trace("  -> cross section is differential: {}",
+            analysis->xsscale.divide_by_bin_width);
 
   analysis->finalise =
       finalise::scale_to_cross_section(analysis->xsscale.divide_by_bin_width);
@@ -488,8 +526,12 @@ AnalysisPtr HEPDataRecordPlugin::make_MultiDistributionMeasurement(
         "cannot yet process a test test_statistic other than chi2.");
   }
 
-  analysis->likelihood = likelihood::chi2_inv_covariance(
-      Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
+  if (analysis->error.rows()) {
+    analysis->likelihood = likelihood::chi2_inv_covariance(
+        Eigen::FullPivLU<Eigen::MatrixXd>(analysis->error).inverse());
+  } else {
+    analysis->likelihood = likelihood::no_likelihood;
+  }
 
   return analysis;
 }
