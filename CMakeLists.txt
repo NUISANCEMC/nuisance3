@@ -100,9 +100,9 @@ find_package(Protobuf 2.6 QUIET)
 find_package(HepMC3 3.3 REQUIRED)
 CPMFindPackage(
   NAME NuHepMC_CPPUtils
-  GIT_TAG v1-RC2
+  GIT_TAG v1-RC3
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
-  VERSION 0.9.1
+  VERSION 0.9.2
   OPTIONS "NuHepMC_CPPUtils_PYTHON_ENABLED ON"
 )
 
