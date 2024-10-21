@@ -132,7 +132,7 @@ std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
   if (HaveTotXSSpline) {
     conventions.push_back("E.C.2");
     // G.C.4 Cross Section Units and Target Scaling
-    NuHepMC::GC4::SetCrossSectionUnits(run_info, "pb", "PerTargetAtom");
+    NuHepMC::GC4::SetCrossSectionUnits(run_info, "pb", "PerTarget");
   }
 
   // G.C.2 File Exposure (Standalone)
