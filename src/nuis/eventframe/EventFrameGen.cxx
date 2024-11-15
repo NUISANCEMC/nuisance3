@@ -37,18 +37,6 @@ EventFrameGen::EventFrameGen(INormalizedEventSourcePtr evs, size_t block_size)
   }
 }
 
-EventFrameGen::EventFrameGen(IEventSourcePtr evs, size_t block_size)
-    : in_error_state(false), source(evs), chunk_size{block_size},
-      max_events_to_loop{std::numeric_limits<size_t>::max()},
-      progress_report_every{std::numeric_limits<size_t>::max()},
-      nevents{std::numeric_limits<size_t>::max()}, ev_it(nullptr) {
-  auto run_info = evs->first().value().evt->run_info();
-  if (run_info && NuHepMC::GC1::SignalsConvention(run_info, "G.C.2")) {
-    nevents = NuHepMC::GC2::ReadExposureNEvents(run_info);
-  }
-}
-
-
 EventFrameGen EventFrameGen::filter(FilterFunc filt) {
   filters.push_back(filt);
   return *this;

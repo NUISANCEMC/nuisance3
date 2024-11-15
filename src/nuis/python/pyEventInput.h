@@ -10,13 +10,15 @@ struct pyNormalizedEventSource {
   nuis::INormalizedEventSourcePtr evs;
   pybind11::tuple curr_event;
 
+  pyNormalizedEventSource(nuis::INormalizedEventSourcePtr);
   pyNormalizedEventSource(std::string const &filename);
   pyNormalizedEventSource(YAML::Node const &node);
 
   pybind11::object first();
   pybind11::object next();
   std::shared_ptr<HepMC3::GenRunInfo> run_info();
-  nuis::NormInfo norm_info(NuHepMC::CrossSection::Units::Unit const &units) const;
+  nuis::NormInfo
+  norm_info(NuHepMC::CrossSection::Units::Unit const &units) const;
   bool good();
 };
 
@@ -34,9 +36,6 @@ public:
 
 pyNormalizedEventSource_looper begin(pyNormalizedEventSource &evs);
 nuis::IEventSource_sentinel end(pyNormalizedEventSource &);
-
-
-
 
 // Unnormalized handlers
 struct pyEventSource {
@@ -66,9 +65,7 @@ public:
   bool operator==(nuis::IEventSource_sentinel const &) const;
 };
 
-
 pyEventSource_looper begin(pyEventSource &evs);
 nuis::IEventSource_sentinel end(pyEventSource &);
-
 
 void pyEventInputInit(pybind11::module &m);

@@ -24,6 +24,10 @@ struct NormInfo {
 /// how to normalize it, this is considered a resource acquisition failure
 class INormalizedEventSource : public IEventSourceWrapper {
 
+  double external_fatx;
+  std::function<double(NuHepMC::CrossSection::Units::Unit const &, int)>
+      external_units_scale;
+
   std::shared_ptr<NuHepMC::FATX::Accumulator> xs_acc;
 
   std::optional<EventCVWeightPair>
@@ -31,6 +35,12 @@ class INormalizedEventSource : public IEventSourceWrapper {
 
 public:
   INormalizedEventSource(std::shared_ptr<IEventSource> evs);
+  // build a normalized event source where the normalization is set by the
+  // caller
+  INormalizedEventSource(std::shared_ptr<IEventSource> evs, double fatx,
+                         NuHepMC::CrossSection::Units::Unit const &units);
+  // assume fatx specified in default units of 10^-38 cm2 / Nucleon
+  INormalizedEventSource(std::shared_ptr<IEventSource> evs, double fatx);
 
   std::optional<EventCVWeightPair> first();
   std::optional<EventCVWeightPair> next();

@@ -5,6 +5,11 @@
 namespace py = pybind11;
 using namespace nuis;
 
+// don't wrap this constructor, it is for internal use only
+pyNormalizedEventSource::pyNormalizedEventSource(
+    nuis::INormalizedEventSourcePtr in_evs)
+    : gri{in_evs->first().value().evt->run_info()}, evs{in_evs} {}
+
 pyNormalizedEventSource::pyNormalizedEventSource(std::string const &filename) {
   auto resp = fact.make(filename);
   gri = resp.first;
@@ -83,8 +88,6 @@ IEventSource_sentinel end(pyNormalizedEventSource &) {
   return IEventSource_sentinel();
 }
 
-
-
 // Unnormalized bindings
 
 pyEventSource::pyEventSource(std::string const &filename) {
@@ -122,32 +125,23 @@ py::object pyEventSource::next() {
   return curr_event;
 }
 
-std::shared_ptr<HepMC3::GenRunInfo> pyEventSource::run_info() {
-  return gri;
-}
+std::shared_ptr<HepMC3::GenRunInfo> pyEventSource::run_info() { return gri; }
 
 bool pyEventSource::good() { return bool(evs); }
 
-pyEventSource_looper::pyEventSource_looper(
-    pyEventSource &pyevs)
+pyEventSource_looper::pyEventSource_looper(pyEventSource &pyevs)
     : pysource(pyevs) {
   curr_event = pysource.get().first();
 }
 
-void pyEventSource_looper::operator++() {
-  curr_event = pysource.get().next();
-}
+void pyEventSource_looper::operator++() { curr_event = pysource.get().next(); }
 
-py::object const &pyEventSource_looper::operator*() {
-  return curr_event;
-}
-bool pyEventSource_looper::operator!=(
-    IEventSource_sentinel const &) const {
+py::object const &pyEventSource_looper::operator*() { return curr_event; }
+bool pyEventSource_looper::operator!=(IEventSource_sentinel const &) const {
   return !curr_event.is(py::none());
 }
 
-bool pyEventSource_looper::operator==(
-    IEventSource_sentinel const &) const {
+bool pyEventSource_looper::operator==(IEventSource_sentinel const &) const {
   return curr_event.is(py::none());
 }
 
@@ -155,10 +149,7 @@ pyEventSource_looper begin(pyEventSource &evs) {
   return pyEventSource_looper(evs);
 }
 
-IEventSource_sentinel end(pyEventSource &) {
-  return IEventSource_sentinel();
-}
-
+IEventSource_sentinel end(pyEventSource &) { return IEventSource_sentinel(); }
 
 void pyEventInputInit(py::module &m) {
 
@@ -190,13 +181,17 @@ void pyEventInputInit(py::module &m) {
       .def("first", &pyEventSource::first)
       .def("next", &pyEventSource::next)
       .def("run_info", &pyEventSource::run_info)
+      .def(
+          "force_fatx",
+          [](pyEventSource &self, double fatx,
+             NuHepMC::CrossSection::Units::Unit const &units) {
+            return pyNormalizedEventSource(self.evs->force_fatx(fatx, units));
+          },
+          py::arg("fatx"),
+          py::arg("units") = NuHepMC::CrossSection::Units::cm2ten38_PerNucleon)
       .def("__bool__", &pyEventSource::good)
       .def(
           "__iter__",
-          [](pyEventSource &s) {
-            return py::make_iterator(begin(s), end(s));
-          },
+          [](pyEventSource &s) { return py::make_iterator(begin(s), end(s)); },
           py::keep_alive<0, 1>());
-
-      
 }

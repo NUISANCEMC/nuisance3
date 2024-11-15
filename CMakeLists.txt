@@ -100,17 +100,17 @@ find_package(Protobuf 2.6 QUIET)
 find_package(HepMC3 3.0 REQUIRED)
 CPMFindPackage(
   NAME NuHepMC_CPPUtils
-  GIT_TAG v1-RC3
+  GIT_TAG v1-RC4
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
-  VERSION 0.9.2
+  VERSION 0.9.3
   OPTIONS "NuHepMC_CPPUtils_PYTHON_ENABLED ON"
 )
 
 CPMFindPackage(
     NAME ProSelecta
     GITHUB_REPOSITORY NUISANCEMC/ProSelecta
-    GIT_TAG v1-RC4
-    VERSION 0.1
+    GIT_TAG v1-RC5
+    VERSION 0.1.1
 )
 
 CPMFindPackage(

@@ -4,9 +4,9 @@ find_package(NEUT 5.6.4 QUIET)
 if(NEUT_FOUND)
   CPMFindPackage(
     NAME nvconv
-    GIT_TAG v1-RC1
+    GIT_TAG v1-RC2
     GITHUB_REPOSITORY "neut-devel/neutvect-converter"
-    VERSION 0.9
+    VERSION 0.9.1
   )
 
   add_library(neutvect_eventinput_plugin SHARED neutvectEventSource.cxx)
@@ -25,9 +25,9 @@ endif()
 if(BUILTIN_NuWro)
   CPMFindPackage(
     NAME nuwroconv
-    GIT_TAG v1-RC1
+    GIT_TAG v1-RC2
     GITHUB_REPOSITORY "NuHepMC/nuwro2hepmc3"
-    VERSION 0.9
+    VERSION 0.9.1
   )
 
   add_library(NuWroevent1_eventinput_plugin SHARED NuWroevent1EventSource.cxx)

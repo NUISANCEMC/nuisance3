@@ -9,6 +9,7 @@
 #include "HepMC3/GenParticle.h"
 
 DECLARE_NUISANCE_EXCEPT(EventMomentumUnitNotMeV);
+DECLARE_NUISANCE_EXCEPT(InvalidXSUnitsForNormalization);
 
 namespace nuis {
 
@@ -46,7 +47,54 @@ INormalizedEventSource::process(std::shared_ptr<HepMC3::GenEvent> ev) {
 
 INormalizedEventSource::INormalizedEventSource(
     std::shared_ptr<IEventSource> evs)
-    : IEventSourceWrapper(evs) {}
+    : IEventSourceWrapper(evs), external_fatx{0xdeadbeef} {}
+
+INormalizedEventSource::INormalizedEventSource(
+    std::shared_ptr<IEventSource> evs, double fatx,
+    NuHepMC::CrossSection::Units::Unit const &input_units)
+    : IEventSourceWrapper(evs), external_fatx{fatx} {
+
+  external_units_scale = [=](NuHepMC::CrossSection::Units::Unit const &to_units,
+                             int target_A) {
+    using namespace NuHepMC::CrossSection::Units;
+    static std::map<Scale, double> const xsunit_factors = {
+        {Scale::pb, pb},
+        {Scale::cm2, cm2},
+        {Scale::cm2_ten38, cm2_ten38},
+    };
+
+    // pb -> cm2 : 1E-36
+    // 1      1E36
+    //   1 / 1E36 = 1E-36!
+    double unit_sf = xsunit_factors.at(input_units.scale) /
+                     xsunit_factors.at(to_units.scale);
+
+    if (input_units.tgtscale == to_units.tgtscale) {
+      return unit_sf;
+    }
+
+    if ((input_units.tgtscale == TargetScale::PerTarget) &&
+        (to_units.tgtscale == TargetScale::PerTargetNucleon)) {
+      return unit_sf / double(target_A);
+    } else if ((input_units.tgtscale == TargetScale::PerTargetNucleon) &&
+               (to_units.tgtscale == TargetScale::PerTarget)) {
+      return unit_sf * double(target_A);
+    } else {
+      throw InvalidXSUnitsForNormalization()
+          << "Cannot convert input cross section units: " << input_units
+          << " to requested units: " << to_units
+          << " for external fatx scaling without additional information, "
+             "please convert the fatx to the required units manually and "
+             "specify those units as the input units when creating the "
+             "INormalizedEventSource.";
+    }
+  };
+}
+
+INormalizedEventSource::INormalizedEventSource(
+    std::shared_ptr<IEventSource> evs, double fatx)
+    : INormalizedEventSource(
+          evs, fatx, NuHepMC::CrossSection::Units::cm2ten38_PerNucleon) {}
 
 std::optional<EventCVWeightPair> INormalizedEventSource::first() {
   if (!wrapped_ev_source) {
@@ -54,8 +102,12 @@ std::optional<EventCVWeightPair> INormalizedEventSource::first() {
   }
 
   try {
-    xs_acc =
-        NuHepMC::FATX::MakeAccumulator(wrapped_ev_source->first()->run_info());
+    if (external_fatx != 0xdeadbeef) {
+      xs_acc = NuHepMC::FATX::MakeAccumulator("Dummy");
+    } else {
+      xs_acc = NuHepMC::FATX::MakeAccumulator(
+          wrapped_ev_source->first()->run_info());
+    }
   } catch (NuHepMC::except const &ex) {
     log_warn("INormalizedEventSource::first failed to determine cross-section "
              "scaling information from event stream. If you need to read this "
@@ -71,7 +123,14 @@ std::optional<EventCVWeightPair> INormalizedEventSource::next() {
 
 NormInfo INormalizedEventSource::norm_info(
     NuHepMC::CrossSection::Units::Unit const &units) {
-  return {xs_acc->fatx(units), xs_acc->sumweights(), xs_acc->events()};
+
+  if (external_fatx != 0xdeadbeef) {
+    return {external_fatx *
+                external_units_scale(units, xs_acc->TargetTotalNucleons()),
+            xs_acc->sumweights(), xs_acc->events()};
+  } else {
+    return {xs_acc->fatx(units), xs_acc->sumweights(), xs_acc->events()};
+  }
 }
 
 INormalizedEventSource::~INormalizedEventSource() {}
