@@ -71,6 +71,15 @@ EventFrame::cols(std::vector<std::string> const &cns) {
   return rtn;
 }
 
+EventFrame EventFrame::topRows(size_t rows) const {
+  rows = std::min(rows, num_rows);
+  return {column_names, table.topRows(rows), rows};
+}
+EventFrame EventFrame::bottomRows(size_t rows) const {
+  rows = std::min(rows, num_rows);
+  return {column_names, table.bottomRows(rows), rows};
+}
+
 std::ostream &operator<<(std::ostream &os, nuis::EventFramePrinter fp) {
 
   size_t abs_max_width = fp.max_col_width;

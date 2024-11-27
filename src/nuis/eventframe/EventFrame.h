@@ -38,6 +38,10 @@ struct EventFrame {
   Eigen::ArrayXdCRef col(std::string const &cn) const;
   std::vector<Eigen::ArrayXdRef> cols(std::vector<std::string> const &cns);
 
+  // Build a new event frame from a copy of the referenced rows.
+  EventFrame topRows(size_t rows) const;
+  EventFrame bottomRows(size_t rows) const;
+
   explicit operator bool() const { return table.rows(); }
 };
 

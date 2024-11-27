@@ -5,8 +5,7 @@
 #include "nuis/eventframe/missing_datum.h"
 
 #include "nuis/histframe/HistFrame.h"
-#include "nuis/histframe/fill_from_EventFrame.h"
-#include "nuis/histframe/newfill.h"
+#include "nuis/histframe/frame_fill.h"
 #include "nuis/histframe/utility.h"
 
 #include "NuHepMC/EventUtils.hxx"
@@ -120,13 +119,6 @@ std::vector<double> double_cols(HepMC3::GenEvent const &evt) {
 
 void ProcessRBatch(std::shared_ptr<arrow::RecordBatch> &rbatch) {
 
-  auto hf = nuis::HistFrame(nuis::Binning::lin_space(0, 2E3, 10));
-  auto hf2 =
-      nuis::HistFrame(nuis::Binning::lin_spaceND({{0, 2E3, 10}, {0, 2E3, 10}}));
-
-  nuis::fill_from_Arrow(hf, rbatch, {"true.event.lep.q0"});
-  nuis::fill_from_Arrow(hf, rbatch, {"true.event.lep.q0", "true.event.lep.q3"});
-
   auto hf3 = nuis::HistFrame(nuis::Binning::lin_space(0, 2E3, 10));
   auto hf4 =
       nuis::HistFrame(nuis::Binning::lin_spaceND({{0, 2E3, 10}, {0, 2E3, 10}}));
@@ -135,8 +127,7 @@ void ProcessRBatch(std::shared_ptr<arrow::RecordBatch> &rbatch) {
              nuis::no_CV_weight());
   nuis::fill(hf3, rbatch, {"true.event.lep.q0"}, nuis::fill_column("newcol"),
              nuis::split_by_ProcID(), nuis::no_CV_weight());
-  std::cout << hf << std::endl;
-  std::cout << hf2 << std::endl;
+
   std::cout << hf3 << std::endl;
   std::cout << hf4 << std::endl;
 }

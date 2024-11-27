@@ -55,15 +55,15 @@ void HistFrame::fill_bin(Binning::index_t i, double weight,
 
 #ifndef NDEBUG
   if (i == Binning::npos) {
-    log_info("Tried to Fill histogram with out of range nuis::Binning::npos.");
+    log_trace("Tried to Fill histogram with out of range nuis::Binning::npos.");
     return;
   }
   if (i >= sumweights.rows()) {
-    log_info("Tried to Fill histogram with out of range bin {}.", i);
+    log_trace("Tried to Fill histogram with out of range bin {}.", i);
     return;
   }
   if ((weight != 0) && (!std::isnormal(weight))) {
-    log_warn("Tried to Fill histogram with a non-normal weight: {}.", weight);
+    log_trace("Tried to Fill histogram with a non-normal weight: {}.", weight);
     return;
   }
 #endif

@@ -228,5 +228,8 @@ void pyHistFrameInit(py::module &m) {
                &Multiply))
       .def("divide",
            py::overload_cast<BinnedValues const &, BinnedValues const &>(
-               &Divide));
+               &Divide))
+      .def("to_count", [](BinnedValues const &bv) { return ToCount(bv); })
+      .def("to_count_density",
+           [](BinnedValues const &bv) { return ToCount(bv); });
 }

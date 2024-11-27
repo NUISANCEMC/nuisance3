@@ -203,6 +203,8 @@ void pyEventFrameInit(py::module &m) {
       .def_readonly("num_rows", &EventFrame::num_rows)
       .def("__bool__", [](EventFrame const &s) { return bool(s.table.rows()); })
       .def("find_column_index", &EventFrame::find_column_index)
+      .def("topRows", &EventFrame::topRows)
+      .def("bottomRows", &EventFrame::bottomRows)
       .def_readonly_static("npos", &EventFrame::npos)
       .def_readonly_static("missing_datum", &kMissingDatum<double>)
       .def("__getattr__", &frame_gettattr)

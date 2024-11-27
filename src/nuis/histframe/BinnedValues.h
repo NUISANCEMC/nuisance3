@@ -43,7 +43,7 @@ struct BinnedValuesBase : public nuis_named_log("HistFrame") {
     std::string column_label;
   };
 
-  using column_t = uint32_t;
+  using column_t = uint16_t;
   constexpr static column_t const npos = std::numeric_limits<column_t>::max();
 
   // independent variables

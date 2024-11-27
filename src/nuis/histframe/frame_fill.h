@@ -103,6 +103,24 @@ inline bool is_valid_col(COLTYPE const &col) {
 #endif
 }
 
+template <typename EFT> inline std::string colinfo(EFT const &ef, int col) {
+  if constexpr (std::is_same_v<EFT, EventFrame>) {
+    return (col == EventFrame::npos)
+               ? "INVALIDCOLUMN"
+               : fmt::format("{}<double>", ef.column_names[col]);
+  }
+#ifdef NUIS_ARROW_ENABLED
+  else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
+    throw std::runtime_error("unimplemented for arrow");
+  }
+#endif
+  else if constexpr (std::is_same_v<EFT, HistFrame>) {
+    return (col == HistFrame::npos)
+               ? "INVALIDCOLUMN"
+               : fmt::format("{}", ef.column_info[col].name);
+  }
+}
+
 template <typename EFT, typename ROWTYPE, typename COLTYPE>
 inline auto get_entry(EFT const &ef, ROWTYPE const &row, COLTYPE const &col) {
   if constexpr (std::is_same_v<EFT, EventFrame>) {
@@ -159,26 +177,41 @@ void fill_loop(HistFrame &hf, EFT const &ef,
   }
 #endif
 
+  NUIS_LOGGER_TRACE("HistFrame", "fill_loop:");
   for (int row = 0; row < num_rows; ++row) {
-
+    NUIS_LOGGER_TRACE("HistFrame", "  row: {}", row);
     if (is_valid_col<EFT>(the_plan.conditional_col)) {
+      NUIS_LOGGER_TRACE("HistFrame", "    conditional: \"{}\" = {}",
+                        colinfo(ef, the_plan.conditional_col),
+                        get_entry(ef, row, the_plan.conditional_col));
       if (get_entry(ef, row, the_plan.conditional_col) == 0) {
         continue;
       }
     }
 
     double weight = 1;
+    NUIS_LOGGER_TRACE("HistFrame", "    weights:");
     for (auto const &wid : the_plan.weight_cols) {
+      NUIS_LOGGER_TRACE("HistFrame", "     \"{}\" = {}", colinfo(ef, wid),
+                        get_entry(ef, row, wid));
       weight *= get_entry(ef, row, wid);
     }
 
+    NUIS_LOGGER_TRACE("HistFrame", "    projections:");
+
     for (size_t pi = 0; pi < the_plan.proj_cols.size(); ++pi) {
+      NUIS_LOGGER_TRACE("HistFrame", "      \"{}\" = {}",
+                        colinfo(ef, the_plan.proj_cols[pi]),
+                        get_entry(ef, row, the_plan.proj_cols[pi]));
       projs[pi] = get_entry(ef, row, the_plan.proj_cols[pi]);
     }
 
     auto bin = hf.find_bin(projs);
+    NUIS_LOGGER_TRACE("HistFrame", "    --> bin = {}", bin);
 
     if (the_plan.default_fill_col != HistFrame::npos) {
+      NUIS_LOGGER_TRACE("HistFrame", "    fill hist column: {}",
+                        colinfo(hf, the_plan.default_fill_col));
       hf.fill_bin(bin, weight, the_plan.default_fill_col);
     }
 
@@ -230,7 +263,7 @@ inline auto require_column_index(EFT const &ef, std::string const &cn) {
 #endif
 }
 
-template <typename EFT, typename... OPs>
+template <typename EFT>
 void fill(HistFrame &hf, EFT const &ef,
           std::vector<std::string> const &projection_columns,
           std::vector<FrameFillOp> operations) {
@@ -239,14 +272,18 @@ void fill(HistFrame &hf, EFT const &ef,
   bool weight_by_CV = true;
 
   // parse operations
+  NUIS_LOGGER_DEBUG("HistFrame", "fill plan:");
   for (auto const &op : operations) {
 
     if (op.op == FrameFillOp::kNoCVWeight) {
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- Do not apply CV weight");
       weight_by_CV = false;
     }
 
     if (op.op == FrameFillOp::kWeight) {
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- adding weighing columns:");
       for (auto const &weight_col_name : op.weight_columns) {
+        NUIS_LOGGER_DEBUG("HistFrame", "    * {}", weight_col_name);
         the_plan.weight_cols.push_back(
             require_column_index<double>(ef, weight_col_name));
       }
@@ -261,6 +298,9 @@ void fill(HistFrame &hf, EFT const &ef,
 
       the_plan.conditional_col =
           require_column_index<int>(ef, op.conditional_column_name);
+
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- conditional column. Fill if {} != 0",
+                        colinfo(ef, the_plan.conditional_col));
     }
 
     if (op.op == FrameFillOp::kFillColumn) {
@@ -287,9 +327,13 @@ void fill(HistFrame &hf, EFT const &ef,
           the_plan.default_fill_col = hf.add_column(cname);
         }
       }
+
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- Fill column: {}",
+                        colinfo(hf, the_plan.default_fill_col));
     }
 
     if (op.op == FrameFillOp::kCategorize) {
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- categorize");
       if (op.category_labels.size()) {
         for (auto const &cat_label : op.category_labels) {
           the_plan.category_cols.push_back(hf.find_column_index(cat_label));
@@ -304,10 +348,12 @@ void fill(HistFrame &hf, EFT const &ef,
     }
 
     if (op.op == FrameFillOp::kProcID) {
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- split by procid");
       the_plan.ProcID_col = require_column_index<int>(ef, "process.id");
     }
 
     if (op.op == FrameFillOp::kWeightedMap) {
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- weighted column map");
       for (auto const &weight_col_name : op.weighted_columns) {
         the_plan.weight_map_cols.emplace_back(
             require_column_index<double>(ef, weight_col_name),
@@ -334,6 +380,15 @@ void fill(HistFrame &hf, EFT const &ef,
   }
 
   fill_loop(hf, ef, the_plan);
+}
+
+template <>
+void fill(HistFrame &hf, std::shared_ptr<arrow::Table> const &at,
+          std::vector<std::string> const &projection_columns,
+          std::vector<FrameFillOp> operations) {
+  for (auto rb : arrow::TableBatchReader(at)) {
+    fill(hf, rb.ValueOrDie(), projection_columns, operations);
+  }
 }
 
 } // namespace detail

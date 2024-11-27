@@ -160,13 +160,17 @@ struct SingleFluxAnalysis : public IAnalysis {
     for (auto &p : predictions) {
       p.reset();
     }
-    return process_batched(ef);
+    Comparison comp;
+    for (auto rb : arrow::TableBatchReader(at)) {
+      comp = process_batched(rb.ValueOrDie());
+    }
+    return comp;
   }
   Comparison process(std::shared_ptr<arrow::RecordBatch> const &rb) {
     for (auto &p : predictions) {
       p.reset();
     }
-    return process_batched(ef);
+    return process_batched(rb);
   }
 #endif
 

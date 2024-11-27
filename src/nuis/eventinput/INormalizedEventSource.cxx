@@ -111,7 +111,7 @@ std::optional<EventCVWeightPair> INormalizedEventSource::first() {
   } catch (NuHepMC::except const &ex) {
     log_warn("INormalizedEventSource::first failed to determine cross-section "
              "scaling information from event stream. If you need to read this "
-             "file, request an unnormalized EventSource.");
+             "file, request an unnormalized EventSource: {}", ex.what());
     return std::optional<EventCVWeightPair>();
   }
   return process(wrapped_ev_source->first());
