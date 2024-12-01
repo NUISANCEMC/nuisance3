@@ -146,6 +146,8 @@ void pyRecordInit(py::module &m) {
       .def("get_correlation_matrix", &IAnalysis::get_correlation_matrix)
       .def("get_smearing_matrix", &IAnalysis::get_smearing_matrix)
       .def("get_cross_section_scaling", &IAnalysis::get_cross_section_scaling)
+      .def("get_all_cross_section_scalings",
+           &IAnalysis::get_all_cross_section_scalings)
       .def("prediction_generation_hint",
            &IAnalysis::prediction_generation_hint);
 
