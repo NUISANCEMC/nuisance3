@@ -382,6 +382,7 @@ void fill(HistFrame &hf, EFT const &ef,
   fill_loop(hf, ef, the_plan);
 }
 
+#ifdef NUIS_ARROW_ENABLED
 template <>
 void fill(HistFrame &hf, std::shared_ptr<arrow::Table> const &at,
           std::vector<std::string> const &projection_columns,
@@ -390,6 +391,7 @@ void fill(HistFrame &hf, std::shared_ptr<arrow::Table> const &at,
     fill(hf, rb.ValueOrDie(), projection_columns, operations);
   }
 }
+#endif
 
 } // namespace detail
 

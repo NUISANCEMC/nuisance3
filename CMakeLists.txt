@@ -49,6 +49,7 @@ option(NUISANCE_ENABLE_GPERFTOOLS "Whether to enable GPERFTOOLS" OFF)
 option(NUISANCE_LEGACY_INTERFACE "Whether to try and link in NUISANCE2" OFF)
 option(NUISANCE_USE_BOOSTDLL "Whether to use plugins as BOOST DLL plugins or just compile them in" OFF)
 option(NUISANCE_USE_ARROW "Whether to use Apache Arrow and pyArrow" OFF)
+option(NUISANCE_USE_HEPDATA "Whether to use HEPData interface" ON)
 
 if(NOT DEFINED CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
   if(NUISANCE_ENABLE_TESTS)

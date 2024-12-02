@@ -7,7 +7,9 @@ add_subdirectory(histframe)
 
 add_subdirectory(weightcalc)
 
-add_subdirectory(record)
+if(NUISANCE_USE_HEPDATA)
+  add_subdirectory(record)
+endif()
 
 add_subdirectory(convert)
 add_subdirectory(response)
