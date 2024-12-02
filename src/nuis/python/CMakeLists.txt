@@ -33,7 +33,6 @@ if(NUISANCE_USE_HEPDATA)
   target_link_libraries(_pyNUISANCE 
     PRIVATE 
       record)
-else()
   target_compile_definitions(_pyNUISANCE PRIVATE NUISANCE_USE_HEPDATA)
 endif()
 
