@@ -2,8 +2,7 @@
 
 #include "nuis/record/plugins/IRecordPlugin.h"
 
-#include "nuis/record/ClearFunctions.h"
-#include "nuis/record/FinalizeFunctions.h"
+#include "nuis/record/FinaliseFunctions.h"
 #include "nuis/record/LikelihoodFunctions.h"
 #include "nuis/record/WeightFunctions.h"
 
@@ -28,15 +27,28 @@
 
 namespace nuis {
 
-// this RAII's the NUISANCE2 measurement instance and we store value copies of
-// instances of this in the select and project lambda's captures. Everything
-// is declared mutable because lambdas are by default const wrt value captures
-//
-// It's a hack, but this whole class is a hack
-struct nuis2mblob {
+DECLARE_NUISANCE_EXCEPT(NUISANCE2InvalidMeasurementType);
+
+struct NUISANCE2Analysis : public IAnalysis {
+
+  // the IAnalysis interface uses consts, the nuisance2 one doesn't
   mutable std::shared_ptr<MeasurementBase> measurement;
   mutable std::shared_ptr<NuHepMCInputHandler> inputhandler;
   mutable std::shared_ptr<FitEvent> fitevent;
+
+  NUISANCE2Analysis(std::string const &ana_name) {
+    Config::SetPar("EventManager", false);
+    Config::SetPar("UseSVDInverse", true);
+
+    measurement = std::shared_ptr<MeasurementBase>(SampleUtils::CreateSample(
+        ana_name, "Dummy:dummy.file", "", "", nullptr));
+    inputhandler = std::make_shared<NuHepMCInputHandler>();
+    fitevent = std::make_shared<FitEvent>();
+
+    inputhandler->fNUISANCEEvent = fitevent.get();
+    inputhandler->fNUISANCEEvent->HardReset();
+    inputhandler->fToMeV = 1;
+  }
 
   FitEvent *to_fit_event(HepMC3::GenEvent const &ev) const {
     inputhandler->fHepMC3Evt = ev;
@@ -44,66 +56,113 @@ struct nuis2mblob {
     return fitevent.get();
   }
 
-  template <typename T> T *measurement_as() const {
-    return dynamic_cast<T *>(measurement.get());
+  void add_to_framegen(EventFrameGen &) const {}
+
+  Selection get_selection() const {
+    // keeping a copy of the selection function around keeps a copy of the
+    // nuisance2 analysis around
+    auto ana =
+        std::dynamic_pointer_cast<NUISANCE2Analysis const>(shared_from_this());
+    return {"MeasurementBase::IsSignal",
+            [=](HepMC3::GenEvent const &ev) -> int {
+              return ana->measurement->isSignal(ana->to_fit_event(ev));
+            }};
+  }
+
+  std::vector<Projection> get_projections() const {
+
+    auto ana =
+        std::dynamic_pointer_cast<NUISANCE2Analysis const>(shared_from_this());
+
+    if (auto meas1d = std::dynamic_pointer_cast<Measurement1D>(measurement)) {
+      return std::vector<Projection>{
+          {"XVar",
+           [=](HepMC3::GenEvent const &ev) -> double {
+             auto fe = ana->to_fit_event(ev);
+             if (!ana->measurement->isSignal(fe)) {
+               return nuis::kMissingDatum<double>;
+             }
+             ana->measurement->FillEventVariables(fe);
+             return ana->measurement->GetXVar();
+           },
+           "", ""}};
+
+    } else if (auto meas2d =
+                   std::dynamic_pointer_cast<Measurement2D>(measurement)) {
+      return std::vector<Projection>{
+          {"MeasurementBase::GetXVar",
+           [=](HepMC3::GenEvent const &ev) -> double {
+             auto fe = ana->to_fit_event(ev);
+             if (!ana->measurement->isSignal(fe)) {
+               return nuis::kMissingDatum<double>;
+             }
+             ana->measurement->FillEventVariables(fe);
+             return ana->measurement->GetXVar();
+           },
+           "", ""},
+          {"MeasurementBase::GetYVar",
+           [=](HepMC3::GenEvent const &ev) -> double {
+             auto fe = ana->to_fit_event(ev);
+             if (!ana->measurement->isSignal(fe)) {
+               return nuis::kMissingDatum<double>;
+             }
+             ana->measurement->FillEventVariables(fe);
+             return ana->measurement->GetYVar();
+           },
+           "", ""}};
+    }
+    throw NUISANCE2InvalidMeasurementType();
+  }
+  std::vector<BinnedValues> get_data() const {
+    if (auto meas1d = std::dynamic_pointer_cast<Measurement1D>(measurement)) {
+      return std::vector<BinnedValues>{
+          BinnedValues_from_ROOT<TH1>(*meas1d->GetDataHistogram())};
+    } else if (auto meas2d =
+                   std::dynamic_pointer_cast<Measurement2D>(measurement)) {
+      return std::vector<BinnedValues>{
+          BinnedValues_from_ROOT<TH2>(*meas2d->GetDataHistogram())};
+    }
+    throw NUISANCE2InvalidMeasurementType();
+  }
+
+  Eigen::MatrixXd get_covariance_matrix() const {
+    TMatrixDSym *fFullCovar = nullptr;
+
+    if (auto meas1d = std::dynamic_pointer_cast<Measurement1D>(measurement)) {
+      fFullCovar = meas1d->fFullCovar;
+    } else if (auto meas2d =
+                   std::dynamic_pointer_cast<Measurement2D>(measurement)) {
+      fFullCovar = meas2d->fFullCovar;
+    }
+
+    if (!fFullCovar) {
+      return Eigen::MatrixXd{};
+    }
+
+    Eigen::MatrixXd covmat =
+        Eigen::MatrixXd::Zero(fFullCovar->GetNrows(), fFullCovar->GetNrows());
+    for (int i = 0; i < fFullCovar->GetNrows(); ++i) {
+      for (int j = 0; j < fFullCovar->GetNrows(); ++j) {
+        covmat(i, j) = (*fFullCovar)(i, j);
+      }
+    }
+    return covmat;
   }
 };
 
 NUISANCE2Record::NUISANCE2Record(YAML::Node const &cfg) { node = cfg; }
 
-AnalysisPtr NUISANCE2Record::table(YAML::Node const &cfg) {
-  auto ana = std::make_shared<Analysis>();
+AnalysisPtr NUISANCE2Record::analysis(YAML::Node const &cfg) {
 
-  Config::SetPar("EventManager", false);
-  Config::SetPar("UseSVDInverse", true);
+  auto ana_name = cfg["analysis"].as<std::string>();
 
-  nuis2mblob mblob{
-      std::shared_ptr<MeasurementBase>(SampleUtils::CreateSample(
-          cfg["table"].as<std::string>(), "Dummy:dummy.file", "", "", nullptr)),
-      std::make_shared<NuHepMCInputHandler>(), std::make_shared<FitEvent>()};
-  mblob.inputhandler->fNUISANCEEvent = mblob.fitevent.get();
-  mblob.inputhandler->fNUISANCEEvent->HardReset();
-  mblob.inputhandler->fToMeV = 1;
+  log_critical("NUISANCE2Record::analysis({})", ana_name);
 
-  BinningPtr binning;
-
-  if (auto meas1d = mblob.measurement_as<Measurement1D>()) {
-
-    auto bv = BinnedValues_from_ROOT<TH1>(*meas1d->GetDataHistogram());
-    ana->blueprint = std::make_shared<Comparison>(bv.binning);
-    ana->blueprint->data = bv;
-
-  } else if (auto meas2d = mblob.measurement_as<Measurement2D>()) {
-    auto bv = BinnedValues_from_ROOT<TH2>(*meas2d->GetDataHistogram());
-    ana->blueprint = std::make_shared<Comparison>(bv.binning);
-    ana->blueprint->data = bv;
+  if (!analyses.count(ana_name)) {
+    analyses[ana_name] = std::make_shared<NUISANCE2Analysis>(ana_name);
   }
 
-  ana->clear = nuis::clear::DefaultClear;
-  ana->weight = nuis::weight::DefaultWeight;
-  ana->finalise = nuis::finalise::FATXNormalizedByBinWidth;
-  ana->likelihood = nuis::likelihood::Chi2;
-
-  ana->select = [mblob](HepMC3::GenEvent const &ev) -> int {
-    return mblob.measurement->isSignal(mblob.to_fit_event(ev));
-  };
-
-  // always return a vector of three, it is up to users to know how many they
-  // need to listen for
-  ana->project = [mblob](HepMC3::GenEvent const &ev) -> std::vector<double> {
-    // allows us to call project on samples that may not be careful with
-    // their projection functions
-    auto fe = mblob.to_fit_event(ev);
-    if (!mblob.measurement->isSignal(fe)) {
-      return {nuis::kMissingDatum<double>, nuis::kMissingDatum<double>,
-              nuis::kMissingDatum<double>};
-    }
-    mblob.measurement->FillEventVariables(fe);
-    return {mblob.measurement->GetXVar(), mblob.measurement->GetYVar(),
-            mblob.measurement->GetZVar()};
-  };
-
-  return ana;
+  return analyses[ana_name];
 }
 
 IRecordPluginPtr NUISANCE2Record::MakeRecord(YAML::Node const &cfg) {

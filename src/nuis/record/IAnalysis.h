@@ -32,7 +32,7 @@ using SelectFunc = std::function<int(HepMC3::GenEvent const &)>;
 // The union of interfaces to different analysis types. Throws if you call the
 // wrong function for the wrong analysis, but enables automated comparison and
 // full specific analysis interrogation by experts
-struct IAnalysis {
+struct IAnalysis : public std::enable_shared_from_this<IAnalysis> {
 
   DECLARE_NUISANCE_EXCEPT(IAnalysisUnimplementedInterfaceFunction);
 

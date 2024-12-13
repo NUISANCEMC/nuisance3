@@ -154,11 +154,9 @@ void pyRecordInit(py::module &m) {
   py::class_<pyRecord>(m, "Record")
       .def(py::init<>())
       .def("analysis", &pyRecord::analysis)
-      .def("get_analyses", &pyRecord::get_analyses)
-      .def("__getattr__", &pyRecord::analysis);
+      .def("get_analyses", &pyRecord::get_analyses);
 
   py::class_<pyRecordFactory>(m, "RecordFactory")
       .def(py::init<>())
-      .def("make_record", &pyRecordFactory::make)
-      .def("make_analysis", &pyRecordFactory::make_analysis);
+      .def("make_record", &pyRecordFactory::make);
 }

@@ -29,7 +29,7 @@ if(NUISANCE_LEGACY_INTERFACE)
   find_package(NUISANCE REQUIRED)
 
   add_library(nuisance2_record_plugin SHARED NUISANCE2Record.cxx)
-  target_link_libraries(nuisance2_record_plugin PUBLIC histframe NUIS::FCN)
+  target_link_libraries(nuisance2_record_plugin PUBLIC histframe NUIS::CoreTargets)
 
   set_target_properties(nuisance2_record_plugin PROPERTIES PREFIX "nuisplugin-record-")
   set_target_properties(nuisance2_record_plugin PROPERTIES OUTPUT_NAME "nuisance2")
