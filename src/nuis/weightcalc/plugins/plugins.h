@@ -16,4 +16,6 @@
 #include "nuis/weightcalc/plugins/T2KReWeightCalc.h"
 #endif
 
-
+#ifdef NUIS_WEIGHT_CALC_nusystematics_Enabled
+#include "nuis/weightcalc/plugins/nusystematicsWeightCalc.h"
+#endif

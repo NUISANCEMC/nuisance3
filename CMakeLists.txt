@@ -34,6 +34,9 @@ project(NUISANCE3 VERSION ${NUISANCE_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# make FindPython3 search behavior not insane
+cmake_policy(SET CMP0094 NEW)
+
 #Changes default install path to be a subdirectory of the build dir.
 #Can set build dir at configure time with -DCMAKE_INSTALL_PREFIX=/install/path
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)

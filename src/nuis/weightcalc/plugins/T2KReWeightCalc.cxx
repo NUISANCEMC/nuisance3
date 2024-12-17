@@ -1,9 +1,5 @@
 #include "nuis/weightcalc/plugins/T2KReWeightCalc.h"
 
-#include "nuis/weightcalc/plugins/IWeightCalcPlugin.h"
-
-#include "nuis/eventinput/plugins/neutvectEventSource.h"
-
 #include "T2KReWeight/Interface/T2KReWeight.h"
 #include "T2KReWeight/WeightEngines/NEUT/T2KNEUTUtils.h"
 #include "T2KReWeight/WeightEngines/T2KReWeightEvent.h"

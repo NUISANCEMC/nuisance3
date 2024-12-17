@@ -87,6 +87,16 @@ IWeightCalcPluginPtr TryAllKnownWeightPlugins(IEventSourcePtr evs,
     }
   }
 #endif
+
+#ifdef NUIS_WEIGHT_CALC_nusystematics_Enabled
+  if (!plugin_specified || plugin_name == "nusystematics") {
+    auto ws = nusystematicsWeightCalc::MakeWeightCalc(evs, cfg);
+    if (ws->good()) {
+      log_debug("Plugin nusystematicsWeightCalc is able to weight input file");
+      return ws;
+    }
+  }
+#endif
   return nullptr;
 }
 #endif

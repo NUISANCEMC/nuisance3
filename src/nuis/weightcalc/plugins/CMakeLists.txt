@@ -67,4 +67,19 @@ if(T2KReWeight_FOUND)
   target_link_libraries(weightcalc_plugins INTERFACE T2KReWeight_weightcalc_plugin)
 endif()
 
+find_package(nusystematics QUIET)
+if(nusystematics_FOUND)
+  add_library(nusystematics_weightcalc_plugin SHARED nusystematicsWeightCalc.cxx)
+  target_link_libraries(nusystematics_weightcalc_plugin PUBLIC GHEP3_eventinput_plugin nusyst::all nuis_options ROOT::Hist)
+
+  set_target_properties(nusystematics_weightcalc_plugin PROPERTIES PREFIX "nuisplugin-weightcalc-")
+  set_target_properties(nusystematics_weightcalc_plugin PROPERTIES OUTPUT_NAME "nusystematics")
+
+  target_compile_definitions(nusystematics_weightcalc_plugin INTERFACE NUIS_WEIGHT_CALC_nusystematics_Enabled)
+  
+  install(TARGETS nusystematics_weightcalc_plugin DESTINATION ${NUISANCE_PLUGIN_LIBDIR})
+
+  target_link_libraries(weightcalc_plugins INTERFACE nusystematics_weightcalc_plugin)
+endif()
+
 install(TARGETS weightcalc_plugins DESTINATION ${NUISANCE_PLUGIN_LIBDIR})

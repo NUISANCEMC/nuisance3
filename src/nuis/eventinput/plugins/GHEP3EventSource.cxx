@@ -562,6 +562,8 @@ genie::Spline const *GHEP3EventSource::GetSpline(int tgtpdg, int nupdg) {
     return nullptr;
   }
 
+  tgtpdg = (tgtpdg == 2212) ? 1000010010 : tgtpdg;
+
   if (!EvGens.count(tgtpdg) || !EvGens[tgtpdg].count(nupdg)) {
     EvGens[tgtpdg][nupdg] = std::make_unique<genie::GEVGDriver>();
     EvGens[tgtpdg][nupdg]->SetEventGeneratorList(EventGeneratorListName);
@@ -703,7 +705,9 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
   if (xspline) {
     auto xs = xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) /
               genie::units::pb;
-    log_trace("xs(E = {}) = {}", bpart->momentum().e() / ps::unit::GeV, xs);
+    log_trace("xs(E = {}, probe = {}, tgt = {}) = {}",
+              bpart->momentum().e() / ps::unit::GeV, bpart->pid(), tpart->pid(),
+              xs);
     NuHepMC::EC2::SetTotalCrossSection(*ge, xs); // in GeV
   }
 
@@ -736,7 +740,9 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
   if (xspline) {
     auto xs = xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) /
               genie::units::pb;
-    log_trace("xs(E = {}) = {}", bpart->momentum().e() / ps::unit::GeV, xs);
+    log_trace("xs(E = {}, probe = {}, tgt = {}) = {}",
+              bpart->momentum().e() / ps::unit::GeV, bpart->pid(), tpart->pid(),
+              xs);
     NuHepMC::EC2::SetTotalCrossSection(*ge, xs); // in GeV
   }
   return ge;
