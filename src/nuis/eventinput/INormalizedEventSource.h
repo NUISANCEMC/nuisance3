@@ -3,6 +3,8 @@
 #include "nuis/eventinput/IEventSourceIterator.h"
 #include "nuis/eventinput/IEventSourceWrapper.h"
 
+#include <functional>
+
 namespace NuHepMC::FATX {
 class Accumulator;
 } // namespace NuHepMC::FATX
