@@ -331,7 +331,7 @@ int ConvertGENIEReactionCode(::genie::GHepRecord const &GHep) {
       int neut_code = ::genie::utils::ghep::NeutReactionCode(&GHep);
       int mode = NEUTToMode[neut_code];
       if (!mode) {
-        log_warn("Untranslated NEUT code: {}", neut_code);
+        log_debug("Untranslated NEUT code: {}", neut_code);
       }
       return mode;
     }
@@ -348,7 +348,7 @@ int ConvertGENIEReactionCode(::genie::GHepRecord const &GHep) {
       int neut_code = ::genie::utils::ghep::NeutReactionCode(&GHep);
       int mode = NEUTToMode[neut_code];
       if (!mode) {
-        log_warn("Untranslated NEUT code: {}", neut_code);
+        log_debug("Untranslated NEUT code: {}", neut_code);
       }
       return mode;
     }
@@ -705,9 +705,15 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
   if (xspline) {
     auto xs = xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) /
               genie::units::pb;
-    log_trace("xs(E = {}, probe = {}, tgt = {}) = {}",
-              bpart->momentum().e() / ps::unit::GeV, bpart->pid(), tpart->pid(),
-              xs);
+    if (!std::isnormal(xs)) {
+      log_debug("xs(E = {}, probe = {}, tgt = {}) = {}",
+               bpart->momentum().e() / ps::unit::GeV, bpart->pid(),
+               tpart->pid(), xs);
+    } else {
+      NUIS_LOG_TRACE("xs(E = {}, probe = {}, tgt = {}) = {}",
+                     bpart->momentum().e() / ps::unit::GeV, bpart->pid(),
+                     tpart->pid(), xs);
+    }
     NuHepMC::EC2::SetTotalCrossSection(*ge, xs); // in GeV
   }
 
@@ -740,9 +746,15 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
   if (xspline) {
     auto xs = xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) /
               genie::units::pb;
-    log_trace("xs(E = {}, probe = {}, tgt = {}) = {}",
-              bpart->momentum().e() / ps::unit::GeV, bpart->pid(), tpart->pid(),
-              xs);
+    if (!std::isnormal(xs)) {
+      log_debug("xs(E = {}, probe = {}, tgt = {}) = {}",
+               bpart->momentum().e() / ps::unit::GeV, bpart->pid(),
+               tpart->pid(), xs);
+    } else {
+      NUIS_LOG_TRACE("xs(E = {}, probe = {}, tgt = {}) = {}",
+                     bpart->momentum().e() / ps::unit::GeV, bpart->pid(),
+                     tpart->pid(), xs);
+    }
     NuHepMC::EC2::SetTotalCrossSection(*ge, xs); // in GeV
   }
   return ge;
