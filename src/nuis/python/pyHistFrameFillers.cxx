@@ -27,6 +27,7 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
       .def("weight_by", py::overload_cast<std::string const &>(&weight_by))
       .def("weight_by",
            py::overload_cast<std::vector<std::string> const &>(&weight_by))
+      .def("weight_by_array", &weight_by_array)
       .def("weighted_column_map",
            py::overload_cast<std::string const &>(&weighted_column_map))
       .def("weighted_column_map",
@@ -41,7 +42,11 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
        [](HistFrame &hf, EventFrame const &ef,
           std::vector<std::string> const &projection_column_names,
           std::vector<nuis::detail::FrameFillOp> const &operations) {
-         detail::fill(hf, ef, projection_column_names, operations);
+         if (!operations.size()) {
+           fill(hf, ef, projection_column_names);
+         } else {
+           detail::fill(hf, ef, projection_column_names, operations);
+         }
        },
        py::arg("EventFrame"), py::arg("projection_column_names"),
        py::arg("operations") = std::vector<nuis::detail::FrameFillOp>{})
@@ -50,11 +55,11 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
           [](HistFrame &hf, EventFrame const &ef,
              std::string const &projection_column_name,
              std::vector<nuis::detail::FrameFillOp> const &operations) {
-            detail::fill(hf, ef,
-                         {
-                             projection_column_name,
-                         },
-                         operations);
+            if (!operations.size()) {
+              fill(hf, ef, {projection_column_name});
+            } else {
+              detail::fill(hf, ef, {projection_column_name}, operations);
+            }
           },
           py::arg("EventFrame"), py::arg("projection_column_name"),
           py::arg("operations") = std::vector<nuis::detail::FrameFillOp>{})
@@ -67,12 +72,20 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
             if (arrow::py::is_table(pyarrobj.ptr())) {
               auto tab = arrow::py::unwrap_table(pyarrobj.ptr()).ValueOrDie();
               for (auto rb : arrow::TableBatchReader(tab)) {
-                detail::fill(hf, rb.ValueOrDie(), projection_column_names,
-                             operations);
+                if (!operations.size()) {
+                  fill(hf, rb.ValueOrDie(), projection_column_names);
+                } else {
+                  detail::fill(hf, rb.ValueOrDie(), projection_column_names,
+                               operations);
+                }
               }
             } else if (arrow::py::is_batch(pyarrobj.ptr())) {
               auto rb = arrow::py::unwrap_batch(pyarrobj.ptr()).ValueOrDie();
-              detail::fill(hf, rb, projection_column_names, operations);
+              if (!operations.size()) {
+                fill(hf, rb, projection_column_names);
+              } else {
+                detail::fill(hf, rb, projection_column_names, operations);
+              }
             }
           },
           py::arg("EventFrame"), py::arg("projection_column_names"),
@@ -85,19 +98,33 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
             if (arrow::py::is_table(pyarrobj.ptr())) {
               auto tab = arrow::py::unwrap_table(pyarrobj.ptr()).ValueOrDie();
               for (auto rb : arrow::TableBatchReader(tab)) {
-                detail::fill(hf, rb.ValueOrDie(),
+                if (!operations.size()) {
+                  fill(hf, rb.ValueOrDie(),
+                       {
+                           projection_column_name,
+                       });
+                } else {
+                  detail::fill(hf, rb.ValueOrDie(),
+                               {
+                                   projection_column_name,
+                               },
+                               operations);
+                }
+              }
+            } else if (arrow::py::is_batch(pyarrobj.ptr())) {
+              auto rb = arrow::py::unwrap_batch(pyarrobj.ptr()).ValueOrDie();
+              if (!operations.size()) {
+                fill(hf, rb,
+                     {
+                         projection_column_name,
+                     });
+              } else {
+                detail::fill(hf, rb,
                              {
                                  projection_column_name,
                              },
                              operations);
               }
-            } else if (arrow::py::is_batch(pyarrobj.ptr())) {
-              auto rb = arrow::py::unwrap_batch(pyarrobj.ptr()).ValueOrDie();
-              detail::fill(hf, rb,
-                           {
-                               projection_column_name,
-                           },
-                           operations);
             }
           },
           py::arg("EventFrame"), py::arg("projection_column_name"),

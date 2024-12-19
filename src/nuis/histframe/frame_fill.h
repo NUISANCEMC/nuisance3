@@ -29,6 +29,7 @@ struct FrameFillOp {
   enum OpType {
     kNoCVWeight,
     kWeight,
+    kWeightArray,
     kConditional,
     kFillColumn,
     kCategorize,
@@ -47,6 +48,7 @@ struct FrameFillOp {
   std::string categorize_by_column;
   std::vector<std::string> category_labels;
   bool doCVWeight;
+  Eigen::ArrayXd weights;
 };
 
 template <typename EFT> struct FrameFillPlan {};
@@ -68,6 +70,8 @@ template <> struct FrameFillPlan<EventFrame> {
 
   std::vector<std::pair<EventFrame::column_t, HistFrame::column_t>>
       weight_map_cols;
+
+  Eigen::ArrayXd weights;
 };
 
 #ifdef NUIS_ARROW_ENABLED
@@ -88,6 +92,8 @@ template <> struct FrameFillPlan<std::shared_ptr<arrow::RecordBatch>> {
 
   std::vector<std::pair<std::function<double(int)>, HistFrame::column_t>>
       weight_map_cols;
+
+  Eigen::ArrayXd weights;
 };
 #endif
 
@@ -197,6 +203,10 @@ void fill_loop(HistFrame &hf, EFT const &ef,
       weight *= get_entry(ef, row, wid);
     }
 
+    if (the_plan.weights.size()) {
+      weight *= the_plan.weights(row);
+    }
+
     NUIS_LOGGER_TRACE("HistFrame", "    projections:");
 
     for (size_t pi = 0; pi < the_plan.proj_cols.size(); ++pi) {
@@ -287,6 +297,36 @@ void fill(HistFrame &hf, EFT const &ef,
         the_plan.weight_cols.push_back(
             require_column_index<double>(ef, weight_col_name));
       }
+    }
+
+    if (op.op == FrameFillOp::kWeightArray) {
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- adding weighting array.");
+
+      int num_rows = 0;
+      if constexpr (std::is_same_v<EFT, EventFrame>) {
+        num_rows = ef.table.rows();
+      }
+#ifdef NUIS_ARROW_ENABLED
+      else if constexpr (std::is_same_v<EFT,
+                                        std::shared_ptr<arrow::RecordBatch>>) {
+        num_rows = ef->num_rows();
+      }
+#endif
+
+      if (num_rows != op.weights.size()) {
+        throw InvalidOperation()
+            << "WeightArray operation passed with invalid size: "
+            << op.weights.size()
+            << ", it must match "
+               "the number of rows in the EventFrame, which has "
+            << num_rows << " rows";
+      }
+
+      if (!the_plan.weights.size()) {
+        the_plan.weights = Eigen::ArrayXd::Constant(num_rows, 1);
+      }
+
+      the_plan.weights *= op.weights;
     }
 
     if (op.op == FrameFillOp::kConditional) {
@@ -423,6 +463,12 @@ inline detail::FrameFillOp weight_by(std::string const &cname) {
   return weight_by(std::vector<std::string>{
       cname,
   });
+}
+
+inline detail::FrameFillOp weight_by_array(Eigen::ArrayXdCRef weights) {
+  detail::FrameFillOp op(detail::FrameFillOp::kWeightArray);
+  op.weights = weights;
+  return op;
 }
 
 inline detail::FrameFillOp
