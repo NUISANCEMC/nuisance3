@@ -220,6 +220,9 @@ class HistFrame_matplotlib_helper:
           kwargs = copy(kwargs)
           kwargs.pop("errorband_color", None)
 
+        if "label" not in kwargs:
+          kwargs["label"] = column if column is not None else self.hf.column_info[0].name
+
         obj = plot_axis.hist(pdim, weights=self.c(column) * yscale, bins=self.get_1d_bins(axis), *args, **kwargs)
         plot_axis.set_xlabel(plab)
         plot_axis.set_ylabel(self.ldep(column))
