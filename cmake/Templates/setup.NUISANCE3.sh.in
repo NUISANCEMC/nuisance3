@@ -90,7 +90,10 @@ if [ -e "${NUISANCE3_ROOT}/lib64" ]; then
 fi
 
 add_to_LD_LIBRARY_PATH ${NUISANCE3_ROOT}/lib
-add_to_LD_LIBRARY_PATH ${NUISANCE3_ROOT}/lib/plugins
+
+if [ -e "${NUISANCE3_ROOT}/lib/plugins" ]; then
+  add_to_LD_LIBRARY_PATH ${NUISANCE3_ROOT}/lib/plugins
+fi
 
 add_to_PYTHONPATH ${NUISANCE3_ROOT}/lib
 if [ -e "${NUISANCE3_ROOT}/lib64" ]; then
