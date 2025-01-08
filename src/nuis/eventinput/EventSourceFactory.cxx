@@ -15,8 +15,8 @@
 
 #include "yaml-cpp/yaml.h"
 
-#include "spdlog/fmt/bundled/core.h"
-#include "spdlog/fmt/bundled/ranges.h"
+#include "fmt/core.h"
+#include "fmt/ranges.h"
 
 #include <regex>
 

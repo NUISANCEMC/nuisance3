@@ -16,8 +16,8 @@
 #include "TH2.h"
 #include "TH3.h"
 
-#include "spdlog/fmt/bundled/core.h"
-#include "spdlog/fmt/bundled/ranges.h"
+#include "fmt/core.h"
+#include "fmt/ranges.h"
 
 // This should be header-only so that ROOT is not required by NUISANCE core
 //   but is available for user scripts that want to write out ROOT histograms

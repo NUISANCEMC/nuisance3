@@ -1,6 +1,6 @@
 #include "nuis/convert/yaml.h"
 
-#include "spdlog/fmt/bundled/core.h"
+#include "fmt/core.h"
 
 // independent_variables:
 // - header: {name: Leading dilepton PT, units: GEV}
