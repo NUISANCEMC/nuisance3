@@ -70,9 +70,10 @@ IRecordPtr TryAllKnownRecordPlugins(YAML::Node const &cfg) {
   }
 #endif
 
-  NUIS_LOG_CRITICAL("record plugin {} is not enabled, please enable and recompile",
+  NUIS_LOG_CRITICAL("record plugin {} is not enabled or is unknown, "
+                    "please enable and recompile",
                     type_name);
-  throw UnknownRecordPlugin;
+  throw UnknownRecordPlugin();
 
   return nullptr;
 }
