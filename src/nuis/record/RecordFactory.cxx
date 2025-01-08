@@ -1,4 +1,5 @@
 #include "nuis/record/RecordFactory.h"
+#include "nuis/record/exceptions.h"
 
 #ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/import.hpp"
@@ -68,6 +69,11 @@ IRecordPtr TryAllKnownRecordPlugins(YAML::Node const &cfg) {
     return rec;
   }
 #endif
+
+  NUIS_LOG_CRITICAL("record plugin {} is not enabled or is unknown, "
+                    "please enable and recompile",
+                    type_name);
+  throw UnknownRecordPlugin();
 
   return nullptr;
 }
