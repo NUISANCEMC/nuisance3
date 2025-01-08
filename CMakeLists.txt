@@ -89,6 +89,13 @@ ENDIF("${isSystemDir}" STREQUAL "-1")
 
 ######################### Dependencies
 
+find_package(Python3 REQUIRED COMPONENTS Development Interpreter)
+
+# PYTHON PATHS
+set(NUISANCE3_PYVMAJMIN "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
+set(NUISANCE3_PYTHONPATH "python/${NUISANCE3_PYVMAJMIN}")
+
+
 include(get_cpm)
 
 CPMFindPackage(
@@ -138,13 +145,6 @@ CPMFindPackage(
             "YAML_CPP_BUILD_CONTRIB OFF"
             "YAML_BUILD_SHARED_LIBS ON"
 )
-
-
-find_package(Python3 REQUIRED COMPONENTS Development Interpreter)
-
-# PYTHON PATHS
-set(NUISANCE3_PYVMAJMIN "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
-set(NUISANCE3_PYTHONPATH "python/${NUISANCE3_PYVMAJMIN}")
 
 CPMFindPackage(
     NAME pybind11
