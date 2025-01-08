@@ -14,7 +14,7 @@
 #include "pybind11/eigen.h"
 #include "pybind11/functional.h"
 
-#include "spdlog/fmt/bundled/core.h"
+#include "fmt/core.h"
 
 #ifdef NUIS_ARROW_ENABLED
 #include "arrow/python/pyarrow.h"

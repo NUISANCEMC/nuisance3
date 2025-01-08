@@ -3,7 +3,7 @@
 
 #include "nuis/log.txx"
 
-#include "spdlog/fmt/bundled/ranges.h"
+#include "fmt/ranges.h"
 
 #include <cmath>
 

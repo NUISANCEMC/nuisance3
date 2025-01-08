@@ -10,7 +10,7 @@
 
 #include "yaml-cpp/yaml.h"
 
-#include "spdlog/fmt/bundled/core.h"
+#include "fmt/core.h"
 
 #include "nuis/env.h"
 #include "nuis/log.txx"

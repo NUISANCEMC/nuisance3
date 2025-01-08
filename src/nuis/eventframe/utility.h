@@ -9,7 +9,7 @@
 #include "arrow/api.h"
 #endif
 
-#include "spdlog/fmt/bundled/core.h"
+#include "fmt/core.h"
 
 #include <map>
 #include <sstream>

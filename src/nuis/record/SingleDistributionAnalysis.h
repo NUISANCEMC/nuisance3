@@ -7,7 +7,7 @@
 #include "nuis/histframe/frame_fill.h"
 #include "nuis/histframe/utility.h"
 
-#include "spdlog/fmt/bundled/core.h"
+#include "fmt/core.h"
 
 namespace nuis {
 

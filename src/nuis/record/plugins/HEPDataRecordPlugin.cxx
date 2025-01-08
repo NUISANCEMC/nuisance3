@@ -16,8 +16,8 @@
 
 #include "NuHepMC/ReaderUtils.hxx"
 
-#include "spdlog/fmt/bundled/core.h"
-#include "spdlog/fmt/bundled/ranges.h"
+#include "fmt/core.h"
+#include "fmt/ranges.h"
 
 #ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/dll/alias.hpp"
