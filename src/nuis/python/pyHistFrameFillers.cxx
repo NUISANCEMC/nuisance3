@@ -24,6 +24,7 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
   m.def("fill_column", py::overload_cast<std::string const &>(&fill_column))
       .def("fill_column", py::overload_cast<int>(&fill_column))
       .def("fill_if", &fill_if)
+      .def("fill_if_eq", &fill_if_eq)
       .def("weight_by", py::overload_cast<std::string const &>(&weight_by))
       .def("weight_by",
            py::overload_cast<std::vector<std::string> const &>(&weight_by))
@@ -35,7 +36,9 @@ void pyHistFrameFillersInit(py::class_<HistFrame, BinnedValuesBase> &m) {
                &weighted_column_map))
       .def("categorize_by", &categorize_by)
       .def("split_by_ProcID", &split_by_ProcID)
-      .def("no_CV_weight", &no_CV_weight);
+      .def("no_CV_weight", &no_CV_weight)
+      .def("prebinned", &prebinned)
+      .def("prebinned_array", &prebinned_array);
 
   m.def(
        "fill",

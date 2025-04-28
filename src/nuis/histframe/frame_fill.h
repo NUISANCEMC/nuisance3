@@ -2,6 +2,7 @@
 
 #include "nuis/eventframe/EventFrame.h"
 #include "nuis/eventframe/column_types.h"
+#include "nuis/eventframe/utility.h"
 
 #include "nuis/histframe/HistFrame.h"
 #include "nuis/histframe/exceptions.h"
@@ -23,92 +24,6 @@ namespace nuis {
 
 namespace detail {
 
-// this is an ugly do-it-all object but it enables a nice interface without a
-// load of unneccessary inheritance
-struct FrameFillOp {
-  enum OpType {
-    kNoCVWeight,
-    kWeight,
-    kWeightArray,
-    kConditional,
-    kFillColumn,
-    kCategorize,
-    kProcID,
-    kWeightedMap
-  };
-
-  FrameFillOp(OpType operation) : op(operation), doCVWeight(true) {}
-
-  OpType op;
-
-  std::variant<std::string, int> fill_column_id;
-  std::string conditional_column_name;
-  std::vector<std::string> weight_columns;
-  std::vector<std::string> weighted_columns;
-  std::string categorize_by_column;
-  std::vector<std::string> category_labels;
-  bool doCVWeight;
-  Eigen::ArrayXd weights;
-};
-
-template <typename EFT> struct FrameFillPlan {};
-
-template <> struct FrameFillPlan<EventFrame> {
-
-  std::vector<EventFrame::column_t> proj_cols;
-
-  std::vector<EventFrame::column_t> weight_cols;
-
-  EventFrame::column_t conditional_col = EventFrame::npos;
-
-  HistFrame::column_t default_fill_col = HistFrame::npos;
-
-  EventFrame::column_t categorize_by_col = EventFrame::npos;
-  std::vector<HistFrame::column_t> category_cols;
-
-  EventFrame::column_t ProcID_col = EventFrame::npos;
-
-  std::vector<std::pair<EventFrame::column_t, HistFrame::column_t>>
-      weight_map_cols;
-
-  Eigen::ArrayXd weights;
-};
-
-#ifdef NUIS_ARROW_ENABLED
-template <> struct FrameFillPlan<std::shared_ptr<arrow::RecordBatch>> {
-
-  std::vector<std::function<double(int)>> proj_cols;
-
-  std::vector<std::function<double(int)>> weight_cols;
-
-  std::function<int(int)> conditional_col;
-
-  HistFrame::column_t default_fill_col = HistFrame::npos;
-
-  std::function<int(int)> categorize_by_col;
-  std::vector<HistFrame::column_t> category_cols;
-
-  std::function<int(int)> ProcID_col;
-
-  std::vector<std::pair<std::function<double(int)>, HistFrame::column_t>>
-      weight_map_cols;
-
-  Eigen::ArrayXd weights;
-};
-#endif
-
-template <typename EFT, typename COLTYPE>
-inline bool is_valid_col(COLTYPE const &col) {
-  if constexpr (std::is_same_v<EFT, EventFrame>) {
-    return col != EventFrame::npos;
-  }
-#ifdef NUIS_ARROW_ENABLED
-  else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
-    return bool(col);
-  }
-#endif
-}
-
 template <typename EFT> inline std::string colinfo(EFT const &ef, int col) {
   if constexpr (std::is_same_v<EFT, EventFrame>) {
     return (col == EventFrame::npos)
@@ -127,45 +42,184 @@ template <typename EFT> inline std::string colinfo(EFT const &ef, int col) {
   }
 }
 
-template <typename EFT, typename ROWTYPE, typename COLTYPE>
-inline auto get_entry(EFT const &ef, ROWTYPE const &row, COLTYPE const &col) {
-  if constexpr (std::is_same_v<EFT, EventFrame>) {
-    return ef.table(row, col);
-  }
+// this is an ugly do-it-all object but it enables a nice interface without a
+// load of unneccessary inheritance
+struct FrameFillOp {
+  enum OpType {
+    kNoCVWeight,
+    kWeight,
+    kWeightArray,
+    kConditional,
+    kFillColumn,
+    kCategorize,
+    kWeightedMap,
+    kBinIdColumn,
+    kBinIdArray
+  };
+
+  FrameFillOp(OpType operation) : op(operation), doCVWeight(true) {}
+
+  OpType op;
+
+  std::variant<std::string, int> fill_column_id;
+  std::string conditional_column_name;
+  int conditional_value = std::numeric_limits<int>::max();
+  std::vector<std::string> weight_columns;
+  std::vector<std::string> weighted_columns;
+  std::string categorize_by_column;
+  std::vector<std::string> category_labels;
+  bool doCVWeight;
+  Eigen::ArrayXd weights;
+  std::string BinId_column;
+  Eigen::ArrayXi BinIds;
+};
+
+template <typename EFT> struct FrameFillPlan {};
+
+template <> struct FrameFillPlan<EventFrame> {
+
+  std::vector<EventFrame::column_t> proj_cols;
+
+  std::vector<EventFrame::column_t> weight_cols;
+
+  EventFrame::column_t conditional_col = EventFrame::npos;
+  int conditional_value = std::numeric_limits<int>::max();
+
+  HistFrame::column_t default_fill_col = HistFrame::npos;
+
+  EventFrame::column_t categorize_by_col = EventFrame::npos;
+  std::string categorize_by_colname;
+  bool categories_are_labelled;
+  std::vector<HistFrame::column_t> category_cols;
+
+  std::vector<std::pair<EventFrame::column_t, HistFrame::column_t>>
+      weight_map_cols;
+
+  Eigen::ArrayXd weights;
+
+  HistFrame::column_t BinId_col = HistFrame::npos;
+  Eigen::ArrayXi BinIds;
+
+  bool fast;
+};
+
 #ifdef NUIS_ARROW_ENABLED
-  else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
-    return col(row);
-  }
+template <> struct FrameFillPlan<std::shared_ptr<arrow::RecordBatch>> {
+
+  std::vector<std::function<double(int)>> proj_cols;
+
+  std::vector<std::function<double(int)>> weight_cols;
+
+  std::function<int(int)> conditional_col;
+  int conditional_value = std::numeric_limits<int>::max();
+
+  HistFrame::column_t default_fill_col = HistFrame::npos;
+
+  std::function<int(int)> categorize_by_col;
+  std::string categorize_by_colname;
+  bool categories_are_labelled;
+  std::vector<HistFrame::column_t> category_cols;
+
+  std::vector<std::pair<std::function<double(int)>, HistFrame::column_t>>
+      weight_map_cols;
+
+  Eigen::ArrayXd weights;
+
+  std::function<int(int)> BinId_col;
+  Eigen::ArrayXi BinIds;
+
+  bool fast;
+};
 #endif
+
+template <bool bin_array, typename EFT>
+void fast_fill(HistFrame &hf, EFT const &ef,
+               FrameFillPlan<EFT> const &the_plan) {
+
+  int num_rows = eft::num_rows(ef);
+
+  NUIS_LOGGER_TRACE("HistFrame", "fast_fill:");
+  for (int row = 0; row < num_rows; ++row) {
+    Binning::index_t bin = Binning::npos;
+    if constexpr (bin_array) {
+      bin = the_plan.BinIds(row);
+    } else {
+      bin = eft::get_entry(ef, row, the_plan.BinId_col);
+    }
+    hf.fill_bin(bin, eft::get_entry(ef, row, the_plan.weight_cols.front()),
+                the_plan.default_fill_col);
+  }
+}
+
+template <bool bin_array, typename EFT>
+void fast_fill_weightarray(HistFrame &hf, EFT const &ef,
+                           FrameFillPlan<EFT> const &the_plan) {
+
+  int num_rows = eft::num_rows(ef);
+  NUIS_LOGGER_TRACE("HistFrame", "fast_fill_weightarray:");
+  for (int row = 0; row < num_rows; ++row) {
+    Binning::index_t bin = Binning::npos;
+    if constexpr (bin_array) {
+      bin = the_plan.BinIds(row);
+    } else {
+      bin = eft::get_entry(ef, row, the_plan.BinId_col);
+    }
+    hf.fill_bin(bin,
+                eft::get_entry(ef, row, the_plan.weight_cols.front()) *
+                    the_plan.weights(row),
+                the_plan.default_fill_col);
+  }
+}
+
+template <bool bin_array, typename EFT>
+void fast_fill_noCV(HistFrame &hf, EFT const &ef,
+                    FrameFillPlan<EFT> const &the_plan) {
+
+  int num_rows = eft::num_rows(ef);
+  NUIS_LOGGER_TRACE("HistFrame", "fast_fill_noCV:");
+  for (int row = 0; row < num_rows; ++row) {
+    Binning::index_t bin = Binning::npos;
+    if constexpr (bin_array) {
+      bin = the_plan.BinIds(row);
+    } else {
+      bin = eft::get_entry(ef, row, the_plan.BinId_col);
+    }
+    hf.fill_bin(bin, 1.0, the_plan.default_fill_col);
+  }
 }
 
 template <typename EFT>
 void fill_loop(HistFrame &hf, EFT const &ef,
                FrameFillPlan<EFT> const &the_plan) {
 
-  std::vector<int> proc_id_list;
-  std::vector<HistFrame::column_t> proc_id_columns;
+  std::vector<int> unlabelled_categ_list;
+  std::vector<HistFrame::column_t> unlabelled_categ_columns;
 
-  if (is_valid_col<EFT>(the_plan.ProcID_col)) {
+  if (eft::is_valid_col<EFT>(the_plan.categorize_by_col) &&
+      !the_plan.categories_are_labelled) {
 
     // fill the dictionary with existing column names so that repeated calls
     // with EventFrame batches don't result in repeated columns
     for (HistFrame::column_t col_it = 0; col_it < hf.column_info.size();
          ++col_it) {
 
-      if (hf.column_info[col_it].name.find("ProcId:") == 0) {
+      if (hf.column_info[col_it].name.find(
+              fmt::format("{}:", the_plan.categorize_by_colname)) == 0) {
 
         try {
-          auto proc_id = std::stoi(hf.column_info[col_it].name.substr(7));
-          proc_id_list.push_back(proc_id);
-          proc_id_columns.push_back(col_it);
+          auto categ_val =
+              std::stol(hf.column_info[col_it].name.substr(
+                              the_plan.categorize_by_colname.size() + 1),
+                          nullptr, 10);
+          unlabelled_categ_list.push_back(categ_val);
+          unlabelled_categ_columns.push_back(col_it);
         } catch (std::invalid_argument const &ia) {
-          throw InvalidColumnName()
-              << "[fill(EventFrame)]: Encountered "
-                 "HistFrame column named "
-              << hf.column_info[col_it].name
-              << " but failed to cast the part after the colon to an integer.\n"
-              << ia.what();
+          throw InvalidColumnName() << "[fill(EventFrame)]: Encountered "
+                                       "HistFrame column named "
+                                    << hf.column_info[col_it].name
+                                    << " but failed to cast the part after "
+                                       "the colon to an integer.\n"
+                                    << ia.what();
         }
       }
     }
@@ -173,25 +227,24 @@ void fill_loop(HistFrame &hf, EFT const &ef,
 
   std::vector<double> projs(the_plan.proj_cols.size(), 0);
 
-  int num_rows = 0;
-  if constexpr (std::is_same_v<EFT, EventFrame>) {
-    num_rows = ef.table.rows();
-  }
-#ifdef NUIS_ARROW_ENABLED
-  else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
-    num_rows = ef->num_rows();
-  }
-#endif
+  int num_rows = eft::num_rows(ef);
 
   NUIS_LOGGER_TRACE("HistFrame", "fill_loop:");
   for (int row = 0; row < num_rows; ++row) {
     NUIS_LOGGER_TRACE("HistFrame", "  row: {}", row);
-    if (is_valid_col<EFT>(the_plan.conditional_col)) {
+    if (eft::is_valid_col<EFT>(the_plan.conditional_col)) {
       NUIS_LOGGER_TRACE("HistFrame", "    conditional: \"{}\" = {}",
                         colinfo(ef, the_plan.conditional_col),
-                        get_entry(ef, row, the_plan.conditional_col));
-      if (get_entry(ef, row, the_plan.conditional_col) == 0) {
-        continue;
+                        eft::get_entry(ef, row, the_plan.conditional_col));
+      auto val = eft::get_entry(ef, row, the_plan.conditional_col);
+      if (the_plan.conditional_value != std::numeric_limits<int>::max()) {
+        if (val != the_plan.conditional_value) {
+          continue;
+        }
+      } else {
+        if (val == 0) {
+          continue;
+        }
       }
     }
 
@@ -199,8 +252,8 @@ void fill_loop(HistFrame &hf, EFT const &ef,
     NUIS_LOGGER_TRACE("HistFrame", "    weights:");
     for (auto const &wid : the_plan.weight_cols) {
       NUIS_LOGGER_TRACE("HistFrame", "     \"{}\" = {}", colinfo(ef, wid),
-                        get_entry(ef, row, wid));
-      weight *= get_entry(ef, row, wid);
+                        eft::get_entry(ef, row, wid));
+      weight *= eft::get_entry(ef, row, wid);
     }
 
     if (the_plan.weights.size()) {
@@ -209,14 +262,21 @@ void fill_loop(HistFrame &hf, EFT const &ef,
 
     NUIS_LOGGER_TRACE("HistFrame", "    projections:");
 
-    for (size_t pi = 0; pi < the_plan.proj_cols.size(); ++pi) {
-      NUIS_LOGGER_TRACE("HistFrame", "      \"{}\" = {}",
-                        colinfo(ef, the_plan.proj_cols[pi]),
-                        get_entry(ef, row, the_plan.proj_cols[pi]));
-      projs[pi] = get_entry(ef, row, the_plan.proj_cols[pi]);
-    }
+    Binning::index_t bin = Binning::npos;
 
-    auto bin = hf.find_bin(projs);
+    if (eft::is_valid_col<EFT>(the_plan.BinId_col)) {
+      bin = eft::get_entry(ef, row, the_plan.BinId_col);
+    } else if (the_plan.BinIds.size()) {
+      bin = the_plan.BinIds(row);
+    } else {
+      for (size_t pi = 0; pi < the_plan.proj_cols.size(); ++pi) {
+        NUIS_LOGGER_TRACE("HistFrame", "      \"{}\" = {}",
+                          colinfo(ef, the_plan.proj_cols[pi]),
+                          eft::get_entry(ef, row, the_plan.proj_cols[pi]));
+        projs[pi] = eft::get_entry(ef, row, the_plan.proj_cols[pi]);
+      }
+      bin = hf.find_bin(projs);
+    }
     NUIS_LOGGER_TRACE("HistFrame", "    --> bin = {}", bin);
 
     if (the_plan.default_fill_col != HistFrame::npos) {
@@ -225,52 +285,36 @@ void fill_loop(HistFrame &hf, EFT const &ef,
       hf.fill_bin(bin, weight, the_plan.default_fill_col);
     }
 
-    if (is_valid_col<EFT>(the_plan.categorize_by_col)) {
-      HistFrame::column_t col = get_entry(ef, row, the_plan.categorize_by_col);
-      if (the_plan.category_cols.size()) {
-        if (col < the_plan.category_cols.size()) {
-          hf.fill_bin(bin, weight, the_plan.category_cols[col]);
+    if (eft::is_valid_col<EFT>(the_plan.categorize_by_col)) {
+      int val = eft::get_entry(ef, row, the_plan.categorize_by_col);
+      if (the_plan.categories_are_labelled) {
+        if (val < int(the_plan.category_cols.size())) {
+          hf.fill_bin(bin, weight, the_plan.category_cols[val]);
         }
-      } else if (col != the_plan.default_fill_col) {
-        if (col < hf.column_info.size()) {
-          hf.fill_bin(bin, weight, col);
+      } else {
+        auto categ_it = std::find(unlabelled_categ_list.begin(),
+                                  unlabelled_categ_list.end(), val);
+
+        if (categ_it == unlabelled_categ_list.end()) {
+          unlabelled_categ_list.push_back(val);
+          unlabelled_categ_columns.push_back(hf.add_column(
+              fmt::format("{}:{}", the_plan.categorize_by_colname, val)));
+          categ_it = std::find(unlabelled_categ_list.begin(),
+                               unlabelled_categ_list.end(), val);
         }
+
+        HistFrame::column_t col = unlabelled_categ_columns[(
+            categ_it - unlabelled_categ_list.begin())];
+
+        hf.fill_bin(bin, weight, col);
       }
-    }
-
-    if (is_valid_col<EFT>(the_plan.ProcID_col)) {
-      int procid = get_entry(ef, row, the_plan.ProcID_col);
-      auto pid_it = std::find(proc_id_list.begin(), proc_id_list.end(), procid);
-
-      if (pid_it == proc_id_list.end()) {
-        proc_id_list.push_back(procid);
-        proc_id_columns.push_back(
-            hf.add_column(fmt::format("ProcId:{}", procid)));
-        pid_it = std::find(proc_id_list.begin(), proc_id_list.end(), procid);
-      }
-
-      HistFrame::column_t col =
-          proc_id_columns[(pid_it - proc_id_list.begin())];
-
-      hf.fill_bin(bin, weight, col);
     }
 
     for (auto const &cmap : the_plan.weight_map_cols) {
-      hf.fill_bin(bin, weight * get_entry(ef, row, cmap.first), cmap.second);
+      hf.fill_bin(bin, weight * eft::get_entry(ef, row, cmap.first),
+                  cmap.second);
     }
   }
-}
-
-template <typename CAST_TO, typename EFT>
-inline auto require_column_index(EFT const &ef, std::string const &cn) {
-  if constexpr (std::is_same_v<EFT, EventFrame>) {
-    return ef.require_column_index(cn);
-  }
-#ifdef NUIS_ARROW_ENABLED
-  else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
-    return get_col_cast_to<CAST_TO>(ef, cn);
-  }
-#endif
 }
 
 template <typename EFT>
@@ -279,6 +323,7 @@ void fill(HistFrame &hf, EFT const &ef,
           std::vector<FrameFillOp> operations) {
 
   FrameFillPlan<EFT> the_plan;
+  the_plan.fast = true;
   bool weight_by_CV = true;
 
   // parse operations
@@ -295,23 +340,15 @@ void fill(HistFrame &hf, EFT const &ef,
       for (auto const &weight_col_name : op.weight_columns) {
         NUIS_LOGGER_DEBUG("HistFrame", "    * {}", weight_col_name);
         the_plan.weight_cols.push_back(
-            require_column_index<double>(ef, weight_col_name));
+            eft::require_column_index<double>(ef, weight_col_name));
       }
+      the_plan.fast = false;
     }
 
     if (op.op == FrameFillOp::kWeightArray) {
       NUIS_LOGGER_DEBUG("HistFrame", "  -- adding weighting array.");
 
-      int num_rows = 0;
-      if constexpr (std::is_same_v<EFT, EventFrame>) {
-        num_rows = ef.table.rows();
-      }
-#ifdef NUIS_ARROW_ENABLED
-      else if constexpr (std::is_same_v<EFT,
-                                        std::shared_ptr<arrow::RecordBatch>>) {
-        num_rows = ef->num_rows();
-      }
-#endif
+      int num_rows = eft::num_rows(ef);
 
       if (num_rows != op.weights.size()) {
         throw InvalidOperation()
@@ -331,16 +368,26 @@ void fill(HistFrame &hf, EFT const &ef,
 
     if (op.op == FrameFillOp::kConditional) {
 
-      if (is_valid_col<EFT>(the_plan.conditional_col)) {
+      if (eft::is_valid_col<EFT>(the_plan.conditional_col)) {
         throw InvalidOperation()
-            << "fill passed more than one fill_if operations.";
+            << "fill passed more than one fill_if[_eq] operations.";
       }
 
       the_plan.conditional_col =
-          require_column_index<int>(ef, op.conditional_column_name);
+          eft::require_column_index<int>(ef, op.conditional_column_name);
 
-      NUIS_LOGGER_DEBUG("HistFrame", "  -- conditional column. Fill if {} != 0",
-                        colinfo(ef, the_plan.conditional_col));
+      if (op.conditional_value == std::numeric_limits<int>::max()) {
+        NUIS_LOGGER_DEBUG("HistFrame",
+                          "  -- conditional column. Fill if {} != 0",
+                          colinfo(ef, the_plan.conditional_col));
+      } else {
+        NUIS_LOGGER_DEBUG(
+            "HistFrame", "  -- conditional column. Fill if {} == {}",
+            colinfo(ef, the_plan.conditional_col), op.conditional_value);
+        the_plan.conditional_value = op.conditional_value;
+      }
+
+      the_plan.fast = false;
     }
 
     if (op.op == FrameFillOp::kFillColumn) {
@@ -373,30 +420,54 @@ void fill(HistFrame &hf, EFT const &ef,
     }
 
     if (op.op == FrameFillOp::kCategorize) {
+
+      if (eft::is_valid_col<EFT>(the_plan.categorize_by_col)) {
+        throw InvalidOperation() << "fill passed more than one categorize_by "
+                                    "(split_by_ProcID is one) operations.";
+      }
+
+      if (the_plan.weight_map_cols.size()) {
+        throw InvalidOperation()
+            << "fill passed both categorize_by/split_by_ProcID and "
+               "weighted_column_map operations.";
+      }
+
       NUIS_LOGGER_DEBUG("HistFrame", "  -- categorize");
       if (op.category_labels.size()) {
+        the_plan.categories_are_labelled = true;
         for (auto const &cat_label : op.category_labels) {
           the_plan.category_cols.push_back(hf.find_column_index(cat_label));
           if (the_plan.category_cols.back() == HistFrame::npos) {
             the_plan.category_cols.back() = hf.add_column(cat_label);
           }
         }
+      } else {
+        the_plan.categories_are_labelled = false;
       }
 
+      the_plan.categorize_by_colname = op.categorize_by_column;
       the_plan.categorize_by_col =
-          require_column_index<int>(ef, op.categorize_by_column);
-    }
-
-    if (op.op == FrameFillOp::kProcID) {
-      NUIS_LOGGER_DEBUG("HistFrame", "  -- split by procid");
-      the_plan.ProcID_col = require_column_index<int>(ef, "process.id");
+          eft::require_column_index<int>(ef, the_plan.categorize_by_colname);
+      the_plan.fast = false;
     }
 
     if (op.op == FrameFillOp::kWeightedMap) {
+
+      if (the_plan.weight_map_cols.size()) {
+        throw InvalidOperation()
+            << "fill passed more than one weighted_column_map operations.";
+      }
+
+      if (eft::is_valid_col<EFT>(the_plan.categorize_by_col)) {
+        throw InvalidOperation()
+            << "fill passed both categorize_by/split_by_ProcID and "
+               "weighted_column_map operations.";
+      }
+
       NUIS_LOGGER_DEBUG("HistFrame", "  -- weighted column map");
       for (auto const &weight_col_name : op.weighted_columns) {
         the_plan.weight_map_cols.emplace_back(
-            require_column_index<double>(ef, weight_col_name),
+            eft::require_column_index<double>(ef, weight_col_name),
             hf.find_column_index(weight_col_name));
 
         if (the_plan.weight_map_cols.back().second == HistFrame::npos) {
@@ -404,21 +475,86 @@ void fill(HistFrame &hf, EFT const &ef,
               hf.add_column(weight_col_name);
         }
       }
+      the_plan.fast = false;
+    }
+
+    if (op.op == FrameFillOp::kBinIdColumn) {
+      if (eft::is_valid_col<EFT>(the_plan.BinId_col) ||
+          the_plan.BinIds.size()) {
+        throw InvalidOperation()
+            << "fill passed more than one prebinned operations.";
+      }
+
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- prebinned from column");
+      the_plan.BinId_col = eft::require_column_index<int>(ef, op.BinId_column);
+    }
+
+    if (op.op == FrameFillOp::kBinIdArray) {
+
+      if (eft::is_valid_col<EFT>(the_plan.BinId_col) ||
+          the_plan.BinIds.size()) {
+        throw InvalidOperation()
+            << "fill passed more than one prebinned operations.";
+      }
+
+      NUIS_LOGGER_DEBUG("HistFrame", "  -- prebinned from array");
+
+      int num_rows = eft::num_rows(ef);
+
+      if (num_rows != op.BinIds.size()) {
+        throw InvalidOperation()
+            << "BinIdArray operation passed with invalid size: "
+            << op.BinIds.size()
+            << ", it must match "
+               "the number of rows in the EventFrame, which has "
+            << num_rows << " rows";
+      }
+
+      the_plan.BinIds = op.BinIds;
     }
   }
 
   if (weight_by_CV) {
     the_plan.weight_cols.push_back(
-        require_column_index<double>(ef, "weight.cv"));
+        eft::require_column_index<double>(ef, "weight.cv"));
   }
 
   for (auto const &proj_col_name : projection_columns) {
     the_plan.proj_cols.push_back(
-        require_column_index<double>(ef, proj_col_name));
+        eft::require_column_index<double>(ef, proj_col_name));
     nuis_named_log("HistFrame")::log_trace("[fill(EventFrame)]: proj({})",
                                            proj_col_name);
   }
 
+  if (the_plan.default_fill_col == HistFrame::npos) {
+    if (!eft::is_valid_col<EFT>(the_plan.categorize_by_col) ||
+        !the_plan.weight_map_cols.size()) {
+      throw InvalidOperation()
+          << "no filled column operations were provided. Expected at least one "
+             "of:\n\tfill_column\n\tweighted_column_map\n\tcategorize_"
+             "by\n\tsplit_by_ProcID";
+    }
+  }
+
+  if (the_plan.fast && eft::is_valid_col<EFT>(the_plan.BinId_col) &&
+      (the_plan.default_fill_col != HistFrame::npos)) {
+    nuis_named_log("HistFrame")::log_trace(
+        "[fill(EventFrame)]: Attemping fast_fill");
+
+    if (weight_by_CV && !the_plan.weights.size()) {
+      the_plan.BinIds.size() ? fast_fill<true>(hf, ef, the_plan)
+                             : fast_fill<false>(hf, ef, the_plan);
+      return;
+    } else if (weight_by_CV && the_plan.weights.size()) {
+      the_plan.BinIds.size() ? fast_fill_weightarray<true>(hf, ef, the_plan)
+                             : fast_fill_weightarray<false>(hf, ef, the_plan);
+      return;
+    } else if (!weight_by_CV && !the_plan.weights.size()) {
+      the_plan.BinIds.size() ? fast_fill_noCV<true>(hf, ef, the_plan)
+                             : fast_fill_noCV<false>(hf, ef, the_plan);
+      return;
+    }
+  }
   fill_loop(hf, ef, the_plan);
 }
 
@@ -450,6 +586,13 @@ inline detail::FrameFillOp fill_column(int col_num) {
 inline detail::FrameFillOp fill_if(std::string const &cname) {
   detail::FrameFillOp op(detail::FrameFillOp::kConditional);
   op.conditional_column_name = cname;
+  return op;
+}
+
+inline detail::FrameFillOp fill_if_eq(std::string const &cname, int value) {
+  detail::FrameFillOp op(detail::FrameFillOp::kConditional);
+  op.conditional_column_name = cname;
+  op.conditional_value = value;
   return op;
 }
 
@@ -494,12 +637,26 @@ categorize_by(std::string const &cname,
 }
 
 inline detail::FrameFillOp split_by_ProcID() {
-  detail::FrameFillOp op(detail::FrameFillOp::kProcID);
+  detail::FrameFillOp op(detail::FrameFillOp::kCategorize);
+  op.categorize_by_column = "process.id";
   return op;
 }
 
 inline detail::FrameFillOp no_CV_weight() {
   detail::FrameFillOp op(detail::FrameFillOp::kNoCVWeight);
+  return op;
+}
+
+inline detail::FrameFillOp prebinned(std::string const &cname) {
+  detail::FrameFillOp op(detail::FrameFillOp::kBinIdColumn);
+  op.BinId_column = cname;
+  return op;
+}
+
+// use find_bins from Binning/utility.h to calculate binIds
+inline detail::FrameFillOp prebinned_array(Eigen::ArrayXiCRef BinIds) {
+  detail::FrameFillOp op(detail::FrameFillOp::kBinIdArray);
+  op.BinIds = BinIds;
   return op;
 }
 

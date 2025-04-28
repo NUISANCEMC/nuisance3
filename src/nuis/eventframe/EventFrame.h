@@ -15,6 +15,8 @@
 namespace Eigen {
 using ArrayXdRef = Ref<ArrayXd, 0, Stride<Dynamic, Dynamic>>;
 using ArrayXdCRef = Ref<ArrayXd const, 0, Stride<Dynamic, Dynamic>> const;
+using ArrayXiRef = Ref<ArrayXi, 0, Stride<Dynamic, Dynamic>>;
+using ArrayXiCRef = Ref<ArrayXi const, 0, Stride<Dynamic, Dynamic>> const;
 
 } // namespace Eigen
 

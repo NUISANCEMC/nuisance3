@@ -88,4 +88,55 @@ double get_best_fatx_per_sumw_estimate(
 #endif
 }
 
+namespace detail::eft {
+
+template <typename EFT, typename COLTYPE>
+inline bool is_valid_col(COLTYPE const &col) {
+  if constexpr (std::is_same_v<EFT, EventFrame>) {
+    return col != EventFrame::npos;
+  }
+#ifdef NUIS_ARROW_ENABLED
+  else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
+    return bool(col);
+  }
+#endif
+}
+
+template <typename EFT> inline int num_rows(EFT const &ef) {
+  if constexpr (std::is_same_v<EFT, EventFrame>) {
+    return ef.table.rows();
+  }
+#ifdef NUIS_ARROW_ENABLED
+  else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
+    return ef->num_rows();
+  }
+#endif
+}
+
+template <typename EFT, typename ROWTYPE, typename COLTYPE>
+inline auto get_entry(EFT const &ef, ROWTYPE const &row, COLTYPE const &col) {
+  if constexpr (std::is_same_v<EFT, EventFrame>) {
+    return ef.table(row, col);
+  }
+#ifdef NUIS_ARROW_ENABLED
+  else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
+    return col(row);
+  }
+#endif
+}
+
+template <typename CAST_TO, typename EFT>
+inline auto require_column_index(EFT const &ef, std::string const &cn) {
+  if constexpr (std::is_same_v<EFT, EventFrame>) {
+    return ef.require_column_index(cn);
+  }
+#ifdef NUIS_ARROW_ENABLED
+  else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
+    return get_col_cast_to<CAST_TO>(ef, cn);
+  }
+#endif
+}
+
+} // namespace detail::eft
+
 } // namespace nuis
