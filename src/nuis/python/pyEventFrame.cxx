@@ -7,6 +7,8 @@
 #include "arrow/python/pyarrow.h"
 #endif
 
+#include "nuis/eventframe/utility.h"
+
 #include "ProSelecta/env.h"
 
 #include "HepMC3/Print.h"
@@ -211,7 +213,37 @@ void pyEventFrameInit(py::module &m) {
       .def("__setattr__", &frame_settattr)
       .def("__getitem__", &frame_gettattr)
       .def("__setitem__", &frame_settattr)
-      .def("__str__", &str_via_ss<EventFrame>);
+      .def("__str__", &str_via_ss<EventFrame>)
+      .def_static(
+          "get_best_fatx_per_sumw_estimate",
+          [](EventFrame const &ef,
+             NuHepMC::CrossSection::Units::Unit const &units) {
+            return get_best_fatx_per_sumw_estimate(ef, units);
+          },
+          py::arg("evf"),
+          py::arg("units") = NuHepMC::CrossSection::Units::cm2ten38_PerNucleon)
+#ifdef NUIS_ARROW_ENABLED
+      .def_static(
+          "get_best_fatx_per_sumw_estimate",
+          [](py::handle pyarrobj,
+             NuHepMC::CrossSection::Units::Unit const &units) {
+            if (arrow::py::is_table(pyarrobj.ptr())) {
+              return get_best_fatx_per_sumw_estimate(
+                  arrow::py::unwrap_table(pyarrobj.ptr()).ValueOrDie(), units);
+            } else if (arrow::py::is_batch(pyarrobj.ptr())) {
+              return get_best_fatx_per_sumw_estimate(
+                  arrow::py::unwrap_batch(pyarrobj.ptr()).ValueOrDie(), units);
+            } else {
+              throw std::runtime_error(
+                  "Invalid python type passed to "
+                  "get_best_fatx_per_sumw_estimate. Expected pyarrow "
+                  "RecordBatch or Table.");
+            }
+          },
+          py::arg("evf"),
+          py::arg("units") = NuHepMC::CrossSection::Units::cm2ten38_PerNucleon)
+#endif
+      ;
 
   py::class_<pyEventFrameGen>(m, "EventFrameGen")
       .def(py::init<pyNormalizedEventSource, size_t>(), py::arg("event_source"),
