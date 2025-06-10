@@ -111,9 +111,9 @@ find_package(Protobuf 2.6 QUIET)
 find_package(HepMC3 3.0 REQUIRED)
 CPMFindPackage(
   NAME NuHepMC_CPPUtils
-  GIT_TAG v1-RC10
+  GIT_TAG v1-RC11
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
-  VERSION 0.9.7
+  VERSION 0.9.8
   OPTIONS "NuHepMC_CPPUtils_PYTHON_ENABLED ON"
 )
 
@@ -292,6 +292,7 @@ endif()
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nuis)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/examples/c++)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
 
 # BUILD SETUP
 configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.NUISANCE3.sh.in 
