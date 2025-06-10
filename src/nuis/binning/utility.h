@@ -86,6 +86,7 @@ inline Eigen::ArrayXi find_bins(BinningPtr &binning, EFT const &ef,
   return binIds;
 }
 
+#ifdef NUIS_ARROW_ENABLED
 template <>
 inline Eigen::ArrayXi find_bins(BinningPtr &binning,
                          std::shared_ptr<arrow::Table> const &ef,
@@ -105,4 +106,5 @@ inline Eigen::ArrayXi find_bins(BinningPtr &binning,
   }
   return binIds;
 }
+#endif
 } // namespace nuis
