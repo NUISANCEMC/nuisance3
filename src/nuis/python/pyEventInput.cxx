@@ -1,5 +1,7 @@
 #include "nuis/python/pyEventInput.h"
 
+#include "nuis/eventinput/CombinedNormalizedEventSource.h"
+
 #include "NuHepMC/UnitsUtils.hxx"
 
 namespace py = pybind11;
@@ -162,6 +164,26 @@ void pyEventInputInit(py::module &m) {
   py::class_<pyNormalizedEventSource>(m, "EventSource")
       .def(py::init<std::string const &>())
       .def(py::init<YAML::Node const &>())
+      .def_static(
+          "Summed",
+          [](std::vector<pyNormalizedEventSource> pycomponents) {
+            std::vector<NormalizedEventSourcePtr> components;
+            for (auto &c : pycomponents) {
+              components.push_back(c.evs);
+            }
+            return pyNormalizedEventSource(
+                CombinedNormalizedEventSource::SumEventSources(components));
+          })
+      .def_static(
+          "Averaged",
+          [](std::vector<pyNormalizedEventSource> pycomponents) {
+            std::vector<NormalizedEventSourcePtr> components;
+            for (auto &c : pycomponents) {
+              components.push_back(c.evs);
+            }
+            return pyNormalizedEventSource(
+                CombinedNormalizedEventSource::AverageEventSources(components));
+          })
       .def("first", &pyNormalizedEventSource::first)
       .def("next", &pyNormalizedEventSource::next)
       .def("run_info", &pyNormalizedEventSource::run_info)

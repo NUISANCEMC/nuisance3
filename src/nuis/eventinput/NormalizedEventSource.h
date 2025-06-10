@@ -44,10 +44,10 @@ public:
   // assume fatx specified in default units of 10^-38 cm2 / Nucleon
   NormalizedEventSource(std::shared_ptr<IEventSource> evs, double fatx);
 
-  std::optional<EventCVWeightPair> first();
-  std::optional<EventCVWeightPair> next();
+  virtual std::optional<EventCVWeightPair> first();
+  virtual std::optional<EventCVWeightPair> next();
 
-  NormInfo norm_info(NuHepMC::CrossSection::Units::Unit const &units);
+  virtual NormInfo norm_info(NuHepMC::CrossSection::Units::Unit const &units);
   virtual ~NormalizedEventSource();
 };
 
