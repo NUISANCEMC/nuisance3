@@ -13,8 +13,7 @@ namespace nuis {
 
 DECLARE_NUISANCE_EXCEPT(NoParamHeaders);
 
-double nusystematicsWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
-
+void nusystematicsWeightCalc::populate_splines(HepMC3::GenEvent const &ev) {
   if (!splines.count(ev.event_number())) {
     auto evr = nusyst->GetEventResponses(*nevs->EventRecord(ev));
     systtools::param_list_t params;
@@ -23,6 +22,11 @@ double nusystematicsWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
     }
     splines[ev.event_number()] = nusyst->GetSplines(params, evr);
   }
+}
+
+double nusystematicsWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
+
+  populate_splines(ev);
 
   double weight = 1;
   auto &espl = splines[ev.event_number()];
@@ -33,6 +37,44 @@ double nusystematicsWeightCalc::calc_weight(HepMC3::GenEvent const &ev) {
     weight *= espl[pid].Eval(v);
   }
   return weight;
+}
+
+std::vector<double> nusystematicsWeightCalc::calc_parameter_weights(
+    HepMC3::GenEvent const &ev,
+    std::vector<systtools::paramId_t> const &params) {
+
+  populate_splines(ev);
+
+  std::vector<double> resps;
+
+  auto &espl = splines[ev.event_number()];
+  for (auto const &pid : params) {
+    if (!espl.count(pid)) {
+      resps.push_back(1);
+    } else {
+      auto cid = systtools::GetParamContainerIndex(set_params, pid);
+      if (cid == systtools::kParamUnhandled<size_t>) {
+        std::stringstream ss;
+        ss << "[nusystematicsWeightCalc::calc_parameter_weights]: Error. Must "
+              "use nusystematicsWeightCalc::set_parameters on all parameters "
+              "before weights are retrieved with calc_parameter_weights.";
+        throw std::runtime_error(ss.str());
+      } else {
+        resps.push_back(espl[pid].Eval(
+            systtools::GetParamElementFromContainer(set_params, pid).val));
+      }
+    }
+  }
+  return resps;
+}
+
+std::vector<systtools::paramId_t> nusystematicsWeightCalc::get_parameter_ids(
+    std::vector<std::string> const &param_names) {
+  std::vector<systtools::paramId_t> param_ids;
+  std::transform(
+      param_names.begin(), param_names.end(), std::back_inserter(param_ids),
+      [this](std::string const &name) { return nusyst->GetHeaderId(name); });
+  return param_ids;
 }
 
 void nusystematicsWeightCalc::set_parameters(

@@ -30,3 +30,8 @@ try:
   from .pyNUISANCEProb3plusplus import *
 except ModuleNotFoundError:
     pass
+
+try:
+  from .pyNUISANCEnusystematics import *
+except ModuleNotFoundError:
+    pass

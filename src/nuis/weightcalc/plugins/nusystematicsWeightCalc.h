@@ -24,6 +24,11 @@ public:
   std::shared_ptr<GHEP3EventSource> nevs;
 
   double calc_weight(HepMC3::GenEvent const &ev);
+  std::vector<double>
+  calc_parameter_weights(HepMC3::GenEvent const &ev,
+                     std::vector<systtools::paramId_t> const &params);
+  std::vector<systtools::paramId_t>
+  get_parameter_ids(std::vector<std::string> const &param_names);
   void set_parameters(std::map<std::string, double> const &params);
   bool good() const;
 
@@ -33,6 +38,9 @@ public:
                                              YAML::Node const &cfg);
 
   virtual ~nusystematicsWeightCalc();
+
+private:
+  void populate_splines(HepMC3::GenEvent const &ev);
 };
 
 } // namespace nuis

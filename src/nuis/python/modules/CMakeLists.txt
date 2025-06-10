@@ -24,6 +24,25 @@ if(GENIE3_FOUND AND GENIEReWeight_ENABLED)
       LIBRARY DESTINATION ${NUISANCE3_PYTHONPATH}/pyNUISANCE)
 endif()
 
+find_package(nusystematics QUIET)
+if(nusystematics_FOUND)
+  pybind11_add_module(pyNUISANCEnusystematics SHARED 
+    pyNUISANCEnusystematics.cxx 
+    ../pyYAML.cxx
+    )
+
+  target_link_libraries(pyNUISANCEnusystematics 
+    PRIVATE 
+      weightcalc_plugins nusyst::all nuis_options ROOT::Hist)
+
+  target_include_directories(_pyNUISANCE PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
+    ${Python3_INCLUDE_DIRS})
+
+  install(TARGETS pyNUISANCEnusystematics
+      LIBRARY DESTINATION ${NUISANCE3_PYTHONPATH}/pyNUISANCE)
+endif()
+
 if(TARGET Prob3plusplus::Prob3plusplus)
   pybind11_add_module(pyNUISANCEProb3plusplus SHARED 
     pyNUISANCEProb3plusplus.cxx
