@@ -109,7 +109,7 @@ void pyRecordInit(py::module &m) {
       .def("process",
            [](AnalysisPtr const &ana,
               std::vector<pyNormalizedEventSource> &py_evs) {
-             std::vector<INormalizedEventSourcePtr> evs;
+             std::vector<NormalizedEventSourcePtr> evs;
              for (auto &py_ev : py_evs) {
                evs.push_back(py_ev.evs);
              }

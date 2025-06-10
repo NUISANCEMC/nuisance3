@@ -174,7 +174,7 @@ struct SingleFluxAnalysis : public IAnalysis {
   }
 #endif
 
-  Comparison process(INormalizedEventSourcePtr &events) {
+  Comparison process(NormalizedEventSourcePtr &events) {
 
     auto efg = EventFrameGen(events);
     add_to_framegen(efg);
@@ -194,7 +194,7 @@ struct SingleFluxAnalysis : public IAnalysis {
     return comp;
   }
 
-  Comparison process(std::vector<INormalizedEventSourcePtr> &event_vectors) {
+  Comparison process(std::vector<NormalizedEventSourcePtr> &event_vectors) {
 
     if (event_vectors.size() != data.size()) {
       throw std::runtime_error(

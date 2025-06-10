@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nuis/eventinput/INormalizedEventSource.h"
+#include "nuis/eventinput/NormalizedEventSource.h"
 
 #ifdef NUISANCE_USE_BOOSTDLL
 #include "boost/function.hpp"
@@ -40,9 +40,9 @@ public:
   // Add a path to the search path list for input files
   void add_event_path(std::filesystem::path path);
 
-  std::pair<std::shared_ptr<HepMC3::GenRunInfo>, INormalizedEventSourcePtr>
+  std::pair<std::shared_ptr<HepMC3::GenRunInfo>, NormalizedEventSourcePtr>
   make(YAML::Node const &cfg);
-  std::pair<std::shared_ptr<HepMC3::GenRunInfo>, INormalizedEventSourcePtr>
+  std::pair<std::shared_ptr<HepMC3::GenRunInfo>, NormalizedEventSourcePtr>
   make(std::string const &filepath);
 
   std::pair<std::shared_ptr<HepMC3::GenRunInfo>, IEventSourcePtr>

@@ -249,16 +249,16 @@ EventSourceFactory::make_unnormalized(std::string const &filepath) {
     )",
                                                   filepath)));
 }
-std::pair<std::shared_ptr<HepMC3::GenRunInfo>, INormalizedEventSourcePtr>
+std::pair<std::shared_ptr<HepMC3::GenRunInfo>, NormalizedEventSourcePtr>
 EventSourceFactory::make(YAML::Node const &cfg) {
   auto [gri, es] = make_unnormalized(cfg);
-  auto nes = std::make_shared<INormalizedEventSource>(es);
+  auto nes = std::make_shared<NormalizedEventSource>(es);
   if (nes->first()) {
     return {gri, nes};
   }
   return {nullptr, nullptr};
 }
-std::pair<std::shared_ptr<HepMC3::GenRunInfo>, INormalizedEventSourcePtr>
+std::pair<std::shared_ptr<HepMC3::GenRunInfo>, NormalizedEventSourcePtr>
 EventSourceFactory::make(std::string const &filepath) {
   return make(YAML::Load(fmt::format(R"(
     filepath: {}

@@ -31,11 +31,11 @@ struct EventFrame {
 };
 ```
 
-The use of `Eigen::ArrayXdRef` allows individual columns to be fetched by name and manipulated in place. The `NormInfo` struct is defined [here](../eventinput/INormalizedEventSource.h) and contains information required to correctly normalize predictions made from data held within the `EventFrame`.
+The use of `Eigen::ArrayXdRef` allows individual columns to be fetched by name and manipulated in place. The `NormInfo` struct is defined [here](../eventinput/NormalizedEventSource.h) and contains information required to correctly normalize predictions made from data held within the `EventFrame`.
 
 ## Creating DataFrames with `nuis::EventFrameGen`
 
-`EventFrame`s are generated with the `nuis::EventFrameGen` helper class, which works with `nuis::INormalizedEventSource` instances as below:
+`EventFrame`s are generated with the `nuis::EventFrameGen` helper class, which works with `nuis::NormalizedEventSource` instances as below:
 
 ```c++
   EventSourceFactory fact;
@@ -129,7 +129,7 @@ auto fg = EventFrameGen(evs, batch_size);
 
 ### Adding Columns
 
-By default a frame contains two columns, the first containing the `HepMC3::GenEvent::event_number` and the second containing the central value weight calculated by the `nuis::INormalizedEventSource`. We can add more columns with projection callables:
+By default a frame contains two columns, the first containing the `HepMC3::GenEvent::event_number` and the second containing the central value weight calculated by the `nuis::NormalizedEventSource`. We can add more columns with projection callables:
 
 ```c++
 
@@ -215,7 +215,7 @@ double hmprotmom(HepMC3::GenEvent const &ev) {
 
 Preselections can also be made with callables. If the callable returns a falsey result, the event will not produce a row not be inserted into the table. 
 
-*N.B.* As the normalization information is handled by the `nuis::INormalizedEventSource`, the normalization information is correctly tallyed even if filtered events do not produce rows, we can check this with an example below:
+*N.B.* As the normalization information is handled by the `nuis::NormalizedEventSource`, the normalization information is correctly tallyed even if filtered events do not produce rows, we can check this with an example below:
 
 ```c++
 struct single_procid_selector {

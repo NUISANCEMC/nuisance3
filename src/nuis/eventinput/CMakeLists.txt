@@ -1,6 +1,6 @@
 add_library(eventinput SHARED 
   IEventSourceIterator.cxx EventSourceFactory.cxx 
-  INormalizedEventSource.cxx HepMC3EventSource.cxx
+  NormalizedEventSource.cxx HepMC3EventSource.cxx
   IEventSourceWrapper.cxx IEventSource.cxx)
 
 target_link_libraries(eventinput PUBLIC nuis_options)

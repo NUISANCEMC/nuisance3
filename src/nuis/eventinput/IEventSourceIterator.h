@@ -28,27 +28,27 @@ public:
 IEventSource_looper begin(IEventSourcePtr evs);
 IEventSource_sentinel end(IEventSourcePtr evs);
 
-class INormalizedEventSource;
-using INormalizedEventSourcePtr = std::shared_ptr<INormalizedEventSource>;
+class NormalizedEventSource;
+using NormalizedEventSourcePtr = std::shared_ptr<NormalizedEventSource>;
 
 struct EventCVWeightPair {
   std::shared_ptr<HepMC3::GenEvent> evt;
   double cv_weight;
 };
 
-class INormalizedEventSource_looper {
-  INormalizedEventSourcePtr source;
+class NormalizedEventSource_looper {
+  NormalizedEventSourcePtr source;
   std::optional<EventCVWeightPair> curr_event;
 
 public:
-  INormalizedEventSource_looper(INormalizedEventSourcePtr evs);
+  NormalizedEventSource_looper(NormalizedEventSourcePtr evs);
   void operator++();
   EventCVWeightPair const &operator*();
   bool operator!=(IEventSource_sentinel const &sent) const;
   bool operator==(IEventSource_sentinel const &sent) const;
 };
 
-INormalizedEventSource_looper begin(INormalizedEventSourcePtr evs);
-IEventSource_sentinel end(INormalizedEventSourcePtr evs);
+NormalizedEventSource_looper begin(NormalizedEventSourcePtr evs);
+IEventSource_sentinel end(NormalizedEventSourcePtr evs);
 
 } // namespace nuis

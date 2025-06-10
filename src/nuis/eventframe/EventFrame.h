@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nuis/eventinput/INormalizedEventSource.h"
+#include "nuis/eventinput/NormalizedEventSource.h"
 
 #include "nuis/eventframe/missing_datum.h"
 

@@ -8,7 +8,7 @@ namespace nuis {
 
 // ABC for EventSource wrappers that want to give access to the underlying
 // lowest level event source
-// See INormalizedEventSource for example usage
+// See NormalizedEventSource for example usage
 class IEventSourceWrapper
     : public nuis_named_log("EventInput") {
 protected:

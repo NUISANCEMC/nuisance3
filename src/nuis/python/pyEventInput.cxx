@@ -7,7 +7,7 @@ using namespace nuis;
 
 // don't wrap this constructor, it is for internal use only
 pyNormalizedEventSource::pyNormalizedEventSource(
-    nuis::INormalizedEventSourcePtr in_evs)
+    nuis::NormalizedEventSourcePtr in_evs)
     : gri{in_evs->first().value().evt->run_info()}, evs{in_evs} {}
 
 pyNormalizedEventSource::pyNormalizedEventSource(std::string const &filename) {

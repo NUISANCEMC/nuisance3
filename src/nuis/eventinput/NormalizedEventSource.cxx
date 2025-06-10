@@ -1,4 +1,4 @@
-#include "nuis/eventinput/INormalizedEventSource.h"
+#include "nuis/eventinput/NormalizedEventSource.h"
 
 #include "nuis/except.h"
 #include "nuis/log.txx"
@@ -14,7 +14,7 @@ DECLARE_NUISANCE_EXCEPT(InvalidXSUnitsForNormalization);
 namespace nuis {
 
 std::optional<EventCVWeightPair>
-INormalizedEventSource::process(std::shared_ptr<HepMC3::GenEvent> ev) {
+NormalizedEventSource::process(std::shared_ptr<HepMC3::GenEvent> ev) {
   if (!ev) {
     return std::optional<EventCVWeightPair>();
   }
@@ -22,7 +22,7 @@ INormalizedEventSource::process(std::shared_ptr<HepMC3::GenEvent> ev) {
 #ifndef NUIS_NDEBUG
   if (NuHepMC::Event::ToMeVFactor(*ev) != 1) {
     log_critical(
-        "[INormalizedEventSource]: Processing event not in MeV. This breaks "
+        "[NormalizedEventSource]: Processing event not in MeV. This breaks "
         "a critical contract to users, fix the underlying IEventSource.");
     throw EventMomentumUnitNotMeV();
   }
@@ -33,7 +33,7 @@ INormalizedEventSource::process(std::shared_ptr<HepMC3::GenEvent> ev) {
   if (fsprot.size()) {
     if (fsprot.front()->momentum().m() < 10) {
       log_critical(
-          "[INormalizedEventSource]: Processing event with a real final "
+          "[NormalizedEventSource]: Processing event with a real final "
           "state proton with a reported mass of {} MeV, the units look "
           "incorrectly set. This breaks "
           "a critical contract to users, fix the underlying IEventSource.");
@@ -45,11 +45,11 @@ INormalizedEventSource::process(std::shared_ptr<HepMC3::GenEvent> ev) {
   return EventCVWeightPair{ev, xs_acc->process(*ev)};
 }
 
-INormalizedEventSource::INormalizedEventSource(
+NormalizedEventSource::NormalizedEventSource(
     std::shared_ptr<IEventSource> evs)
     : IEventSourceWrapper(evs), external_fatx{0xdeadbeef} {}
 
-INormalizedEventSource::INormalizedEventSource(
+NormalizedEventSource::NormalizedEventSource(
     std::shared_ptr<IEventSource> evs, double fatx,
     NuHepMC::CrossSection::Units::Unit const &input_units)
     : IEventSourceWrapper(evs), external_fatx{fatx} {
@@ -86,17 +86,17 @@ INormalizedEventSource::INormalizedEventSource(
           << " for external fatx scaling without additional information, "
              "please convert the fatx to the required units manually and "
              "specify those units as the input units when creating the "
-             "INormalizedEventSource.";
+             "NormalizedEventSource.";
     }
   };
 }
 
-INormalizedEventSource::INormalizedEventSource(
+NormalizedEventSource::NormalizedEventSource(
     std::shared_ptr<IEventSource> evs, double fatx)
-    : INormalizedEventSource(
+    : NormalizedEventSource(
           evs, fatx, NuHepMC::CrossSection::Units::cm2ten38_PerNucleon) {}
 
-std::optional<EventCVWeightPair> INormalizedEventSource::first() {
+std::optional<EventCVWeightPair> NormalizedEventSource::first() {
   if (!wrapped_ev_source) {
     return std::optional<EventCVWeightPair>();
   }
@@ -109,7 +109,7 @@ std::optional<EventCVWeightPair> INormalizedEventSource::first() {
           wrapped_ev_source->first()->run_info());
     }
   } catch (NuHepMC::except const &ex) {
-    log_warn("INormalizedEventSource::first failed to determine cross-section "
+    log_warn("NormalizedEventSource::first failed to determine cross-section "
              "scaling information from event stream. If you need to read this "
              "file, request an unnormalized EventSource: {}", ex.what());
     return std::optional<EventCVWeightPair>();
@@ -117,11 +117,11 @@ std::optional<EventCVWeightPair> INormalizedEventSource::first() {
   return process(wrapped_ev_source->first());
 }
 
-std::optional<EventCVWeightPair> INormalizedEventSource::next() {
+std::optional<EventCVWeightPair> NormalizedEventSource::next() {
   return process(wrapped_ev_source->next());
 }
 
-NormInfo INormalizedEventSource::norm_info(
+NormInfo NormalizedEventSource::norm_info(
     NuHepMC::CrossSection::Units::Unit const &units) {
 
   if (external_fatx != 0xdeadbeef) {
@@ -133,6 +133,6 @@ NormInfo INormalizedEventSource::norm_info(
   }
 }
 
-INormalizedEventSource::~INormalizedEventSource() {}
+NormalizedEventSource::~NormalizedEventSource() {}
 
 } // namespace nuis

@@ -26,7 +26,7 @@ static std::vector<std::string> const default_efg_columns{
 
 namespace nuis {
 
-EventFrameGen::EventFrameGen(INormalizedEventSourcePtr evs, size_t block_size)
+EventFrameGen::EventFrameGen(NormalizedEventSourcePtr evs, size_t block_size)
     : in_error_state(false), source(evs), chunk_size{block_size},
       max_events_to_loop{std::numeric_limits<size_t>::max()},
       progress_report_every{std::numeric_limits<size_t>::max()},

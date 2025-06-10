@@ -30,7 +30,7 @@ public:
   using ProjectionsFunc =
       std::function<std::vector<RT>(HepMC3::GenEvent const &)>;
 
-  EventFrameGen(INormalizedEventSourcePtr evs, size_t block_size = 500000);
+  EventFrameGen(NormalizedEventSourcePtr evs, size_t block_size = 500000);
   EventFrameGen filter(FilterFunc filt);
 
   template <typename RT>
@@ -115,7 +115,7 @@ public:
 #endif
 
 private:
-  INormalizedEventSourcePtr source;
+  NormalizedEventSourcePtr source;
 
   std::vector<FilterFunc> filters;
 
@@ -178,7 +178,7 @@ private:
   std::vector<std::string> all_column_names;
   size_t n_total_rows;
   size_t neventsprocessed;
-  INormalizedEventSource_looper ev_it;
+  NormalizedEventSource_looper ev_it;
 };
 
 } // namespace nuis

@@ -1,12 +1,12 @@
 #include "nuis/eventinput/IEventSource.h"
-#include "nuis/eventinput/INormalizedEventSource.h"
+#include "nuis/eventinput/NormalizedEventSource.h"
 
 namespace nuis {
 
-INormalizedEventSourcePtr
+NormalizedEventSourcePtr
 IEventSource::force_fatx(double fatx,
                          NuHepMC::CrossSection::Units::Unit const &units) {
-  return std::make_shared<INormalizedEventSource>(shared_from_this(), fatx,
+  return std::make_shared<NormalizedEventSource>(shared_from_this(), fatx,
                                                   units);
 }
 

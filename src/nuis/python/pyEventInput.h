@@ -7,10 +7,10 @@
 struct pyNormalizedEventSource {
   nuis::EventSourceFactory fact;
   std::shared_ptr<HepMC3::GenRunInfo> gri;
-  nuis::INormalizedEventSourcePtr evs;
+  nuis::NormalizedEventSourcePtr evs;
   pybind11::tuple curr_event;
 
-  pyNormalizedEventSource(nuis::INormalizedEventSourcePtr);
+  pyNormalizedEventSource(nuis::NormalizedEventSourcePtr);
   pyNormalizedEventSource(std::string const &filename);
   pyNormalizedEventSource(YAML::Node const &node);
 

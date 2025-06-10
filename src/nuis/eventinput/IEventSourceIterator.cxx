@@ -1,5 +1,5 @@
 #include "nuis/eventinput/IEventSource.h"
-#include "nuis/eventinput/INormalizedEventSource.h"
+#include "nuis/eventinput/NormalizedEventSource.h"
 
 namespace nuis {
 
@@ -25,34 +25,34 @@ IEventSource_looper begin(IEventSourcePtr evs) {
 
 IEventSource_sentinel end(IEventSourcePtr) { return IEventSource_sentinel(); }
 
-INormalizedEventSource_looper::INormalizedEventSource_looper(
-    std::shared_ptr<INormalizedEventSource> evs)
+NormalizedEventSource_looper::NormalizedEventSource_looper(
+    std::shared_ptr<NormalizedEventSource> evs)
     : source(evs) {
   if (source) {
     curr_event = source->first();
   }
 }
-void INormalizedEventSource_looper::operator++() {
+void NormalizedEventSource_looper::operator++() {
   curr_event = source->next();
 }
-EventCVWeightPair const &INormalizedEventSource_looper::operator*() {
+EventCVWeightPair const &NormalizedEventSource_looper::operator*() {
   return curr_event.value();
 }
-bool INormalizedEventSource_looper::operator!=(
+bool NormalizedEventSource_looper::operator!=(
     IEventSource_sentinel const &) const {
   return bool(curr_event);
 }
 
-bool INormalizedEventSource_looper::operator==(
+bool NormalizedEventSource_looper::operator==(
     IEventSource_sentinel const &) const {
   return !bool(curr_event);
 }
 
-INormalizedEventSource_looper begin(INormalizedEventSourcePtr evs) {
-  return INormalizedEventSource_looper(evs);
+NormalizedEventSource_looper begin(NormalizedEventSourcePtr evs) {
+  return NormalizedEventSource_looper(evs);
 }
 
-IEventSource_sentinel end(INormalizedEventSourcePtr) {
+IEventSource_sentinel end(NormalizedEventSourcePtr) {
   return IEventSource_sentinel();
 }
 

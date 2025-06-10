@@ -17,7 +17,7 @@ public:
   virtual std::shared_ptr<HepMC3::GenEvent> next() = 0;
 
   // Allows you to force the flux-averaged total cross section
-  INormalizedEventSourcePtr force_fatx(
+  NormalizedEventSourcePtr force_fatx(
       double fatx, NuHepMC::CrossSection::Units::Unit const &units);
 
   virtual ~IEventSource(){};

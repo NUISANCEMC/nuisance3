@@ -24,7 +24,7 @@ struct NormInfo {
 
 /// An event source wrapper that keeps track of the FATX, if we cannot determine
 /// how to normalize it, this is considered a resource acquisition failure
-class INormalizedEventSource : public IEventSourceWrapper {
+class NormalizedEventSource : public IEventSourceWrapper {
 
   double external_fatx;
   std::function<double(NuHepMC::CrossSection::Units::Unit const &, int)>
@@ -36,19 +36,19 @@ class INormalizedEventSource : public IEventSourceWrapper {
   process(std::shared_ptr<HepMC3::GenEvent> ev);
 
 public:
-  INormalizedEventSource(std::shared_ptr<IEventSource> evs);
+  NormalizedEventSource(std::shared_ptr<IEventSource> evs);
   // build a normalized event source where the normalization is set by the
   // caller
-  INormalizedEventSource(std::shared_ptr<IEventSource> evs, double fatx,
+  NormalizedEventSource(std::shared_ptr<IEventSource> evs, double fatx,
                          NuHepMC::CrossSection::Units::Unit const &units);
   // assume fatx specified in default units of 10^-38 cm2 / Nucleon
-  INormalizedEventSource(std::shared_ptr<IEventSource> evs, double fatx);
+  NormalizedEventSource(std::shared_ptr<IEventSource> evs, double fatx);
 
   std::optional<EventCVWeightPair> first();
   std::optional<EventCVWeightPair> next();
 
   NormInfo norm_info(NuHepMC::CrossSection::Units::Unit const &units);
-  virtual ~INormalizedEventSource();
+  virtual ~NormalizedEventSource();
 };
 
 } // namespace nuis

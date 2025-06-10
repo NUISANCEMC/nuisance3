@@ -99,7 +99,7 @@ struct SingleDistributionAnalysis : public IAnalysis {
   }
 #endif
 
-  Comparison process(INormalizedEventSourcePtr &events) {
+  Comparison process(NormalizedEventSourcePtr &events) {
 
     auto efg = EventFrameGen(events).filter(selection.op);
     add_to_framegen(efg);

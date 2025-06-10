@@ -6,14 +6,14 @@ namespace nuis {
 
 DECLARE_NUISANCE_EXCEPT(IAnalysisUnimplementedInterfaceFunction);
 
-Comparison IAnalysis::process(std::vector<INormalizedEventSourcePtr> &) {
+Comparison IAnalysis::process(std::vector<NormalizedEventSourcePtr> &) {
   throw IAnalysisUnimplementedInterfaceFunction()
-      << "Comparison IAnalysis::process(std::vector<INormalizedEventSourcePtr> "
+      << "Comparison IAnalysis::process(std::vector<NormalizedEventSourcePtr> "
          "&)";
 }
-Comparison IAnalysis::process(INormalizedEventSourcePtr &) {
+Comparison IAnalysis::process(NormalizedEventSourcePtr &) {
   throw IAnalysisUnimplementedInterfaceFunction()
-      << "Comparison IAnalysis::process(INormalizedEventSourcePtr &)";
+      << "Comparison IAnalysis::process(NormalizedEventSourcePtr &)";
 }
 Comparison IAnalysis::process(EventFrame const &) {
   throw IAnalysisUnimplementedInterfaceFunction()

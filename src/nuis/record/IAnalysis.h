@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nuis/eventinput/INormalizedEventSource.h"
+#include "nuis/eventinput/NormalizedEventSource.h"
 
 #include "nuis/eventframe/EventFrame.h"
 #include "nuis/eventframe/EventFrameGen.h"
@@ -36,8 +36,8 @@ struct IAnalysis : public std::enable_shared_from_this<IAnalysis> {
 
   DECLARE_NUISANCE_EXCEPT(IAnalysisUnimplementedInterfaceFunction);
 
-  virtual Comparison process(std::vector<INormalizedEventSourcePtr> &);
-  virtual Comparison process(INormalizedEventSourcePtr &);
+  virtual Comparison process(std::vector<NormalizedEventSourcePtr> &);
+  virtual Comparison process(NormalizedEventSourcePtr &);
   virtual Comparison process(EventFrame const &);
 #ifdef NUIS_ARROW_ENABLED
   virtual Comparison process(std::shared_ptr<arrow::Table> const &);
