@@ -7,6 +7,7 @@
 
 #include "NuHepMC/Constants.hxx"
 #include "NuHepMC/EventUtils.hxx"
+#include "NuHepMC/UnitsUtils.hxx"
 #include "NuHepMC/WriterUtils.hxx"
 
 #include "HepMC3/GenEvent.h"
@@ -37,6 +38,7 @@ const std::map<int, std::pair<std::string, int>> ChannelNameIndexModeMapping{
     {11, {"CC_RES_ppi+_nu", 400}},
     {12, {"CC_RES_ppi0_nu", 401}},
     {13, {"CC_RES_npi+_nu", 402}},
+    {10, {"CC_RES_1pibkg_nu", 403}},
 
     {21, {"CC_multi_pi_nu", 500}},
 
@@ -44,6 +46,7 @@ const std::map<int, std::pair<std::string, int>> ChannelNameIndexModeMapping{
     {32, {"NC_RES_ppi0_nu", 451}},
     {33, {"NC_RES_ppi-_nu", 452}},
     {34, {"NC_RES_npi+_nu", 452}},
+    {30, {"NC_RES_1pibkg_nu", 453}},
 
     {41, {"NC_multi_pi_nu", 550}},
 
@@ -85,6 +88,7 @@ const std::map<int, std::pair<std::string, int>> ChannelNameIndexModeMapping{
     {-11, {"CC_RES_npi-_nubar", 425}},
     {-12, {"CC_RES_ppi0_nubar", 426}},
     {-13, {"CC_RES_ppi-_nubar", 427}},
+    {-10, {"CC_RES_1pibkg_nubar", 428}},
 
     {-21, {"CC_multi_pi_nubar", 525}},
 
@@ -92,6 +96,7 @@ const std::map<int, std::pair<std::string, int>> ChannelNameIndexModeMapping{
     {-32, {"NC_RES_ppi0_nubar", 476}},
     {-33, {"NC_RES_ppi-_nubar", 478}},
     {-34, {"NC_RES_npi+_nubar", 479}},
+    {-30, {"NC_RES_1pibkg_nubar", 480}},
 
     {-41, {"NC_multi_pi_nubar", 575}},
 
@@ -130,6 +135,7 @@ const std::map<int, std::pair<std::string, int>> ChannelNameIndexModeMapping{
     {-35, {"NC_DIF_nubar", 185}},
 
     {54, {"NuElectronElastic", 700}},
+    {-54, {"NuElectronElastic", 725}},
 
     {55, {"InverseMuDecay", 701}},
 };
@@ -144,7 +150,7 @@ int GetEC1Channel(int neutmode) {
 }
 
 std::shared_ptr<HepMC3::GenRunInfo>
-BuildRunInfo(Long64_t nevents, double fatx, int probepid,
+BuildRunInfo(double fatx, int probepid,
              std::unique_ptr<TH1D> const &flux_hist) {
 
   // G.R.1 Valid GenRunInfo
@@ -157,7 +163,7 @@ BuildRunInfo(Long64_t nevents, double fatx, int probepid,
   run_info->tools().emplace_back(HepMC3::GenRunInfo::ToolInfo{
       "NUISANCE2", "UNKNOWN_NUISANCE2_VERSION", ""});
 
-  // G.R.4 Process Metadata
+  // G.R.8 Process Metadata
   std::vector<int> pids;
   for (auto const &neutchan : ChannelNameIndexModeMapping) {
     pids.push_back(neutchan.second.second);
@@ -175,7 +181,7 @@ BuildRunInfo(Long64_t nevents, double fatx, int probepid,
 
   NuHepMC::add_attribute(run_info, "NuHepMC.ProcessIDs", pids);
 
-  // G.R.5 Vertex Status Metadata
+  // G.R.9 Vertex Status Metadata
   NuHepMC::StatusCodeDescriptors VertexStatuses = {
       {NuHepMC::VertexStatus::Primary,
        {"PrimaryVertex", "The neutrino hard-scatter vertex"}},
@@ -186,7 +192,7 @@ BuildRunInfo(Long64_t nevents, double fatx, int probepid,
         "Impulse approximation vertex that represents the separation of the "
         "single target nucleon from the target nucleus ground state."}},
   };
-  NuHepMC::GR5::WriteVertexStatusIDDefinitions(run_info, VertexStatuses);
+  NuHepMC::GR9::WriteVertexStatusIDDefinitions(run_info, VertexStatuses);
 
   NuHepMC::StatusCodeDescriptors ParticleStatuses = {
       {NuHepMC::ParticleStatus::UndecayedPhysical,
@@ -204,7 +210,7 @@ BuildRunInfo(Long64_t nevents, double fatx, int probepid,
       {NuHepMC::ParticleStatus::StruckNucleon,
        {"StruckNucleon", "The nucleon involved in the hard scatter"}},
   };
-  NuHepMC::GR6::WriteParticleStatusIDDefinitions(run_info, ParticleStatuses);
+  NuHepMC::GR10::WriteParticleStatusIDDefinitions(run_info, ParticleStatuses);
 
   // G.R.7 Event Weights
   NuHepMC::GR7::SetWeightNames(run_info, {
@@ -213,13 +219,13 @@ BuildRunInfo(Long64_t nevents, double fatx, int probepid,
 
   // G.C.1 Signalling Followed Conventions
   std::vector<std::string> conventions = {
-      "G.C.1", "G.C.2", "G.C.4", "G.C.5", "E.C.1", "V.C.1", "P.C.1", "P.C.2",
+      "G.C.2", "E.C.1", "V.C.1", "P.C.1", "P.C.2",
   };
 
   if (flux_hist) {
-    conventions.push_back("G.C.7");
+    conventions.push_back("G.C.4");
 
-    NuHepMC::GC7::SetHistogramBeamType(run_info);
+    NuHepMC::GC4::SetHistogramBeamType(run_info);
 
     std::vector<double> bin_edges;
     std::vector<double> bin_content;
@@ -230,22 +236,19 @@ BuildRunInfo(Long64_t nevents, double fatx, int probepid,
       bin_content.push_back(flux_hist->GetBinContent(i + 1));
     }
 
-    NuHepMC::GC7::WriteBeamEnergyHistogram(run_info, probepid, bin_edges,
+    NuHepMC::GC4::WriteBeamEnergyHistogram(run_info, probepid, bin_edges,
                                            bin_content, false);
-    NuHepMC::GC7::WriteBeamUnits(
+    NuHepMC::GC4::WriteBeamUnits(
         run_info, "Unknown", std::string(flux_hist->GetYaxis()->GetTitle()));
   }
 
   // G.C.4 Cross Section Units and Target Scaling
-  NuHepMC::GC4::SetCrossSectionUnits(run_info, "1e-38 cm2", "PerTargetNucleon");
+  NuHepMC::GR6::SetCrossSectionUnits(run_info, "1e-38 cm2", "PerNucleon");
 
-  NuHepMC::GC5::SetFluxAveragedTotalXSec(run_info, fatx);
+  NuHepMC::GC2::SetFluxAveragedTotalXSec(run_info, fatx);
 
-  // G.C.2 File Exposure (Standalone)
-  NuHepMC::GC2::SetExposureNEvents(run_info, nevents);
-
-  // G.C.1 Signalling Followed Conventions
-  NuHepMC::GC1::SetConventions(run_info, conventions);
+  // G.R.4 Signalling Followed Conventions
+  NuHepMC::GR4::SetConventions(run_info, conventions);
 
   return run_info;
 }
@@ -284,11 +287,14 @@ class NUISANCE2FlatTreeEventSource : public IEventSource {
   std::unique_ptr<TTreeReaderArray<int>> pdg_vert;
 
   std::unique_ptr<TTreeReaderValue<double>> fScaleFactor;
+  std::unique_ptr<TTreeReaderValue<double>> InputWeight;
 
   std::unique_ptr<TTreeReaderValue<int>> Mode;
 
   std::unique_ptr<TTreeReaderValue<int>> PDGnu;
   std::unique_ptr<TTreeReaderValue<int>> tgt;
+  std::unique_ptr<TTreeReaderValue<int>> tgta;
+  std::unique_ptr<TTreeReaderValue<int>> tgtz;
 
   std::shared_ptr<HepMC3::GenEvent> ToGenEvent() {
     auto evt = std::make_shared<HepMC3::GenEvent>(HepMC3::Units::GEV);
@@ -307,6 +313,10 @@ class NUISANCE2FlatTreeEventSource : public IEventSource {
 
     evt->add_vertex(primary_vtx);
     evt->add_vertex(fsi_vtx);
+
+    auto tgtpid = ((**tgtz) > 0) && ((**tgta) > 0)
+                      ? NuHepMC::CrossSection::Units::NuclearPDG(**tgtz, **tgta)
+                      : (**tgt);
 
     for (int fs_it = 0; fs_it < **nfsp; ++fs_it) {
 
@@ -338,20 +348,20 @@ class NUISANCE2FlatTreeEventSource : public IEventSource {
         primary_vtx->add_particle_in(part);
       } else { // looking for struck nucleon/target nucleus
         // if the tgt is a nuclear code for hydrogen
-        if (**tgt == 1000010010) { // hydrogen/proton
-          if ((pid == 2212) || (pid == **tgt)) {
+        if (tgtpid == 1000010010) { // hydrogen/proton
+          if ((pid == 2212) || (pid == tgtpid)) {
             part->set_status(NuHepMC::ParticleStatus::Target);
             tgt_part = part;
           }
-        } else if (**tgt == 1000000010) { // free nucleon
-          if ((pid == 2112) || (pid == **tgt)) {
+        } else if (tgtpid == 1000000010) { // free nucleon
+          if ((pid == 2112) || (pid == tgtpid)) {
             part->set_status(NuHepMC::ParticleStatus::Target);
             tgt_part = part;
           }
           // otherwise assume we have a bigger nucleus and can build the target
           // nuclear particle and maybe struck nucleon
         } else {
-          if (pid == **tgt) {
+          if (pid == tgtpid) {
             part->set_status(NuHepMC::ParticleStatus::Target);
             tgt_part = part;
           } else if ((pid == 2212) || (pid == 2112)) {
@@ -397,15 +407,16 @@ class NUISANCE2FlatTreeEventSource : public IEventSource {
                 "weight of 0.");
     }
     if (!tgtp) {
-      if (**tgt > 1000000000) {
+      if (tgtpid > 1000000000) {
         // hack in a dummy nuclear particle because I can't even
         primary_vtx->add_particle_in(std::make_shared<HepMC3::GenParticle>(
-            HepMC3::FourVector{}, **tgt, NuHepMC::ParticleStatus::Target));
+            HepMC3::FourVector{}, tgtpid, NuHepMC::ParticleStatus::Target));
 
         tgtp = NuHepMC::Event::GetTargetParticle(*evt);
       } else {
         log_debug("NUISANCE2FlatTree event contained no target particle, "
-                  "giving a weight of 0.");
+                  "giving a weight of 0. tgt: {}, tgta: {}. tgtz: {}",
+                  **tgt, **tgta, **tgtz);
       }
     }
     if (!nfs) {
@@ -416,7 +427,7 @@ class NUISANCE2FlatTreeEventSource : public IEventSource {
     if ((!beamp) || (!tgtp) || (!nfs)) {
       evt->weights().push_back(0);
     } else {
-      evt->weights().push_back(1);
+      evt->weights().push_back(**InputWeight);
     }
 
     NuHepMC::ER5::SetLabPosition(*evt, std::vector<double>{0, 0, 0, 0});
@@ -492,10 +503,13 @@ public:
 
     fScaleFactor =
         std::make_unique<TTreeReaderValue<double>>(*reader, "fScaleFactor");
-
+    InputWeight =
+        std::make_unique<TTreeReaderValue<double>>(*reader, "InputWeight");
     Mode = std::make_unique<TTreeReaderValue<int>>(*reader, "Mode");
 
     tgt = std::make_unique<TTreeReaderValue<int>>(*reader, "tgt");
+    tgta = std::make_unique<TTreeReaderValue<int>>(*reader, "tgta");
+    tgtz = std::make_unique<TTreeReaderValue<int>>(*reader, "tgtz");
     PDGnu = std::make_unique<TTreeReaderValue<int>>(*reader, "PDGnu");
 
     ient = 0;
@@ -513,8 +527,7 @@ public:
     }
 
     fatx = *(*fScaleFactor) * double(reader->GetEntries()) * 1E38;
-    gri = BuildRunInfo(reader->GetEntries(), fatx,
-                       NuHepMC::Event::GetBeamParticle(*ge)->pid(), flux);
+    gri = BuildRunInfo(fatx, NuHepMC::Event::GetBeamParticle(*ge)->pid(), flux);
 
     ge->set_event_number(ient++);
     ge->set_run_info(gri);

@@ -24,11 +24,10 @@ double get_best_fatx_per_sumw_estimate(
 
   std::string fatx_colname;
 
-  if (xs_units.tgtscale ==
-      NuHepMC::CrossSection::Units::TargetScale::PerTarget) {
+  if (xs_units.tgtscale == NuHepMC::CrossSection::Units::TargetScale::PerAtom) {
     fatx_colname = "fatx_per_sumw.pb_per_target.estimate";
   } else if (xs_units.tgtscale ==
-             NuHepMC::CrossSection::Units::TargetScale::PerTargetNucleon) {
+             NuHepMC::CrossSection::Units::TargetScale::PerNucleon) {
     fatx_colname = "fatx_per_sumw.pb_per_nucleon.estimate";
   } else {
     std::stringstream ss;

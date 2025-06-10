@@ -106,22 +106,20 @@ auto get_units_scale(std::set<std::string> const &units_bits,
 
   for (auto const &u : units_bits) {
 
-    auto su = NuHepMC::GC4::ParseCrossSectionScaleUnits(u);
+    auto su = NuHepMC::GR6::ParseCrossSectionScaleUnits(u);
     if (su != NuHepMC::CrossSection::Units::Scale::CustomType) {
       unit.scale = su;
       continue;
     }
 
-    auto tsu = NuHepMC::GC4::ParseCrossSectionTargetScaleUnits(u);
+    auto tsu = NuHepMC::GR6::ParseCrossSectionTargetScaleUnits(u);
     if (tsu != NuHepMC::CrossSection::Units::TargetScale::CustomType) {
       unit.tgtscale = tsu;
     } else if ((u == "PerTargetNeutron")) {
-      unit.tgtscale =
-          NuHepMC::CrossSection::Units::TargetScale::PerTargetNucleon;
+      unit.tgtscale = NuHepMC::CrossSection::Units::TargetScale::PerNucleon;
       extra_target_scale = stgt.A / stgt.N;
     } else if ((u == "PerTargetProton")) {
-      unit.tgtscale =
-          NuHepMC::CrossSection::Units::TargetScale::PerTargetNucleon;
+      unit.tgtscale = NuHepMC::CrossSection::Units::TargetScale::PerNucleon;
       extra_target_scale = stgt.A / stgt.Z;
     }
   }

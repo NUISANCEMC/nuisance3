@@ -73,11 +73,11 @@ INormalizedEventSource::INormalizedEventSource(
       return unit_sf;
     }
 
-    if ((input_units.tgtscale == TargetScale::PerTarget) &&
-        (to_units.tgtscale == TargetScale::PerTargetNucleon)) {
+    if ((input_units.tgtscale == TargetScale::PerAtom) &&
+        (to_units.tgtscale == TargetScale::PerNucleon)) {
       return unit_sf / double(target_A);
-    } else if ((input_units.tgtscale == TargetScale::PerTargetNucleon) &&
-               (to_units.tgtscale == TargetScale::PerTarget)) {
+    } else if ((input_units.tgtscale == TargetScale::PerNucleon) &&
+               (to_units.tgtscale == TargetScale::PerAtom)) {
       return unit_sf * double(target_A);
     } else {
       throw InvalidXSUnitsForNormalization()

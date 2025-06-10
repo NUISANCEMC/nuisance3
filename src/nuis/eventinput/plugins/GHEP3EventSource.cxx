@@ -28,6 +28,7 @@
 #include "HepMC3/GenParticle.h"
 #include "HepMC3/GenRunInfo.h"
 #include "HepMC3/GenVertex.h"
+#include "HepMC3/Print.h"
 
 #include "TChain.h"
 #include "TFile.h"
@@ -74,8 +75,7 @@ std::map<int, int> NEUTToMode{
     {33, 450}, {34, 450}, {36, 150}, {41, 550}, {42, 550}, {43, 550},
     {44, 550}, {45, 550}, {46, 650}, {51, 250}, {52, 250}};
 
-std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
-                                                 bool HaveTotXSSpline) {
+std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(bool HaveTotXSSpline) {
 
   // G.R.1 Valid GenRunInfo
   auto run_info = std::make_shared<HepMC3::GenRunInfo>();
@@ -87,10 +87,10 @@ std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
   run_info->tools().emplace_back(
       HepMC3::GenRunInfo::ToolInfo{"GENIE", GENIE_VERSION_STR, ""});
 
-  // G.R.4 Process Metadata
-  NuHepMC::GR4::WriteProcessIDDefinitions(run_info, Modes);
+  // G.R.8 Process Metadata
+  NuHepMC::GR8::WriteProcessIDDefinitions(run_info, Modes);
 
-  // G.R.5 Vertex Status Metadata
+  // G.R.9 Vertex Status Metadata
   NuHepMC::StatusCodeDescriptors VertexStatuses = {
       {NuHepMC::VertexStatus::Primary,
        {"PrimaryVertex", "The neutrino hard-scatter vertex"}},
@@ -102,7 +102,8 @@ std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
         "single target nucleon from the target nucleus ground state."}},
   };
 
-  NuHepMC::GR5::WriteVertexStatusIDDefinitions(run_info, VertexStatuses);
+  NuHepMC::GR9::WriteVertexStatusIDDefinitions(run_info, VertexStatuses);
+
   NuHepMC::StatusCodeDescriptors ParticleStatuses = {
       {NuHepMC::ParticleStatus::UndecayedPhysical,
        {"UndecayedPhysical",
@@ -119,27 +120,27 @@ std::shared_ptr<HepMC3::GenRunInfo> BuildRunInfo(Long64_t nevents,
       {NuHepMC::ParticleStatus::StruckNucleon,
        {"StruckNucleon", "The nucleon involved in the hard scatter"}},
   };
-  NuHepMC::GR6::WriteParticleStatusIDDefinitions(run_info, ParticleStatuses);
+  NuHepMC::GR10::WriteParticleStatusIDDefinitions(run_info, ParticleStatuses);
   // G.R.7 Event Weights
   NuHepMC::GR7::SetWeightNames(run_info, {
                                              "CV",
                                          });
-  // G.C.1 Signalling Followed Conventions
+  // G.R.4 Signalling Followed Conventions
   std::vector<std::string> conventions = {
-      "G.C.1", "G.C.2", "G.C.4", "E.C.1", "V.C.1", "P.C.1", "P.C.2",
+      "E.C.1",
+      "V.C.1",
+      "P.C.1",
+      "P.C.2",
   };
 
   if (HaveTotXSSpline) {
     conventions.push_back("E.C.2");
-    // G.C.4 Cross Section Units and Target Scaling
-    NuHepMC::GC4::SetCrossSectionUnits(run_info, "pb", "PerTarget");
+    // G.R.6 Cross Section Units and Target Scaling
+    NuHepMC::GR6::SetCrossSectionUnits(run_info, "pb", "PerAtom");
   }
 
-  // G.C.2 File Exposure (Standalone)
-  NuHepMC::GC2::SetExposureNEvents(run_info, nevents);
-
-  // G.C.1 Signalling Followed Conventions
-  NuHepMC::GC1::SetConventions(run_info, conventions);
+  // G.R.4 Signalling Followed Conventions
+  NuHepMC::GR4::SetConventions(run_info, conventions);
 
   return run_info;
 }
@@ -226,7 +227,11 @@ int GetGENIEParticleStatus(::genie::GHepParticle const &p, int proc_id,
   int state = 0;
   switch (p.Status()) {
   case ::genie::kIStInitialState:
-    state = ::NuHepMC::ParticleStatus::IncomingBeam;
+    if ((proc_id == 700) && (p.Pdg() == 11)) {
+      state = ::NuHepMC::ParticleStatus::Target;
+    } else {
+      state = ::NuHepMC::ParticleStatus::IncomingBeam;
+    }
     break;
   case ::genie::kIStNucleonTarget:
   case ::genie::kIStCorrelatedNucleon:
@@ -325,7 +330,7 @@ int ConvertGENIEReactionCode(::genie::GHepRecord const &GHep) {
     if (GHep.Summary()->ProcInfo().IsMEC()) {
       return 300;
     } else if (GHep.Summary()->ProcInfo().IsDiffractive()) {
-      return 700;
+      return 101;
       // CC OTHER
     } else {
       int neut_code = ::genie::utils::ghep::NeutReactionCode(&GHep);
@@ -342,7 +347,7 @@ int ConvertGENIEReactionCode(::genie::GHepRecord const &GHep) {
     if (GHep.Summary()->ProcInfo().IsMEC()) {
       return 350;
     } else if (GHep.Summary()->ProcInfo().IsDiffractive()) {
-      return 752;
+      return 151;
       // NC OTHER
     } else {
       int neut_code = ::genie::utils::ghep::NeutReactionCode(&GHep);
@@ -397,10 +402,63 @@ std::string PartToStr(HepMC3::ConstGenParticlePtr pt) {
   return ss.str();
 }
 
+std::string GHEPToStr(::genie::GHepRecord const &GHep) {
+  std::stringstream ss;
+
+  ss << "=====================================\n";
+  ss << "GHEP\n";
+  ss << "  ScatteringTypeId: "
+     << int(GHep.Summary()->ProcInfo().ScatteringTypeId()) << ", "
+     << genie::ScatteringType::AsString(
+            GHep.Summary()->ProcInfo().ScatteringTypeId())
+     << "\n";
+  ss << "  InteractionTypeId: "
+     << int(GHep.Summary()->ProcInfo().InteractionTypeId()) << ", "
+     << genie::InteractionType::AsString(
+            GHep.Summary()->ProcInfo().InteractionTypeId())
+     << "\n\n";
+
+  ss << "  IsNuElectronElastic: "
+     << GHep.Summary()->ProcInfo().IsNuElectronElastic() << "\n";
+  ss << "  IsWeakCC: " << GHep.Summary()->ProcInfo().IsWeakCC() << "\n";
+  ss << "  IsWeakNC: " << GHep.Summary()->ProcInfo().IsWeakNC() << "\n";
+  ss << "  IsIMDAnnihilation: "
+     << GHep.Summary()->ProcInfo().IsIMDAnnihilation() << "\n";
+  ss << "  IsInverseMuDecay: " << GHep.Summary()->ProcInfo().IsInverseMuDecay()
+     << "\n";
+  ss << "  IsEM: " << GHep.Summary()->ProcInfo().IsEM() << "\n\n";
+
+  ss << "  IsQuasiElastic: " << GHep.Summary()->ProcInfo().IsQuasiElastic()
+     << "\n";
+  ss << "  IsMEC: " << GHep.Summary()->ProcInfo().IsMEC() << "\n";
+  ss << "  IsResonant: " << GHep.Summary()->ProcInfo().IsResonant() << "\n";
+  ss << "  IsDeepInelastic: " << GHep.Summary()->ProcInfo().IsDeepInelastic()
+     << "\n";
+  ss << "  IsDiffractive: " << GHep.Summary()->ProcInfo().IsDiffractive()
+     << "\n\n";
+  ss << "  NeutReactionCode: " << ::genie::utils::ghep::NeutReactionCode(&GHep)
+     << "\n\n";
+  ss << "  TargetNucleus: "
+     << (GHep.TargetNucleus() ? std::to_string(GHep.TargetNucleus()->Pdg())
+                              : std::string("nullptr"))
+     << "\n";
+
+  ss << "-------------------------------------\n";
+  size_t i = 0;
+  for (auto const &po : GHep) {
+    ::genie::GHepParticle const &p =
+        dynamic_cast<::genie::GHepParticle const &>(*po);
+    ss << "  p_" << (i++) << ": " << p.Pdg() << ", " << p.Status() << "\n";
+  }
+  ss << "=====================================\n";
+  return ss.str();
+}
+
 std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
   auto evt = std::make_shared<HepMC3::GenEvent>(HepMC3::Units::GEV);
 
   auto proc_id = ConvertGENIEReactionCode(GHep);
+  bool IsNuElectronElastic = (proc_id == 700);
   ::NuHepMC::ER3::SetProcessID(*evt, proc_id);
 
   ::NuHepMC::add_attribute(*evt, "GENIE.Resonance",
@@ -447,13 +505,18 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
 
   auto primary_vtx = std::make_shared<HepMC3::GenVertex>();
   primary_vtx->set_status(::NuHepMC::VertexStatus::Primary);
+
   auto fsi_vtx = std::make_shared<HepMC3::GenVertex>();
   fsi_vtx->set_status(::NuHepMC::VertexStatus::FSISummary);
+
   auto nucsep_vtx = std::make_shared<HepMC3::GenVertex>();
   nucsep_vtx->set_status(::NuHepMC::VertexStatus::NucleonSeparation);
 
   evt->add_vertex(primary_vtx);
-  evt->add_vertex(fsi_vtx);
+
+  if (!IsNuElectronElastic) { // no FSI for NuEEl
+    evt->add_vertex(fsi_vtx);
+  }
 
   // Loop over all particles
   for (auto const &po : GHep) {
@@ -482,12 +545,18 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
         fsi_vtx->add_particle_in(part);
         continue;
       } else if ((state == ::NuHepMC::ParticleStatus::UndecayedPhysical)) {
-        primary_vtx->add_particle_out(part);
+        if (!IsNuElectronElastic || (pid < 1000000000)) {
+          primary_vtx->add_particle_out(part);
+        }
         continue;
       } else if ((state == ::NuHepMC::ParticleStatus::Target)) {
-        nucsep_vtx->add_particle_in(part);
+        if (IsNuElectronElastic && (pid == 11)) {
+          primary_vtx->add_particle_in(part);
+        } else {
+          nucsep_vtx->add_particle_in(part);
+        }
         continue;
-      } else if ((state == ::NuHepMC::ParticleStatus::StruckNucleon)) {
+      } else if (state == ::NuHepMC::ParticleStatus::StruckNucleon) {
         nucsep_vtx->add_particle_out(part);
         continue;
       }
@@ -497,7 +566,7 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
         nucsep_vtx->add_particle_out(part);
         continue;
       } else if ((state == ::NuHepMC::ParticleStatus::UndecayedPhysical)) {
-        fsi_vtx->add_particle_out(part);
+        (IsNuElectronElastic ? primary_vtx : fsi_vtx)->add_particle_out(part);
         continue;
       }
     }
@@ -507,7 +576,7 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
     }
   }
 
-  if (nucsep_vtx->particles_in().size()) {
+  if (!IsNuElectronElastic && nucsep_vtx->particles_in().size()) {
     evt->add_vertex(nucsep_vtx);
   }
 
@@ -542,10 +611,12 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
                    PartToStr(part));
     }
 
-    throw FailedGHEPParsing() << GHep;
+    throw FailedGHEPParsing() << GHEPToStr(GHep) << "\n\n"
+                              << "  proc_id = " << proc_id << "\n\n"
+                              << GHep;
   }
 
-  if (tgtp->pid() != TargetPDG) {
+  if (!IsNuElectronElastic && (tgtp->pid() != TargetPDG)) {
     log_warn("GHEP3EventSource target particle with pid={}, but NUISANCE "
              "target resolver found TargetPDG={}, IsFree={}.",
              tgtp->pid(), TargetPDG, IsFree);
@@ -696,7 +767,7 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
 
   auto xspline = GetSpline(tpart->pid(), bpart->pid());
 
-  gri = ghepconv::BuildRunInfo(chin->GetEntries(), xspline);
+  gri = ghepconv::BuildRunInfo(xspline);
 
   ge->set_event_number(ient);
   ge->set_run_info(gri);
@@ -707,8 +778,8 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
               genie::units::pb;
     if (!std::isnormal(xs)) {
       log_debug("xs(E = {}, probe = {}, tgt = {}) = {}",
-               bpart->momentum().e() / ps::unit::GeV, bpart->pid(),
-               tpart->pid(), xs);
+                bpart->momentum().e() / ps::unit::GeV, bpart->pid(),
+                tpart->pid(), xs);
     } else {
       NUIS_LOG_TRACE("xs(E = {}, probe = {}, tgt = {}) = {}",
                      bpart->momentum().e() / ps::unit::GeV, bpart->pid(),
@@ -748,8 +819,8 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
               genie::units::pb;
     if (!std::isnormal(xs)) {
       log_debug("xs(E = {}, probe = {}, tgt = {}) = {}",
-               bpart->momentum().e() / ps::unit::GeV, bpart->pid(),
-               tpart->pid(), xs);
+                bpart->momentum().e() / ps::unit::GeV, bpart->pid(),
+                tpart->pid(), xs);
     } else {
       NUIS_LOG_TRACE("xs(E = {}, probe = {}, tgt = {}) = {}",
                      bpart->momentum().e() / ps::unit::GeV, bpart->pid(),

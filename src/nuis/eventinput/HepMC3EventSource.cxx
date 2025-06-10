@@ -2,8 +2,7 @@
 
 // this is required to enable gzip reading if we built in the support
 #include "NuHepMC/HepMC3Features.hxx"
-
-#include "HepMC3/ReaderFactory.h"
+#include "NuHepMC/Reader.hxx"
 
 #include "nuis/log.txx"
 
@@ -33,7 +32,7 @@ std::shared_ptr<HepMC3::GenEvent> HepMC3EventSource::first() {
   }
 
   // reopen the file from the start and get the next event
-  reader = HepMC3::deduce_reader(filepath);
+  reader = std::make_unique<NuHepMC::Reader>(filepath);
   if (!reader || reader->failed()) {
     log_warn("Couldn't deduce reader for {} reader = {}, failed {}",
              filepath.native(), bool(reader),
