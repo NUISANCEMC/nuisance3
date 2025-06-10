@@ -173,7 +173,6 @@ private:
 
   size_t max_events_to_loop;
   size_t progress_report_every;
-  size_t nevents;
 
   // first/next state
   std::vector<std::string> all_column_names;
