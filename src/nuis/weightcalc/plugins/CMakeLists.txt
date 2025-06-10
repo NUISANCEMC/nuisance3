@@ -53,7 +53,7 @@ if(TARGET Prob3plusplus::Prob3plusplus)
 endif()
 
 find_package(T2KReWeight QUIET)
-if(T2KReWeight_FOUND)
+if(FALSE AND T2KReWeight_FOUND)
   add_library(T2KReWeight_weightcalc_plugin SHARED T2KReWeightCalc.cxx)
   target_link_libraries(T2KReWeight_weightcalc_plugin PUBLIC neutvect_eventinput_plugin T2KReWeight::All nuis_options)
 
