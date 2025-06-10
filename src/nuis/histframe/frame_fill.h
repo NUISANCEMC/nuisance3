@@ -209,8 +209,8 @@ void fill_loop(HistFrame &hf, EFT const &ef,
         try {
           auto categ_val =
               std::stol(hf.column_info[col_it].name.substr(
-                              the_plan.categorize_by_colname.size() + 1),
-                          nullptr, 10);
+                            the_plan.categorize_by_colname.size() + 1),
+                        nullptr, 10);
           unlabelled_categ_list.push_back(categ_val);
           unlabelled_categ_columns.push_back(col_it);
         } catch (std::invalid_argument const &ia) {
@@ -527,7 +527,7 @@ void fill(HistFrame &hf, EFT const &ef,
   }
 
   if (the_plan.default_fill_col == HistFrame::npos) {
-    if (!eft::is_valid_col<EFT>(the_plan.categorize_by_col) ||
+    if (!eft::is_valid_col<EFT>(the_plan.categorize_by_col) &&
         !the_plan.weight_map_cols.size()) {
       throw InvalidOperation()
           << "no filled column operations were provided. Expected at least one "
