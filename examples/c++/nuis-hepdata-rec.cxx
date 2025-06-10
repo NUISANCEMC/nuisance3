@@ -38,7 +38,7 @@ type: hepdata
     return 0;
   }
 
-  std::vector<INormalizedEventSourcePtr> inputs;
+  std::vector<NormalizedEventSourcePtr> inputs;
 
   EventSourceFactory ef;
 
