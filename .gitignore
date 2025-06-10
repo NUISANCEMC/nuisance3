@@ -1,8 +1,8 @@
 backup
-#data
-build
+data
+build*
 notebooks
-
+.DS_Store
 *-checkpoint.ipynb
 
 # Prerequisites
