@@ -37,12 +37,12 @@ struct HistFrame : public BinnedValuesBase {
   HistFrame &operator=(HistFrame const &other) = default;
 
   struct column_view {
-    Eigen::ArrayXdRef count;
+    Eigen::ArrayXdRef sumweight;
     Eigen::ArrayXdRef variance;
   };
 
   struct column_view_const {
-    Eigen::ArrayXdCRef count;
+    Eigen::ArrayXdCRef sumweight;
     Eigen::ArrayXdCRef variance;
   };
 
