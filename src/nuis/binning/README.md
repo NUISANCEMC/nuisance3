@@ -41,7 +41,7 @@ auto allthebins = nuis::Binning::product({mybins, mybins2d, myotherbins});
 
 ### Why another binning/histogramming library?
 
-When designing NUISANCE3 we looked at existing histogramming solutions in an around HEP, specifically implementations offered by [ROOT](https://root.cern.ch/doc/master/classTH1.html), [Boost::Histogram](https://www.boost.org/doc/libs/1_86_0/libs/histogram/doc/html/index.html), and [YODA](https://yoda.hepforge.org), and none quite covered our problem space without custom extensions that we ultimately decided would eliminate the utility of using a pre-existing solution. We needed to be able to express arbitrary hyper-rectangular bins in an arbitrary number of dimensions. For arbitrary multi-dimensional histograms, YODA, and ROOT both enforce that the multi-dimensional bins are the product of independent 1D axes (TH2Poly from ROOT doesn't, but we didn't need fully polygonal binning and the TH2Poly interface appears less supported than the rest of the ROOT Hist library). There are already neutrino measurements in the wild that have multi-dimensional binning with non-uniformity along multiple axes. We could have used any of these histogramming libraries as pure storage and defined our own binning functions mapping from the ND to 1D space, but that would have given us less flexibility to tailor our histogramming facilities to the NUISANCE solution space. So we decided to start from scratch. In the design, we have taken inspiration from all of the excellent existing solutions, as well as the HEPData YAML histogram format.
+When designing NUISANCE3 we looked at existing histogramming solutions in an around HEP, specifically implementations offered by [ROOT](https://root.cern.ch/doc/master/classTH1.html), [Boost::Histogram](https://www.boost.org/doc/libs/1_86_0/libs/histogram/doc/html/index.html), and [YODA](https://yoda.hepforge.org), and none quite covered our problem space without custom extensions that we ultimately decided would eliminate the utility of using a pre-existing solution. We needed to be able to express arbitrary hyper-rectangular bins in an arbitrary number of dimensions. For arbitrary multi-dimensional histograms, YODA, and ROOT both enforce that the multi-dimensional bins are the product of independent 1D axes (TH2Poly from ROOT doesn't, but we didn't need fully polygonal binning and the TH2Poly interface appears less supported than the rest of the ROOT Hist library). There are already neutrino measurements in the wild that have multi-dimensional binning with non-uniform binning along multiple axes. We could have used any of these histogramming libraries as pure storage and defined our own binning functions mapping from the ND to 1D space, but that would have given us less flexibility to tailor our histogramming facilities to the NUISANCE solution space. So we decided to start from scratch. In the design, we have taken inspiration from all of the excellent existing solutions, as well as the HEPData YAML histogram format.
 
 ### Why no flow bins by default?
 
@@ -56,7 +56,6 @@ For differential cross section measurements under/overflow bins are problematic 
 #### YODA
 
 #### HEPData
-
 
 ## Binning (utility?) functions
 
