@@ -448,13 +448,17 @@ std::string GHEPToStr(::genie::GHepRecord const &GHep) {
   for (auto const &po : GHep) {
     ::genie::GHepParticle const &p =
         dynamic_cast<::genie::GHepParticle const &>(*po);
-    ss << "  p_" << (i++) << ": " << p.Pdg() << ", " << p.Status() << "\n";
+
+    ss << "  p_" << (i++) << ": " << p.Pdg() << ", " << p.Status() << "["
+       << p.Px() << "," << p.Py() << "," << p.Pz() << "," << p.E() << "]"
+       << "\n";
   }
   ss << "=====================================\n";
   return ss.str();
 }
 
 std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
+
   auto evt = std::make_shared<HepMC3::GenEvent>(HepMC3::Units::GEV);
 
   auto proc_id = ConvertGENIEReactionCode(GHep);
@@ -518,6 +522,24 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
     evt->add_vertex(fsi_vtx);
   }
 
+  //This is a hack to nullify events that have particles with weird NANs in them
+  bool is_broken_event = false;
+  for (auto const &po : GHep) {
+    ::genie::GHepParticle const &p =
+        dynamic_cast<::genie::GHepParticle const &>(*po);
+    // Get Status
+    int state = GetGENIEParticleStatus(p, proc_id, TargetPDG, IsFree);
+
+    if (state != ::NuHepMC::ParticleStatus::UndecayedPhysical) {
+      continue;
+    }
+
+    if (!std::isnormal(p.E())) {
+      is_broken_event = true;
+      break;
+    }
+  }
+
   // Loop over all particles
   for (auto const &po : GHep) {
     ::genie::GHepParticle const &p =
@@ -546,6 +568,9 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
         continue;
       } else if ((state == ::NuHepMC::ParticleStatus::UndecayedPhysical)) {
         if (!IsNuElectronElastic || (pid < 1000000000)) {
+          if (is_broken_event) {
+            part->set_status(::NuHepMC::ParticleStatus::DocumentationLine);
+          }
           primary_vtx->add_particle_out(part);
         }
         continue;
@@ -566,6 +591,9 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
         nucsep_vtx->add_particle_out(part);
         continue;
       } else if ((state == ::NuHepMC::ParticleStatus::UndecayedPhysical)) {
+        if (is_broken_event) {
+          part->set_status(::NuHepMC::ParticleStatus::DocumentationLine);
+        }
         (IsNuElectronElastic ? primary_vtx : fsi_vtx)->add_particle_out(part);
         continue;
       }
@@ -596,7 +624,7 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
     log_critical("GHEP3 event contained no final state particles");
   }
 
-  if ((!beamp) || (!tgtp) || (!nfs)) {
+  if (!is_broken_event && ((!beamp) || (!tgtp) || (!nfs))) {
 
     for (auto const &po : GHep) {
       ::genie::GHepParticle const &p =
