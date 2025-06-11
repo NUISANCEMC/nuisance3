@@ -24,7 +24,7 @@ namespace nuis {
 
 namespace detail {
 
-template <typename EFT> inline std::string colinfo(EFT const &ef, int col) {
+template <typename EFT, typename T> inline std::string colinfo(EFT const &ef, T col) {
   if constexpr (std::is_same_v<EFT, EventFrame>) {
     return (col == EventFrame::npos)
                ? "INVALIDCOLUMN"
@@ -32,7 +32,7 @@ template <typename EFT> inline std::string colinfo(EFT const &ef, int col) {
   }
 #ifdef NUIS_ARROW_ENABLED
   else if constexpr (std::is_same_v<EFT, std::shared_ptr<arrow::RecordBatch>>) {
-    throw std::runtime_error("unimplemented for arrow");
+    return "ARROW-PLACEHOLDER-COLUMN";
   }
 #endif
   else if constexpr (std::is_same_v<EFT, HistFrame>) {
