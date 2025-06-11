@@ -8,6 +8,8 @@
 
 #include "nuis/log.txx"
 
+#include <chrono>
+
 #define COLUMN_TYPE_ITER                                                       \
   X(bool)                                                                      \
   X(int)                                                                       \
@@ -91,9 +93,8 @@ EventFrame EventFrameGen::next(size_t nchunk) {
     nchunk = chunk_size;
   }
 
-  log_trace(
-      "EventFrameGen::next() neventsprocessed: {}, max_events_to_loop: {}",
-      neventsprocessed, max_events_to_loop);
+  log_info("EventFrameGen::next() neventsprocessed: {}, max_events_to_loop: {}",
+           neventsprocessed, max_events_to_loop);
 
   if (neventsprocessed >= max_events_to_loop) {
     return {all_column_names, Eigen::ArrayXXd(0, all_column_names.size()), 0};
@@ -105,7 +106,8 @@ EventFrame EventFrameGen::next(size_t nchunk) {
 
   auto end_it = end(source);
 
-  // nuis::StopTalking();
+  const auto start{std::chrono::steady_clock::now()};
+
   while (ev_it != end_it) {
     auto const &[evp, cvw] = *ev_it;
     auto const &ev = *evp;
@@ -114,11 +116,8 @@ EventFrame EventFrameGen::next(size_t nchunk) {
 
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
-      // nuis::StartTalking();
       log_info("EventFrameGen has selected {} from {} processed events.",
-               n_total_rows,
-               neventsprocessed);
-      // nuis::StopTalking();
+               n_total_rows, neventsprocessed);
     }
 
     bool cut = false;
@@ -190,7 +189,11 @@ EventFrame EventFrameGen::next(size_t nchunk) {
     }
     ++ev_it;
   }
-  // nuis::StartTalking();
+
+  const auto finish{std::chrono::steady_clock::now()};
+  const auto elapsed_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(finish - start)
+          .count();
 
   if (chunk_row) {
     // reset the last fatx entries to be the final best estimate, otherwise if
@@ -204,10 +207,10 @@ EventFrame EventFrameGen::next(size_t nchunk) {
     chunk(chunk_row - 1, 3) = fatx_pn / sumweights_pn;
   }
 
-  log_trace(
-      "EventFrameGen::next() done looping  n_total_rows: {} neventsprocessed: "
-      "{} chunk_row: {}",
-      n_total_rows, neventsprocessed, chunk_row);
+  log_info(
+      "EventFrameGen::next() done looping n_total_rows: {} neventsprocessed: "
+      "{} in {} ms. chunk_row: {}",
+      n_total_rows, neventsprocessed, elapsed_ms, chunk_row);
 
   ++ev_it;
 
@@ -409,8 +412,7 @@ EventFrameGen::_nextArrow(size_t nchunk) {
     if (neventsprocessed && progress_report_every &&
         !(neventsprocessed % progress_report_every)) {
       log_info("EventFrameGen has selected {} from {} processed events.",
-               n_total_rows,
-               neventsprocessed);
+               n_total_rows, neventsprocessed);
     }
 
     bool cut = false;
