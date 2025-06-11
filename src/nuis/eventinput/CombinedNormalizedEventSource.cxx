@@ -1,16 +1,26 @@
 #include "nuis/eventinput/CombinedNormalizedEventSource.h"
 
 #include "nuis/log.txx"
+#include "nuis/except.h"
 
 #include <numeric>
 
 namespace nuis {
+
+DECLARE_NUISANCE_EXCEPT(CombinedWithSelf);
 
 CombinedNormalizedEventSource::CombinedNormalizedEventSource(
     CombinedNormalizedEventSource::COp op,
     std::vector<NormalizedEventSourcePtr> components)
     : NormalizedEventSource(nullptr), src_it{0}, combo_op{op} {
   for (auto &c : components) {
+    for (auto &[_, pc] : comp_evs) {
+      if (pc.get() == c.get()) {
+        log_critical("[CombinedNormalizedEventSource] Tried to combine the "
+                     "same NormalizedEventSource with itself.");
+        throw CombinedWithSelf();
+      }
+    }
     comp_evs.push_back(std::pair<CStatus, NormalizedEventSourcePtr>(kFirst, c));
   }
 }
