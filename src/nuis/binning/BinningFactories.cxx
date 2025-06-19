@@ -44,7 +44,7 @@ BinningPtr Binning::lin_space(double start, double stop, size_t nbins,
     }
 
     if ((x[0] != 0) && !std::isnormal(x[0])) {
-      log_warn("[lin_space({},{},{}).binning_function] was passed an "
+      log_info("[lin_space({},{},{}).binning_function] was passed an "
                "abnornmal number = {}. Returning npos. Compile with "
                "CMAKE_BUILD_TYPE=Debug to make this an exception.",
                start, stop, nbins, x[0]);
@@ -154,7 +154,7 @@ Binning::lin_spaceND(std::vector<std::tuple<double, double, size_t>> axes,
     for (size_t ax_i = 0; ax_i < nax; ++ax_i) {
 
       if ((x[ax_i] != 0) && !std::isnormal(x[ax_i])) {
-        log_warn(
+        log_info(
             "[lin_spaceND({}).binning_function] was passed an "
             "abnornmal number = {} on axis {}. Returning npos. Compile with "
             "CMAKE_BUILD_TYPE=Debug to make this an exception.",
@@ -252,7 +252,7 @@ BinningPtr log_space_impl(double start, double stop, size_t nbins,
     }
 
     if (!std::isnormal(x[0])) {
-      Binning::log_warn(
+      Binning::log_info(
           "[log{}_space({},{},{}).binning_function] was passed an "
           "abnornmal number = {}. Returning npos. Compile with "
           "CMAKE_BUILD_TYPE=Debug to make this an exception.",
@@ -341,7 +341,7 @@ BinningPtr Binning::contiguous(std::vector<double> const &edges,
     }
 
     if ((x[0] != 0) && !std::isnormal(x[0])) {
-      log_warn("[contiguous.binning_function] was passed an "
+      log_info("[contiguous.binning_function] was passed an "
                "abnornmal number = {}. Returning npos. Compile with "
                "CMAKE_BUILD_TYPE=Debug to make this an exception.",
                x[0]);

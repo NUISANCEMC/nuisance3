@@ -522,7 +522,8 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
     evt->add_vertex(fsi_vtx);
   }
 
-  //This is a hack to nullify events that have particles with weird NANs in them
+  // This is a hack to nullify events that have particles with weird NANs in
+  // them
   bool is_broken_event = false;
   for (auto const &po : GHep) {
     ::genie::GHepParticle const &p =
@@ -536,6 +537,7 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
 
     if (!std::isnormal(p.E())) {
       is_broken_event = true;
+      log_warn("Broken GHEP3 event encountered.");
       break;
     }
   }
@@ -620,11 +622,11 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
   if (!tgtp) {
     log_critical("GHEP3 event contained no target particle");
   }
-  if (!nfs) {
+  if ((!nfs) && (!is_broken_event)) {
     log_critical("GHEP3 event contained no final state particles");
   }
 
-  if (!is_broken_event && ((!beamp) || (!tgtp) || (!nfs))) {
+  if (((!is_broken_event) && (!nfs)) || (!beamp) || (!tgtp)) {
 
     for (auto const &po : GHep) {
       ::genie::GHepParticle const &p =

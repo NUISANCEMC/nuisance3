@@ -120,8 +120,8 @@ CPMFindPackage(
 CPMFindPackage(
     NAME ProSelecta
     GITHUB_REPOSITORY NUISANCEMC/ProSelecta
-    GIT_TAG v1-RC5
-    VERSION 0.1.1
+    GIT_TAG v1-RC6
+    VERSION 0.1.2
 )
 
 set(NUISANCE_FMT_VERSION "10.2.1")

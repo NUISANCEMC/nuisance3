@@ -4,9 +4,9 @@ find_package(NEUT 5.6.4 QUIET)
 if(NEUT_FOUND)
   CPMFindPackage(
     NAME nvconv
-    GIT_TAG v1-RC8
+    GIT_TAG v1-RC10
     GITHUB_REPOSITORY "neut-devel/neutvect-converter"
-    VERSION 0.9.7
+    VERSION 0.9.8
   )
 
   add_library(neutvect_eventinput_plugin SHARED neutvectEventSource.cxx)

@@ -16,7 +16,8 @@ void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << "\n"
             << "\t-i <input1> [input2 ...]  : neutvect file to read\n"
             << "\t-o <neut.hepmc3>             : hepmc3 file to write\n"
-            << "\t-p <pluginname>              : \n"
+            << "\t-p <pluginname>              : The name of the reader plugin "
+               "to use\n"
             << std::endl;
 }
 
