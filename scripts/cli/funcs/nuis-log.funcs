@@ -1,0 +1,25 @@
+function nuis-set-log-level {
+  if [ -z "${1}" ] || [ -z "${2}" ]; then
+    echo -e "Log name=${1} or log level=${2} are unset. Use like:\n$ nuis-set-log-level <log name> <log level>"
+    return 1
+  fi
+  export "NUIS_LOG_LEVEL_${1}=${2}"
+}
+
+function nuis-say-log-level {
+
+  if [ -z "${1}" ]; then
+    echo -e "Log name=${1} is unset. Use like:\n$ nuis-say-log-level <log name>"
+    return 1
+  fi
+
+  local level
+  level_var="NUIS_LOG_LEVEL_${1}"
+  level=${!level_var}
+  if [ ! -z "${level}" ]; then
+    echo "${level_var}=${level}"
+  else
+    echo "${level_var} is unset"
+    return 1
+  fi
+}

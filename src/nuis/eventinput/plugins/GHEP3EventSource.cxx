@@ -8,6 +8,7 @@
 #include "Framework/Conventions/Units.h"
 #include "Framework/EventGen/EventRecord.h"
 #include "Framework/EventGen/GEVGDriver.h"
+#include "Framework/EventGen/InteractionList.h"
 #include "Framework/GHEP/GHepParticle.h"
 #include "Framework/GHEP/GHepRecord.h"
 #include "Framework/GHEP/GHepUtils.h"
@@ -658,9 +659,33 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
 }
 } // namespace ghepconv
 
-genie::Spline const *GHEP3EventSource::GetSpline(int tgtpdg, int nupdg) {
+GHEP3EventSource::XSSplines::XSSplines(std::string const &tune,
+                                       std::string const &event_generator_list,
+                                       std::string const &spline_file)
+    : EventGeneratorListName(event_generator_list), EvGens{} {
+
+  log_debug("GHep3EventSource::XSSplines: SetTuneName({})", tune);
+  genie::RunOpt::Instance()->SetTuneName(tune);
+  log_debug("GHep3EventSource::XSSplines: SetEventGeneratorList({})",
+            EventGeneratorListName);
+  genie::RunOpt::Instance()->SetEventGeneratorList(EventGeneratorListName);
+  genie::RunOpt::Instance()->BuildTune();
+
+  if (genie::XSecSplineList::Instance()->LoadFromXml(spline_file) !=
+      genie::kXmlOK) {
+    log_error("genie::XsecSplineList failed to load splines from {}",
+              spline_file);
+  }
+}
+
+genie::GEVGDriver &GHEP3EventSource::XSSplines::EVGDriver(int tgtpdg,
+                                                          int nupdg) {
   if (!EventGeneratorListName.size()) {
-    return nullptr;
+    throw std::runtime_error(
+        "Failed to initialize GENIE EVGDriver required for cross section "
+        "calculation:\n* EventGeneratorListName is not defined.\n\tSet "
+        "GENIE_XSEC_EVENTGENERATORLIST environment variable or pass "
+        "event-generator-list configuration key.");
   }
 
   tgtpdg = (tgtpdg == 2212) ? 1000010010 : tgtpdg;
@@ -676,8 +701,40 @@ genie::Spline const *GHEP3EventSource::GetSpline(int tgtpdg, int nupdg) {
         nupdg, tgtpdg, EventGeneratorListName);
   }
 
-  return EvGens[tgtpdg][nupdg]->XSecSumSpline();
+  return *EvGens[tgtpdg][nupdg];
 }
+
+genie::Spline const *GHEP3EventSource::XSSplines::GetXSecSumSpline(int tgtpdg,
+                                                                   int nupdg) {
+  return EVGDriver(tgtpdg, nupdg).XSecSumSpline();
+}
+
+std::vector<std::string>
+GHEP3EventSource::XSSplines::GetXSecSplineNames(int tgtpdg, int nupdg) {
+  auto int_list = *EVGDriver(tgtpdg, nupdg).Interactions();
+  std::vector<std::string> int_names;
+  std::transform(int_list.begin(), int_list.end(),
+                 std::back_inserter(int_names),
+                 [](auto *interaction) { return interaction->AsString(); });
+  return int_names;
+}
+
+genie::Spline const *
+GHEP3EventSource::XSSplines::GetXSecSpline(std::string const &int_name,
+                                           int tgtpdg, int nupdg) {
+  auto &driver = EVGDriver(tgtpdg, nupdg);
+  auto const int_list = driver.Interactions();
+
+  for (auto const *interaction : *int_list) {
+    if (interaction->AsString() == int_name) {
+      return driver.XSecSpline(interaction);
+    }
+  }
+  throw std::runtime_error("Failed to find spline for interaction named: " +
+                           int_name);
+}
+
+GHEP3EventSource::XSSplines::~XSSplines() {}
 
 GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
   log_trace("[GHEP3EventSource] enter");
@@ -700,14 +757,32 @@ GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
     log_trace("[GHEP3EventSource] exit");
   }
 
-  auto evt = first();
+  auto evt = first_GHEPevent();
   if (!evt) { // if we can't read an event, there's no point going further
     return;
   }
 
   genie::Messenger::Instance()->SetPriorityLevel("GHepUtils", pFATAL);
 
-  genie::XSecSplineList *splist = genie::XSecSplineList::Instance();
+  std::string GENIETune;
+  if (cfg["tune"]) {
+    GENIETune = cfg["tune"].as<std::string>();
+  } else if (std::getenv("GENIE_XSEC_TUNE")) {
+    GENIETune = std::getenv("GENIE_XSEC_TUNE");
+  }
+
+  if (!GENIETune.size()) {
+    log_warn("No GENIE Tune set. Add \"tune\" key to configuration "
+             "YAML node or set GENIE_XSEC_TUNE in the environment.");
+    return;
+  }
+
+  std::string EventGeneratorListName;
+  if (cfg["event-generator-list"]) {
+    EventGeneratorListName = cfg["event-generator-list"].as<std::string>();
+  } else if (std::getenv("GENIE_XSEC_EVENTGENERATORLIST")) {
+    EventGeneratorListName = std::getenv("GENIE_XSEC_EVENTGENERATORLIST");
+  }
 
   std::string SplineXML;
   if (cfg["spline_file"]) {
@@ -723,42 +798,11 @@ GHEP3EventSource::GHEP3EventSource(YAML::Node const &cfg) {
     return;
   }
 
-  std::string GENIETune;
-  if (cfg["tune"]) {
-    GENIETune = cfg["tune"].as<std::string>();
-  } else if (std::getenv("GENIE_XSEC_TUNE")) {
-    GENIETune = std::getenv("GENIE_XSEC_TUNE");
-  }
-
-  if (!GENIETune.size()) {
-    log_warn("No GENIE Tune set. Add \"tune\" key to configuration "
-             "YAML node or set GENIE_XSEC_TUNE in the environment.");
-    return;
-  }
-
-  log_debug("GHep3EventSource: SetTuneName({})", GENIETune);
-  genie::RunOpt::Instance()->SetTuneName(GENIETune);
-
-  if (cfg["event-generator-list"]) {
-    EventGeneratorListName = cfg["event-generator-list"].as<std::string>();
-  } else if (std::getenv("GENIE_XSEC_EVENTGENERATORLIST")) {
-    EventGeneratorListName = std::getenv("GENIE_XSEC_EVENTGENERATORLIST");
-  }
-
-  log_debug("GHep3EventSource: SetEventGeneratorList({})",
-            EventGeneratorListName);
-  genie::RunOpt::Instance()->SetEventGeneratorList(EventGeneratorListName);
-
-  genie::RunOpt::Instance()->BuildTune();
-
-  genie::XmlParserStatus_t ist = splist->LoadFromXml(SplineXML);
-  if (ist != genie::kXmlOK) {
-    log_warn("genie::XsecSplineList failed to load from {}", SplineXML);
-    return;
-  }
+  gsplines =
+      std::make_unique<XSSplines>(GENIETune, EventGeneratorListName, SplineXML);
 }
 
-std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
+genie::EventRecord const *GHEP3EventSource::first_GHEPevent() {
 
   if (!filepaths.size()) {
     return nullptr;
@@ -789,13 +833,40 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
 
   ch_fuid = chin->GetFile()->GetUUID();
   ient = 0;
-  auto ge = ghepconv::ToGenEvent(
-      static_cast<genie::GHepRecord const &>(*ntpl->event));
+
+  return ntpl->event;
+}
+
+genie::EventRecord const *GHEP3EventSource::next_GHEPevent() {
+  ient++;
+
+  if (ient >= ch_ents) {
+    return nullptr;
+  }
+
+  ntpl->Clear(); // this stops catastrophic memory leaks
+  chin->GetEntry(ient);
+
+  if (chin->GetFile()->GetUUID() != ch_fuid) {
+    ch_fuid = chin->GetFile()->GetUUID();
+  }
+
+  return ntpl->event;
+}
+
+std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
+
+  auto ghep = first_GHEPevent();
+  if (!ghep) {
+    return nullptr;
+  }
+
+  auto ge = ghepconv::ToGenEvent(static_cast<genie::GHepRecord const &>(*ghep));
 
   auto tpart = NuHepMC::Event::GetTargetParticle(*ge);
   auto bpart = NuHepMC::Event::GetBeamParticle(*ge);
 
-  auto xspline = GetSpline(tpart->pid(), bpart->pid());
+  auto xspline = gsplines->GetXSecSumSpline(tpart->pid(), bpart->pid());
 
   gri = ghepconv::BuildRunInfo(xspline);
 
@@ -822,28 +893,19 @@ std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::first() {
 }
 
 std::shared_ptr<HepMC3::GenEvent> GHEP3EventSource::next() {
-  ient++;
-
-  if (ient >= ch_ents) {
+  auto ghep = next_GHEPevent();
+  if (!ghep) {
     return nullptr;
   }
 
-  ntpl->Clear(); // this stops catastrophic memory leaks
-  chin->GetEntry(ient);
-
-  if (chin->GetFile()->GetUUID() != ch_fuid) {
-    ch_fuid = chin->GetFile()->GetUUID();
-  }
-
-  auto ge = ghepconv::ToGenEvent(
-      static_cast<genie::GHepRecord const &>(*ntpl->event));
+  auto ge = ghepconv::ToGenEvent(static_cast<genie::GHepRecord const &>(*ghep));
   ge->set_event_number(ient);
   ge->set_run_info(gri);
   ge->set_units(HepMC3::Units::MEV, HepMC3::Units::CM);
   auto tpart = NuHepMC::Event::GetTargetParticle(*ge);
   auto bpart = NuHepMC::Event::GetBeamParticle(*ge);
 
-  auto xspline = GetSpline(tpart->pid(), bpart->pid());
+  auto xspline = gsplines->GetXSecSumSpline(tpart->pid(), bpart->pid());
   if (xspline) {
     auto xs = xspline->Evaluate(bpart->momentum().e() / ps::unit::GeV) /
               genie::units::pb;

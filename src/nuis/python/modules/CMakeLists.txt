@@ -14,7 +14,7 @@ if(GENIE3_FOUND AND GENIEReWeight_ENABLED)
 
   target_link_libraries(pyNUISANCEGENIE 
     PRIVATE 
-      GENIE3::All)
+      GHEP3_eventinput_plugin GENIE3::All)
 
   target_include_directories(_pyNUISANCE PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>

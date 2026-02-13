@@ -1,15 +1,21 @@
 #include "Framework/Algorithm/AlgConfigPool.h"
 #include "Framework/Algorithm/AlgFactory.h"
+#include "Framework/Conventions/Units.h"
+#include "Framework/EventGen/GEVGDriver.h"
 #include "Framework/EventGen/XSecAlgorithmI.h"
 #include "Framework/Messenger/Messenger.h"
+#include "Framework/Numerical/Spline.h"
 #include "Framework/Registry/Registry.h"
 #include "Framework/Utils/RunOpt.h"
 
 #include "RwFramework/GSyst.h"
 #include "RwFramework/GSystUncertainty.h"
 
+#include "pybind11/eigen.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
+
+#include "nuis/eventinput/plugins/GHEP3EventSource.h"
 
 #include <algorithm>
 #include <cctype>
@@ -49,7 +55,7 @@ auto TransformPriorityLevelString(std::string priority_value) {
 }
 
 void SetPriorityLevel(std::string const &stream, std::string const &value) {
-  //stop the splash screen
+  // stop the splash screen
   auto default_cout = std::cout.rdbuf();
   std::cout.rdbuf(nullptr);
   auto inst = genie::Messenger::Instance();
@@ -88,6 +94,29 @@ void RunOpt(std::string tune_name = "", std::string event_generator_list = "") {
   genie::RunOpt::Instance()->SetTuneName(tune_name);
   genie::RunOpt::Instance()->BuildTune();
   genie::RunOpt::Instance()->SetEventGeneratorList(event_generator_list);
+}
+
+Eigen::ArrayXd
+EvaluateXSecSpline_pb_nucleon(nuis::GHEP3EventSource::XSSplines &gsplines,
+                              std::string const &int_name, int tgtpdg,
+                              int nupdg, Eigen::ArrayXd const &Enu_GeV) {
+  auto xspline = (int_name == "Total")
+                     ? gsplines.GetXSecSumSpline(tgtpdg, nupdg)
+                     : gsplines.GetXSecSpline(int_name, tgtpdg, nupdg);
+
+  if (!xspline) {
+    throw std::runtime_error("Failed to get GENIE spline for " +
+                             std::to_string(nupdg) + " on " +
+                             std::to_string(tgtpdg));
+  }
+
+  Eigen::ArrayXd xs = Enu_GeV;
+
+  for (int i = 0; i < Enu_GeV.size(); ++i) {
+    xs(i) = xspline->Evaluate(Enu_GeV(i)) / genie::units::pb;
+  }
+
+  return xs;
 }
 
 auto XSecAlgorithmParameters(std::string const &xsec_alg_name) {
@@ -206,4 +235,10 @@ PYBIND11_MODULE(pyNUISANCEGENIE, m) {
              // val = def * (1 + twk * uncert)
              return ((value / defval) - 1) / uncert;
            });
+
+  py::class_<nuis::GHEP3EventSource::XSSplines>(g, "XSSplines")
+      .def(py::init<std::string const &, std::string const &,
+                    std::string const &>())
+      .def("EvaluateXSecSpline_pb_nucleon", &EvaluateXSecSpline_pb_nucleon)
+      .def("GetXSecSplineNames", &nuis::GHEP3EventSource::XSSplines::GetXSecSplineNames);
 }

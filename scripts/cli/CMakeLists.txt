@@ -5,9 +5,10 @@ install(PROGRAMS
   nuis-internal
   DESTINATION bin)
 
+install(DIRECTORY
 # any internal nasty details can 
 # be kept in scripts in here, these 
 # will never form part of the public CLI
-install(DIRECTORY
   internal
+  funcs
   DESTINATION var)

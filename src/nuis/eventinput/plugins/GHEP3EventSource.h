@@ -36,14 +36,30 @@ class GHEP3EventSource : public IEventSource {
 
   genie::NtpMCEventRecord *ntpl;
 
-  std::string EventGeneratorListName;
-  std::unordered_map<
-      int, std::unordered_map<int, std::unique_ptr<genie::GEVGDriver>>>
-      EvGens;
-
-  genie::Spline const *GetSpline(int tgtpdg, int nupdg);
+  genie::EventRecord const *first_GHEPevent();
+  genie::EventRecord const *next_GHEPevent();
 
 public:
+  class XSSplines {
+    std::string EventGeneratorListName;
+    std::unordered_map<
+        int, std::unordered_map<int, std::unique_ptr<genie::GEVGDriver>>>
+        EvGens;
+
+    genie::GEVGDriver &EVGDriver(int tgtpdg, int nupdg);
+
+  public:
+    XSSplines(std::string const &tune, std::string const &event_generator_list,
+              std::string const &spline_file);
+
+    genie::Spline const *GetXSecSumSpline(int tgtpdg, int nupdg);
+    std::vector<std::string> GetXSecSplineNames(int tgtpdg, int nupdg);
+    genie::Spline const *GetXSecSpline(std::string const &int_name, int tgtpdg,
+                                       int nupdg);
+
+    ~XSSplines();
+  };
+
   GHEP3EventSource(YAML::Node const &cfg);
 
   std::shared_ptr<HepMC3::GenEvent> first();
@@ -55,6 +71,9 @@ public:
   genie::EventRecord const *EventRecord(HepMC3::GenEvent const &ev);
 
   virtual ~GHEP3EventSource();
+
+private:
+  std::unique_ptr<XSSplines> gsplines;
 };
 
 } // namespace nuis

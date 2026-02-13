@@ -105,6 +105,8 @@ if [ -e "${NUISANCE3_ROOT}/python/${NUISANCE3_PYVMAJMIN}/" ]; then
   add_to_PYTHONPATH ${NUISANCE3_ROOT}/python/@NUISANCE3_PYVMAJMIN@/
 fi
 
+source ${NUISANCE3_ROOT}/var/funcs/nuis-log.funcs
+
 export NUISANCEDB=@CMAKE_SOURCE_DIR@/data/
 
 unset SCRIPT_DIR

@@ -111,9 +111,9 @@ find_package(Protobuf 2.6 QUIET)
 find_package(HepMC3 3.0 REQUIRED)
 CPMFindPackage(
   NAME NuHepMC_CPPUtils
-  GIT_TAG v1-RC11
+  GIT_TAG v1-RC18
   GIT_REPOSITORY "https://github.com/NuHepMC/cpputils.git"
-  VERSION 0.9.8
+  VERSION 0.9.10
   OPTIONS "NuHepMC_CPPUtils_PYTHON_ENABLED ON"
 )
 
@@ -138,7 +138,7 @@ if(NOT spdlog_FOUND OR NOT fmt_FOUND)
       VERSION "${NUISANCE_FMT_VERSION}"
       GIT_TAG "${NUISANCE_FMT_VERSION}"
       GITHUB_REPOSITORY fmtlib/fmt
-      OPTIONS 
+      OPTIONS
           "FMT_INSTALL ON"
           "BUILD_SHARED_LIBS ON"
   )
@@ -148,7 +148,7 @@ if(NOT spdlog_FOUND OR NOT fmt_FOUND)
       VERSION "${NUISANCE_SPDLOG_VERSION}"
       GIT_TAG "v${NUISANCE_SPDLOG_VERSION}"
       GITHUB_REPOSITORY gabime/spdlog
-      OPTIONS 
+      OPTIONS
           "SPDLOG_COMPILED_LIB ON"
           "SPDLOG_BUILD_SHARED ON"
           "SPDLOG_FMT_EXTERNAL ON"
@@ -198,10 +198,10 @@ if(NOT TARGET Prob3plusplus::Prob3plusplus AND TARGET Prob3plusplus)
 endif()
 
 add_library(nuis_options INTERFACE)
-target_include_directories(nuis_options INTERFACE 
+target_include_directories(nuis_options INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src>
   $<INSTALL_INTERFACE:include>)
-target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter NuHepMC::CPPUtils 
+target_link_libraries(nuis_options INTERFACE ProSelecta::Interpreter NuHepMC::CPPUtils
   yaml-cpp::yaml-cpp spdlog::spdlog Eigen3::Eigen)
 target_compile_options(nuis_options INTERFACE -Wall -Werror -Wextra)
 target_link_options(nuis_options INTERFACE)
@@ -268,7 +268,7 @@ else()
       OPTIONS "BUILD_TESTING OFF"
     )
   endforeach()
-  
+
   target_link_libraries(nuis_options INTERFACE boost_metaparse)
 
 endif()
@@ -295,7 +295,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/examples/c++)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/app)
 
 # BUILD SETUP
-configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.NUISANCE3.sh.in 
+configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/Templates/setup.NUISANCE3.sh.in
   ${PROJECT_BINARY_DIR}/setup.NUISANCE3.sh @ONLY)
 install(PROGRAMS ${PROJECT_BINARY_DIR}/setup.NUISANCE3.sh DESTINATION bin)
 
