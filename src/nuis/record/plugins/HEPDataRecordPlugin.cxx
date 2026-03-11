@@ -102,6 +102,13 @@ auto get_units_scale(std::set<std::string> const &units_bits,
       NuHepMC::CrossSection::Units::Scale::CustomType,
       NuHepMC::CrossSection::Units::TargetScale::CustomType};
 
+  std::stringstream ss;
+  for (auto const &u : units_bits) {
+    ss << u << "|";
+  }
+  auto sstr = ss.str();
+  unit.scale_parsed_from = sstr.substr(0,sstr.size()-1);
+
   double extra_target_scale = 1;
 
   for (auto const &u : units_bits) {
@@ -115,6 +122,8 @@ auto get_units_scale(std::set<std::string> const &units_bits,
     auto tsu = NuHepMC::GR6::ParseCrossSectionTargetScaleUnits(u);
     if (tsu != NuHepMC::CrossSection::Units::TargetScale::CustomType) {
       unit.tgtscale = tsu;
+    } else if(u == "PerTarget"){ // allows the reading of measurements written against NuHepMC v0.9
+      unit.tgtscale = NuHepMC::CrossSection::Units::TargetScale::PerAtom;
     } else if ((u == "PerTargetNeutron")) {
       unit.tgtscale = NuHepMC::CrossSection::Units::TargetScale::PerNucleon;
       extra_target_scale = stgt.A / stgt.N;

@@ -3,6 +3,8 @@
 #include "nuis/eventframe/EventFrame.h"
 #include "nuis/eventframe/column_types.h"
 
+#include "nuis/except.h"
+
 #include "NuHepMC/UnitsUtils.hxx"
 
 #ifdef NUIS_ARROW_ENABLED
@@ -18,6 +20,8 @@
 
 namespace nuis {
 
+DECLARE_NUISANCE_EXCEPT(invalid_cross_section_scale);
+
 template <typename EFT>
 double get_best_fatx_per_sumw_estimate(
     EFT const &ef, NuHepMC::CrossSection::Units::Unit const &xs_units) {
@@ -32,11 +36,16 @@ double get_best_fatx_per_sumw_estimate(
   } else {
     std::stringstream ss;
     ss << xs_units.tgtscale;
-    throw std::runtime_error(
-        fmt::format("When retrieving best fatx_per_sumw estimate from "
-                    "proferred event frame, the analysis target "
-                    "scale was: {}, which is invalid for automatic scaling.",
-                    ss.str()));
+    throw invalid_cross_section_scale() << fmt::format(
+        "When retrieving best fatx_per_sumw estimate from "
+        "proferred event frame, the requested target "
+        "scale was: {}{}, which is invalid for automatic scaling.",
+        ss.str(),
+        (xs_units.scale_parsed_from.size()
+             ? fmt::format(" (parsed from: {{ scale: {}, tgtscale: {} }})",
+                           xs_units.scale_parsed_from,
+                           xs_units.tgtscale_parsed_from)
+             : ""));
   }
 
   static std::map<NuHepMC::CrossSection::Units::Scale, double> const

@@ -59,10 +59,24 @@ struct SingleDistributionAnalysis : public IAnalysis {
       }
     }
 
-    auto final_prediction =
-        finalise(comparison_prediction,
-                 get_best_fatx_per_sumw_estimate(batch, xsscale.units) *
-                     xsscale.extra_scale_factor);
+    double fatx_per_sumw = 0;
+    try {
+      fatx_per_sumw = get_best_fatx_per_sumw_estimate(batch, xsscale.units);
+    } catch (invalid_cross_section_scale &e) {
+      throw invalid_cross_section_scale()
+          << R"(In SingleDistributionAnalysis:
+    The IAnalysis XSScale was found to have invalid units.
+
+    The HEPData analysis needs to be updated, or an exceptional parser case
+      needs to be added to src/record/plugins/HEPDataRecordPlugin.cxx:get_units_scale.
+      The underlying exception message follows:
+
+     )"
+          << e.what();
+    }
+
+    auto final_prediction = finalise(
+        comparison_prediction, fatx_per_sumw * xsscale.extra_scale_factor);
 
     Comparison comp{{
                         data,
