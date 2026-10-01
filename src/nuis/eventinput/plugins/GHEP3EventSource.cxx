@@ -539,6 +539,7 @@ std::shared_ptr<HepMC3::GenEvent> ToGenEvent(genie::GHepRecord const &GHep) {
     if (!std::isnormal(p.E())) {
       is_broken_event = true;
       log_warn("Broken GHEP3 event encountered.");
+      log_warn(GHEPToStr(GHep));
       break;
     }
   }
