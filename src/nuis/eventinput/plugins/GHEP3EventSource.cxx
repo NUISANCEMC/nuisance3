@@ -235,8 +235,12 @@ int GetGENIEParticleStatus(::genie::GHepParticle const &p, int proc_id,
     }
     break;
   case ::genie::kIStNucleonTarget:
+    if (proc_id == 300) {
+      state = ::NuHepMC::ParticleStatus::DocumentationLine;
+      break;
+    }
+    [[fallthrough]];
   case ::genie::kIStCorrelatedNucleon:
-  case ::genie::kIStNucleonClusterTarget:
     state = ::NuHepMC::ParticleStatus::StruckNucleon;
     break;
 
@@ -254,6 +258,7 @@ int GetGENIEParticleStatus(::genie::GHepParticle const &p, int proc_id,
   case ::genie::kIStPreDecayResonantState:
   case ::genie::kIStDISPreFragmHadronicState:
   case ::genie::kIStIntermediateState:
+  case ::genie::kIStNucleonClusterTarget:
     state = ::NuHepMC::ParticleStatus::DocumentationLine;
     break;
 
@@ -264,7 +269,7 @@ int GetGENIEParticleStatus(::genie::GHepParticle const &p, int proc_id,
     break;
   }
 
-  if (p.Pdg() > 1000000000) {
+  if ((p.Pdg() > 1000000000) && (p.Pdg() < 2000000001)) {
     if (state ==
         ::NuHepMC::ParticleStatus::IncomingBeam) { // Check that it isn't
                                                    // coherent! Want to
